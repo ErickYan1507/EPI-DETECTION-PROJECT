@@ -386,3 +386,5 @@ Libre d'usage commercial et personnel.
 🚀 [Getting Started](docs/getting-started.md) | 📚 [Documentation](docs/) | 🐛 [Issues](../../issues)
 
 Last Updated: January 9, 2026
+#   E P I - D E T E C T I O N - P R O J E C T  
+ 
