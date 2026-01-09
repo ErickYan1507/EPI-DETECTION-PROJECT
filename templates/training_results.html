@@ -1,0 +1,614 @@
+{% extends "base.html" %}
+
+{% block title %}Résultats d'Entraînement - EPI Detection{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/training-results.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="training-results-container">
+    <!-- En-tête -->
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-graduation-cap"></i> Résultats d'Entraînement</h1>
+            <p class="header-subtitle">Historique et statistiques des modèles entraînés</p>
+        </div>
+        <div class="header-actions">
+            <button onclick="refreshData()" class="btn btn-secondary" title="Actualiser">
+                <i class="fas fa-sync-alt"></i> Actualiser
+            </button>
+            <button onclick="exportResults()" class="btn btn-secondary" title="Exporter les données">
+                <i class="fas fa-download"></i> Exporter
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistiques globales -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="summary-icon"><i class="fas fa-graduation-cap"></i></div>
+            <div class="summary-content">
+                <div class="summary-label">Total d'Entraînements</div>
+                <div class="summary-value" id="totalTrainings">0</div>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon"><i class="fas fa-bullseye"></i></div>
+            <div class="summary-content">
+                <div class="summary-label">Précision moyenne (Train)</div>
+                <div class="summary-value" id="avgTrainAccuracy">0%</div>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="summary-content">
+                <div class="summary-label">Précision moyenne (Val)</div>
+                <div class="summary-value" id="avgValAccuracy">0%</div>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon"><i class="fas fa-clock"></i></div>
+            <div class="summary-content">
+                <div class="summary-label">Dernier Entraînement</div>
+                <div class="summary-value" id="latestTraining">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onglets -->
+    <div class="tabs">
+        <button class="tab-button active" onclick="switchTab('all-results')">
+            <i class="fas fa-list"></i> Tous les résultats
+        </button>
+        <button class="tab-button" onclick="switchTab('comparison')">
+            <i class="fas fa-chart-bar"></i> Comparaison
+        </button>
+        <button class="tab-button" onclick="switchTab('latest')">
+            <i class="fas fa-star"></i> Dernier résultat
+        </button>
+    </div>
+
+    <!-- Tab 1: Tous les résultats -->
+    <div id="all-results" class="tab-content active">
+        <div class="results-table-card">
+            <div class="table-header">
+                <h3>Historique des Entraînements</h3>
+                <input type="text" id="searchInput" class="search-box" placeholder="Rechercher par modèle..." onkeyup="filterTable()">
+            </div>
+            <div class="table-responsive">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Modèle</th>
+                            <th>Version</th>
+                            <th>Epochs</th>
+                            <th>Batch Size</th>
+                            <th>Train Loss</th>
+                            <th>Val Loss</th>
+                            <th>Train Acc</th>
+                            <th>Val Acc</th>
+                            <th>Temps (s)</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody">
+                        <tr>
+                            <td colspan="12" class="no-data">Chargement des données...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Comparaison -->
+    <div id="comparison" class="tab-content">
+        <div class="comparison-container">
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-line"></i> Évolution des Accuracies</h3>
+                <div class="chart-wrapper">
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-line"></i> Évolution des Losses</h3>
+                <div class="chart-wrapper">
+                    <canvas id="lossChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-bar"></i> Comparaison Précision/Rappel</h3>
+                <div class="chart-wrapper">
+                    <canvas id="precisionRecallChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3><i class="fas fa-hourglass"></i> Temps d'Entraînement</h3>
+                <div class="chart-wrapper">
+                    <canvas id="timingChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 3: Dernier résultat -->
+    <div id="latest" class="tab-content">
+        <div class="latest-result-card">
+            <div id="latestResultContent" class="latest-content">
+                <p class="no-data">Aucun résultat d'entraînement trouvé.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour détails -->
+<div id="detailsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Détails d'Entraînement</h2>
+            <button onclick="closeModal()" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Contenu chargé dynamiquement -->
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    let trainingResults = [];
+    let charts = {};
+
+    // Initialiser au chargement
+    document.addEventListener('DOMContentLoaded', function() {
+        loadTrainingResults();
+        loadSummary();
+    });
+
+    // Charger les résultats
+    async function loadTrainingResults() {
+        try {
+            const response = await fetch('/api/training-results?limit=100');
+            const data = await response.json();
+            
+            if (data.success) {
+                trainingResults = data.training_results;
+                displayResults();
+                updateCharts();
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            showNotification('Erreur lors du chargement des résultats', 'error');
+        }
+    }
+
+    // Charger le résumé
+    async function loadSummary() {
+        try {
+            const response = await fetch('/api/training-summary');
+            const data = await response.json();
+            
+            if (data.success) {
+                const summary = data.summary;
+                document.getElementById('totalTrainings').textContent = summary.total_trainings;
+                document.getElementById('avgTrainAccuracy').textContent = 
+                    (summary.avg_train_accuracy * 100).toFixed(2) + '%';
+                document.getElementById('avgValAccuracy').textContent = 
+                    (summary.avg_val_accuracy * 100).toFixed(2) + '%';
+                
+                if (summary.latest_training) {
+                    const date = new Date(summary.latest_training.timestamp);
+                    document.getElementById('latestTraining').textContent = date.toLocaleDateString('fr-FR');
+                }
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+        }
+    }
+
+    // Afficher les résultats dans le tableau
+    function displayResults() {
+        const tbody = document.getElementById('resultsTableBody');
+        
+        if (trainingResults.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12" class="no-data">Aucun résultat d\'entraînement</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = trainingResults.map(result => `
+            <tr>
+                <td>${new Date(result.timestamp).toLocaleDateString('fr-FR')}</td>
+                <td><strong>${result.model_name}</strong></td>
+                <td>${result.model_version || '-'}</td>
+                <td>${result.epochs || '-'}</td>
+                <td>${result.batch_size || '-'}</td>
+                <td>${formatNumber(result.training.loss)}</td>
+                <td>${formatNumber(result.validation.loss)}</td>
+                <td>${formatPercent(result.training.accuracy)}</td>
+                <td>${formatPercent(result.validation.accuracy)}</td>
+                <td>${formatTime(result.training_time_seconds)}</td>
+                <td><span class="status-badge ${result.status}">${result.status}</span></td>
+                <td>
+                    <button onclick="showDetails(${result.id})" class="btn-sm btn-info" title="Voir les détails">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Afficher les détails
+    async function showDetails(resultId) {
+        try {
+            const response = await fetch(`/api/training-results/${resultId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const result = data.training_result;
+                const content = generateDetailsHTML(result);
+                document.getElementById('modalBody').innerHTML = content;
+                document.getElementById('modalTitle').textContent = 
+                    `${result.model_name} v${result.model_version}`;
+                document.getElementById('detailsModal').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            showNotification('Erreur lors du chargement des détails', 'error');
+        }
+    }
+
+    // Générer HTML des détails
+    function generateDetailsHTML(result) {
+        return `
+            <div class="details-grid">
+                <div class="detail-section">
+                    <h4>Configuration</h4>
+                    <dl>
+                        <dt>Modèle:</dt><dd>${result.model_name}</dd>
+                        <dt>Version:</dt><dd>${result.model_version}</dd>
+                        <dt>Dataset:</dt><dd>${result.dataset_name}</dd>
+                        <dt>Epochs:</dt><dd>${result.epochs}</dd>
+                        <dt>Batch Size:</dt><dd>${result.batch_size}</dd>
+                    </dl>
+                </div>
+                <div class="detail-section">
+                    <h4>Résultats d'Entraînement</h4>
+                    <dl>
+                        <dt>Loss:</dt><dd>${formatNumber(result.training.loss)}</dd>
+                        <dt>Accuracy:</dt><dd>${formatPercent(result.training.accuracy)}</dd>
+                        <dt>Precision:</dt><dd>${formatPercent(result.training.precision)}</dd>
+                        <dt>Recall:</dt><dd>${formatPercent(result.training.recall)}</dd>
+                        <dt>F1-Score:</dt><dd>${formatPercent(result.training.f1_score)}</dd>
+                    </dl>
+                </div>
+                <div class="detail-section">
+                    <h4>Résultats de Validation</h4>
+                    <dl>
+                        <dt>Loss:</dt><dd>${formatNumber(result.validation.loss)}</dd>
+                        <dt>Accuracy:</dt><dd>${formatPercent(result.validation.accuracy)}</dd>
+                        <dt>Precision:</dt><dd>${formatPercent(result.validation.precision)}</dd>
+                        <dt>Recall:</dt><dd>${formatPercent(result.validation.recall)}</dd>
+                        <dt>F1-Score:</dt><dd>${formatPercent(result.validation.f1_score)}</dd>
+                    </dl>
+                </div>
+                ${result.test ? `
+                <div class="detail-section">
+                    <h4>Résultats de Test</h4>
+                    <dl>
+                        <dt>Loss:</dt><dd>${formatNumber(result.test.loss)}</dd>
+                        <dt>Accuracy:</dt><dd>${formatPercent(result.test.accuracy)}</dd>
+                        <dt>Precision:</dt><dd>${formatPercent(result.test.precision)}</dd>
+                        <dt>Recall:</dt><dd>${formatPercent(result.test.recall)}</dd>
+                        <dt>F1-Score:</dt><dd>${formatPercent(result.test.f1_score)}</dd>
+                    </dl>
+                </div>
+                ` : ''}
+                <div class="detail-section">
+                    <h4>Informations</h4>
+                    <dl>
+                        <dt>Temps d'entraînement:</dt><dd>${formatTime(result.training_time_seconds)}</dd>
+                        <dt>Date:</dt><dd>${new Date(result.timestamp).toLocaleString('fr-FR')}</dd>
+                        <dt>Statut:</dt><dd><span class="status-badge ${result.status}">${result.status}</span></dd>
+                    </dl>
+                </div>
+            </div>
+        `;
+    }
+
+    // Mettre à jour les graphiques
+    function updateCharts() {
+        updateAccuracyChart();
+        updateLossChart();
+        updatePrecisionRecallChart();
+        updateTimingChart();
+    }
+
+    // Graphique des accuracies
+    function updateAccuracyChart() {
+        const ctx = document.getElementById('accuracyChart');
+        if (!ctx) return;
+        
+        if (charts.accuracy) charts.accuracy.destroy();
+        
+        charts.accuracy = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trainingResults.map(r => new Date(r.timestamp).toLocaleDateString('fr-FR')),
+                datasets: [
+                    {
+                        label: 'Train Accuracy',
+                        data: trainingResults.map(r => (r.training.accuracy * 100).toFixed(2)),
+                        borderColor: '#8B1538',
+                        backgroundColor: 'rgba(139, 21, 56, 0.1)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Val Accuracy',
+                        data: trainingResults.map(r => (r.validation.accuracy * 100).toFixed(2)),
+                        borderColor: '#4169E1',
+                        backgroundColor: 'rgba(65, 105, 225, 0.1)',
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        labels: { color: '#FFFFFF' }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { color: '#FFFFFF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        ticks: { color: '#FFFFFF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            }
+        });
+    }
+
+    // Graphique des losses
+    function updateLossChart() {
+        const ctx = document.getElementById('lossChart');
+        if (!ctx) return;
+        
+        if (charts.loss) charts.loss.destroy();
+        
+        charts.loss = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trainingResults.map(r => new Date(r.timestamp).toLocaleDateString('fr-FR')),
+                datasets: [
+                    {
+                        label: 'Train Loss',
+                        data: trainingResults.map(r => r.training.loss),
+                        borderColor: '#8B1538',
+                        backgroundColor: 'rgba(139, 21, 56, 0.1)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Val Loss',
+                        data: trainingResults.map(r => r.validation.loss),
+                        borderColor: '#4169E1',
+                        backgroundColor: 'rgba(65, 105, 225, 0.1)',
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        labels: { color: '#FFFFFF' }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: { color: '#FFFFFF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        ticks: { color: '#FFFFFF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            }
+        });
+    }
+
+    function updatePrecisionRecallChart() {
+        const ctx = document.getElementById('precisionRecallChart');
+        if (!ctx) return;
+        
+        if (charts.pr) charts.pr.destroy();
+        
+        charts.pr = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: trainingResults.map(r => new Date(r.timestamp).toLocaleDateString('fr-FR')),
+                datasets: [
+                    {
+                        label: 'Precision',
+                        data: trainingResults.map(r => (r.training.precision * 100).toFixed(2)),
+                        backgroundColor: '#22c55e'
+                    },
+                    {
+                        label: 'Recall',
+                        data: trainingResults.map(r => (r.training.recall * 100).toFixed(2)),
+                        backgroundColor: '#f59e0b'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        labels: { color: '#FFFFFF' }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { color: '#FFFFFF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        ticks: { color: '#FFFFFF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateTimingChart() {
+        const ctx = document.getElementById('timingChart');
+        if (!ctx) return;
+        
+        if (charts.timing) charts.timing.destroy();
+        
+        charts.timing = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: trainingResults.map(r => `${r.model_name} v${r.model_version}`),
+                datasets: [{
+                    label: 'Temps (secondes)',
+                    data: trainingResults.map(r => r.training_time_seconds),
+                    backgroundColor: '#8B1538'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        labels: { color: '#FFFFFF' }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: { color: '#FFFFFF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        ticks: { color: '#FFFFFF' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            }
+        });
+    }
+
+    // Fonctions utilitaires
+    function formatNumber(val) {
+        return val ? parseFloat(val).toFixed(4) : '-';
+    }
+
+    function formatPercent(val) {
+        return val ? (val * 100).toFixed(2) + '%' : '-';
+    }
+
+    function formatTime(seconds) {
+        if (!seconds) return '-';
+        if (seconds < 60) return seconds.toFixed(1) + 's';
+        return (seconds / 60).toFixed(1) + 'm';
+    }
+
+    // Gestion des onglets
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        document.getElementById(tabName).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    // Filtrage
+    function filterTable() {
+        const searchValue = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#resultsTableBody tr');
+        
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchValue) ? '' : 'none';
+        });
+    }
+
+    // Actions
+    function refreshData() {
+        loadTrainingResults();
+        loadSummary();
+        showNotification('Données actualisées', 'success');
+    }
+
+    function exportResults() {
+        if (trainingResults.length === 0) {
+            showNotification('Aucune donnée à exporter', 'warning');
+            return;
+        }
+        
+        const csv = convertToCSV(trainingResults);
+        downloadCSV(csv, 'training_results.csv');
+    }
+
+    function convertToCSV(data) {
+        const headers = ['Date', 'Modèle', 'Version', 'Epochs', 'Train Loss', 'Val Loss', 'Train Acc', 'Val Acc'];
+        const rows = data.map(r => [
+            new Date(r.timestamp).toLocaleDateString('fr-FR'),
+            r.model_name,
+            r.model_version,
+            r.epochs,
+            r.training.loss,
+            r.validation.loss,
+            r.training.accuracy,
+            r.validation.accuracy
+        ]);
+        
+        return [headers, ...rows].map(row => row.join(',')).join('\n');
+    }
+
+    function downloadCSV(csv, filename) {
+        const link = document.createElement('a');
+        link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+        link.download = filename;
+        link.click();
+    }
+
+    // Modal
+    function closeModal() {
+        document.getElementById('detailsModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('detailsModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    function showNotification(message, type = 'info') {
+        console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+</script>
+{% endblock %}

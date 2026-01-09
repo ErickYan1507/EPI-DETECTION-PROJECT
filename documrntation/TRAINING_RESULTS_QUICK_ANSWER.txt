@@ -1,0 +1,54 @@
+🎯 RÉPONSE DIRECTE À VOTRE QUESTION
+═════════════════════════════════════════════════════════════════════════
+
+Q: Pourquoi training-results.html n'affichait rien?
+A: Parce que les 3 APIs qu'elle appelle n'existaient pas! 🚫
+
+═════════════════════════════════════════════════════════════════════════
+
+AVANT:
+  training-results.html → GET /api/training-results → 404 ❌
+                       → GET /api/training-summary → 404 ❌
+                       → GET /api/training-results/{id} → 404 ❌
+
+APRÈS:
+  training-results.html → GET /api/training-results → ✅ JSON
+                       → GET /api/training-summary → ✅ JSON
+                       → GET /api/training-results/{id} → ✅ JSON
+
+═════════════════════════════════════════════════════════════════════════
+
+AUSSI:
+  - train.py ne sauvegardait PAS en BD unifiée
+  - Données restaient en SQLite local
+  - API ne pouvait pas les récupérer
+
+MAINTENANT:
+  - train.py appelle save_to_unified_db()
+  - Résultats sauvegardés en BD unifiée
+  - API peut les servir
+  - training-results.html les affiche!
+
+═════════════════════════════════════════════════════════════════════════
+
+CE QUI A ÉTÉ CHANGÉ:
+
+1️⃣  app/main.py (+170 lignes)
+    ✅ Ajout 3 endpoints API
+
+2️⃣  train.py (+75 lignes)
+    ✅ Fonction save_to_unified_db()
+
+3️⃣  Documentation (40+ KB)
+    ✅ 4 fichiers complets
+
+═════════════════════════════════════════════════════════════════════════
+
+RÉSULTAT FINAL:
+
+  ✅ training-results.html affiche les résultats
+  ✅ Tous les graphiques fonctionnent
+  ✅ Les statistiques sont à jour
+  ✅ Prêt pour production
+
+═════════════════════════════════════════════════════════════════════════

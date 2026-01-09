@@ -1,0 +1,106 @@
+<!-- templates/results.html - Page des résultats -->
+{% extends "base.html" %}
+
+{% block title %}Résultats de Détection{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="d-flex.justify-content-between align-items-center">
+                <h1 class="h4"><i class="fas fa-search"></i> Résultats de la détection</h1>
+                <div>
+                    <a href="{{ url_for('upload_file') }}" class="btn btn-sm btn-outline-primary me-2"><i class="fas fa-redo"></i> Nouvelle analyse</a>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-chart-line"></i> Dashboard</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7 col-12">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Image analysée</h5>
+                    {% if image_path.startswith('http') or image_path.startswith('/') %}
+                        <img src="{{ image_path }}" alt="Résultat détection" class="img-fluid rounded">
+                    {% else %}
+                        <img src="{{ url_for('static', filename=image_path) }}" alt="Résultat détection" class="img-fluid rounded">
+                    {% endif %}
+                    <div class="mt-3">
+                        <a href="{{ image_path if (image_path.startswith('http') or image_path.startswith('/')) else url_for('static', filename=image_path) }}" class="btn btn-sm btn-outline-dark" download>
+                            <i class="fas fa-download"></i> Télécharger l'image
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Résumé</h5>
+
+                    <div class="mb-3">
+                        <span class="badge bg-{{ 'success' if stats.compliance_rate >= 80 else 'warning' if stats.compliance_rate >= 50 else 'danger' }} me-2">{{ stats.compliance_level | default('—') | capitalize }}</span>
+                        <small class="text-muted">Type d'alerte : <strong>{{ stats.alert_type | capitalize }}</strong></small>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <small>Conformité</small>
+                            <small class="fw-bold">{{ stats.compliance_rate }}%</small>
+                        </div>
+                        <div class="progress mt-2" style="height:14px">
+                            <div class="progress-bar bg-{{ 'success' if stats.compliance_rate >= 80 else 'warning' if stats.compliance_rate >= 50 else 'danger' }}" role="progressbar" style="width: {{ stats.compliance_rate }}%;" aria-valuenow="{{ stats.compliance_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+
+                    <div class="row text-center gy-2">
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <small class="text-muted">Personnes</small>
+                                <div class="h5 mb-0">{{ stats.total_persons }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <small class="text-muted">Casques</small>
+                                <div class="h5 mb-0">{{ stats.with_helmet }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <small class="text-muted">Gilets</small>
+                                <div class="h5 mb-0">{{ stats.with_vest }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <small class="text-muted">Lunettes</small>
+                                <div class="h5 mb-0">{{ stats.with_glasses }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <small class="text-muted">Chaussures</small>
+                                <div class="h5 mb-0">{{ stats.with_boots }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <small class="text-muted">ID détection</small>
+                                <div class="h6 mb-0">{{ detection_id or stats.id or '—' }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button onclick="exportResults()" class="btn btn-sm btn-primary flex-grow-1"><i class="fas fa-file-csv"></i> Exporter (CSV)</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">Voir le dashboard</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

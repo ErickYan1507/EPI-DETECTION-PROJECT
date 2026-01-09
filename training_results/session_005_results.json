@@ -1,0 +1,18 @@
+{
+  "session_number": 5,
+  "timestamp": "2026-01-06T14:46:33.988807",
+  "data": {
+    "session_number": 5,
+    "model_name": "YOLOv5s-EPI",
+    "model_version": "1.0",
+    "dataset_name": "D:\\projet\\EPI-DETECTION-PROJECT\\dataset2",
+    "dataset_size": 0,
+    "epochs": 100,
+    "batch_size": 16,
+    "training_time": 48974.256177425385,
+    "training_dir": "runs\\train\\epi_detection_session_005",
+    "weights_path": "training_results\\models\\epi_detection_session_005.pt",
+    "started_at": "2026-01-06T01:10:17.274733",
+    "completed_at": "2026-01-06T14:46:31.823466"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "session_number": 2,
+  "timestamp": "2025-12-29T10:01:59.211080",
+  "data": {
+    "session_number": 2,
+    "model_name": "YOLOv5s-EPI",
+    "model_version": "1.0",
+    "dataset_name": "dataset",
+    "dataset_size": 0,
+    "epochs": 100,
+    "batch_size": 16,
+    "training_time": 254508.4284863472,
+    "training_dir": "runs\\train\\epi_detection_session_002",
+    "weights_path": "training_results\\models\\session_002\\best.pt",
+    "started_at": "2025-12-26T11:20:09.959045",
+    "completed_at": "2025-12-29T10:01:58.592121"
+  }
+}

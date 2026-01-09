@@ -1,0 +1,26 @@
+torch
+torchvision
+flask
+flask-socketio
+flask-sqlalchemy
+opencv-python
+numpy
+pandas
+yolov5
+mysql-connector-python
+pymysql
+reportlab
+python-socketio
+eventlet
+pillow
+pyyaml
+pytest
+psutil
+flask-cors
+flask-compress
+gunicorn
+python-dotenv
+urllib3>=2.5.0 ; python_version > "3.8" # not directly required, pinned by Snyk to avoid a vulnerability
+pygame>=2.0.0
+pyttsx3>=2.90
+scipy

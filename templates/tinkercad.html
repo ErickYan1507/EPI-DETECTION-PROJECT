@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Tinkercad Simulation{% endblock %}
+{% block content %}
+<div class="container my-4">
+  <h1 class="mb-3">Tinkercad - Simulation Arduino</h1>
+  <p>Interface de simulation pour l'intégration Arduino (TinkerCAD). Utilisez cette page pour visualiser les messages simulés envoyés vers l'API Arduino.</p>
+
+  <div class="card">
+    <div class="card-body">
+      <div id="tinkercad-log" style="min-height:200px;white-space:pre-wrap;font-family:monospace;">Aucun message reçu.</div>
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <button id="send-test" class="btn btn-primary">Envoyer message test</button>
+    <button id="clear-log" class="btn btn-secondary">Effacer</button>
+  </div>
+</div>
+
+<script>
+document.getElementById('send-test').addEventListener('click', async () => {
+  const payload = { message: 'TEST_FROM_TINKERCAD', timestamp: Date.now() };
+  try {
+    const res = await fetch('/api/arduino/simulate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
+    const txt = await res.text();
+    const log = document.getElementById('tinkercad-log');
+    log.textContent = (log.textContent === 'Aucun message reçu.' ? '' : log.textContent + '\n') + '[SENT] ' + JSON.stringify(payload) + '\n[RESP] ' + txt;
+  } catch (e) {
+    const log = document.getElementById('tinkercad-log');
+    log.textContent = 'Erreur envoi: ' + e.message;
+  }
+});
+
+document.getElementById('clear-log').addEventListener('click', () => {
+  document.getElementById('tinkercad-log').textContent = 'Aucun message reçu.';
+});
+</script>
+
+{% endblock %}
