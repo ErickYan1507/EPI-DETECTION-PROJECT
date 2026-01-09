@@ -1,0 +1,112 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Logs
+logs/
+*.log
+*.pot
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+database/*.db
+
+# Models & Data (large files)
+*.pt
+*.pth
+*.ckpt
+models/yolov5/
+yolov5/
+runs/
+training_results/*.db
+
+# Data
+dataset/
+dataset2/
+data/
+raw_images/
+annotated/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+*.exe
+.DS_Store
+Thumbs.db
+
+# Exports
+exports/
+*.pdf
+powerbi/
+
+# Temporary
+temp/
+tmp/
+*.temp
+
+# Build outputs
+dist/
+build/
+*.whl
+
+# Node modules (if using npm for frontend)
+node_modules/
+package-lock.json
+
+# IDE auto-generated
+.vscode/settings.json
+.vscode/launch.json
+
+# Docker
+.docker/
+
+# MkDocs
+site/
