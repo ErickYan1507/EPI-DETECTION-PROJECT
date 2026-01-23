@@ -11,22 +11,23 @@ class Config:
     LOGS_FOLDER = os.path.join(BASE_DIR, 'logs')
     TRAINING_RESULTS_FOLDER = os.path.join(BASE_DIR, 'runs', 'train')
     
-    # Classes EPI
-    CLASS_NAMES = ['helmet', 'vest', 'glasses', 'person']
+    # Classes EPI (5 classes obligatoires: HELMET, GLASSES, PERSON, VEST, BOOTS)
+    CLASS_NAMES = ['helmet', 'glasses', 'person', 'vest', 'boots']
     CLASS_COLORS = {
-        'helmet': (0, 255, 0),    # Vert
-        'vest': (255, 0, 0),      # Rouge
-        'glasses': (0, 0, 255),   # Bleu
-        'person': (255, 255, 0)   # Jaune
+        'helmet': (0, 255, 0),     # Vert
+        'glasses': (0, 0, 255),    # Bleu
+        'person': (255, 255, 0),   # Jaune
+        'vest': (255, 0, 0),       # Rouge
+        'boots': (255, 165, 0)     # Orange
     }
     
-    # Seuils
-    CONFIDENCE_THRESHOLD = 0.25
-    IOU_THRESHOLD = 0.45
+    # Seuils - OPTIMISÉS POUR RÉDUIRE NMS TIME LIMIT
+    CONFIDENCE_THRESHOLD = 0.5  # Seuil de confiance pour les détections
+    IOU_THRESHOLD = 0.65  # Augmenté de 0.45 pour moins de fusions
     
     # ========== MULTI-MODÈLES & ENSEMBLE ==========
     # Activer le système multi-modèles (détection avec tous les modèles)
-    MULTI_MODEL_ENABLED = os.getenv('MULTI_MODEL_ENABLED', 'True').lower() == 'true'
+    MULTI_MODEL_ENABLED = False  # MODÈLE UNIQUE: best.pt.lower() == 'true'
     
     # Stratégie d'agrégation des résultats multi-modèles
     # Options: 'union_nms', 'weighted_voting', 'average'
@@ -40,8 +41,8 @@ class Config:
         'epi_detection_session_005.pt': 0.85
     }
     
-    # Seuil IoU pour NMS dans l'ensemble
-    NMS_IOU_THRESHOLD = 0.5
+    # Seuil IoU pour NMS dans l'ensemble - OPTIMISÉ
+    NMS_IOU_THRESHOLD = 0.65  # Augmenté de 0.5 pour NMS plus efficace
     
     # Nombre minimum de modèles qui doivent être d'accord (pour weighted_voting)
     MIN_ENSEMBLE_VOTES = 2
@@ -111,5 +112,38 @@ class Config:
     USE_SMALLER_MODEL = True
     ENABLE_MODEL_OPTIMIZATION = True
     MAX_DETECTIONS = 30
+    
+    # ========== ACCÉLÉRATION MATÉRIELLE ==========
+    # Backend d'inférence préféré: 'openvino', 'onnx', 'pytorch', 'auto'
+    PREFERRED_BACKEND = os.getenv('PREFERRED_BACKEND', 'auto')
+    
+    # Activer l'accélération matérielle Intel OpenVINO
+    USE_OPENVINO = os.getenv('USE_OPENVINO', 'True').lower() == 'true'
+    
+    # Device OpenVINO: 'AUTO', 'GPU', 'CPU'
+    OPENVINO_DEVICE = os.getenv('OPENVINO_DEVICE', 'AUTO')
+    
+    # Activer ONNX Runtime comme fallback
+    USE_ONNX_RUNTIME = os.getenv('USE_ONNX_RUNTIME', 'True').lower() == 'true'
+    
+    # Providers ONNX Runtime (par ordre de priorité)
+    ONNX_PROVIDERS = [
+        'DmlExecutionProvider',  # DirectML (GPU Intel/AMD)
+        'CPUExecutionProvider'    # CPU fallback
+    ]
+    
+    # Optimisations CPU multi-threading
+    CPU_NUM_THREADS = os.getenv('CPU_NUM_THREADS', '0')  # 0 = auto-detect
+    OMP_NUM_THREADS = os.getenv('OMP_NUM_THREADS', '0')  # OpenMP threads
+    
+    # ========== NOTIFICATIONS EMAIL ==========
+    # Configuration SMTP pour les notifications
+    SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+    SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
+    SENDER_EMAIL = os.getenv('SENDER_EMAIL', '')
+    SENDER_PASSWORD = os.getenv('SENDER_PASSWORD', '')
+    
+    # Adresse email par défaut pour les notifications
+    DEFAULT_NOTIFICATION_EMAIL = os.getenv('DEFAULT_NOTIFICATION_EMAIL', 'admin@epidetection.com')
     
 config = Config()

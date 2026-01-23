@@ -351,6 +351,96 @@ class IoTDataLog(db.Model):
 
 
 # ============================================================================
+# DAILY PRESENCE - Suivi des présences quotidiennes
+# ============================================================================
+
+class DailyPresence(db.Model):
+    """Modèle pour suivre les présences quotidiennes des travailleurs"""
+    __tablename__ = 'daily_presence'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    worker_id = db.Column(db.Integer, db.ForeignKey('workers.id'), nullable=True)  # Peut être null si pas identifié
+    badge_id = db.Column(db.String(50))  # ID du badge ou identifiant temporaire
+    date = db.Column(db.Date, nullable=False, index=True)  # Date de la présence
+    
+    first_detection = db.Column(db.DateTime, nullable=False)  # Première détection du jour
+    last_detection = db.Column(db.DateTime, nullable=False)  # Dernière détection du jour
+    detection_count = db.Column(db.Integer, default=1)  # Nombre de détections dans la journée
+    
+    # État de conformité pour la journée
+    compliance_score = db.Column(db.Float)  # Score moyen de conformité
+    equipment_status = db.Column(db.Text)  # JSON: {'helmet': true, 'vest': true, etc.}
+    
+    # Métadonnées
+    source = db.Column(db.String(50))  # 'camera', 'iot', 'manual'
+    notes = db.Column(db.Text)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relations
+    worker = db.relationship('Worker', backref='daily_presences', lazy=True)
+    
+    def __repr__(self):
+        return f'<DailyPresence {self.badge_id or "Unknown"} - {self.date}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'worker_id': self.worker_id,
+            'badge_id': self.badge_id,
+            'date': self.date.isoformat() if self.date else None,
+            'first_detection': utc_to_local(self.first_detection).strftime('%H:%M:%S') if self.first_detection else None,
+            'last_detection': utc_to_local(self.last_detection).strftime('%H:%M:%S') if self.last_detection else None,
+            'detection_count': self.detection_count,
+            'compliance_score': self.compliance_score,
+            'equipment_status': json.loads(self.equipment_status) if self.equipment_status else None,
+            'source': self.source
+        }
+
+
+# ============================================================================
+# EMAIL NOTIFICATIONS - Configuration des notifications par email
+# ============================================================================
+
+class EmailNotification(db.Model):
+    """Modèle pour configurer les notifications par email"""
+    __tablename__ = 'email_notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email_address = db.Column(db.String(255), nullable=False)
+    notification_type = db.Column(db.String(50), nullable=False)  # 'daily', 'weekly', 'monthly'
+    
+    # Types de rapports à inclure
+    include_detections = db.Column(db.Boolean, default=True)
+    include_alerts = db.Column(db.Boolean, default=True)
+    include_presence = db.Column(db.Boolean, default=True)
+    include_compliance = db.Column(db.Boolean, default=True)
+    
+    is_active = db.Column(db.Boolean, default=True)
+    
+    last_sent = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<EmailNotification {self.email_address} - {self.notification_type}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'email_address': self.email_address,
+            'notification_type': self.notification_type,
+            'include_detections': self.include_detections,
+            'include_alerts': self.include_alerts,
+            'include_presence': self.include_presence,
+            'include_compliance': self.include_compliance,
+            'is_active': self.is_active,
+            'last_sent': utc_to_local(self.last_sent).strftime('%H:%M:%S') if self.last_sent else None
+        }
+
+
+# ============================================================================
 # WORKERS - Information sur les travailleurs
 # ============================================================================
 

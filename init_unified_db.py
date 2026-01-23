@@ -66,7 +66,7 @@ def setup_database():
                 print(f"  ✓ {table}")
             
             # Afficher les comptes
-            from app.database_unified import TrainingResult, Detection, Alert, Worker, IoTSensor, IoTDataLog, SystemLog
+            from app.database_unified import TrainingResult, Detection, Alert, Worker, IoTSensor, IoTDataLog, SystemLog, DailyPresence, EmailNotification
             
             print(f"\n📈 Statistiques actuelles:")
             print(f"  - TrainingResult: {TrainingResult.query.count()}")
@@ -76,6 +76,8 @@ def setup_database():
             print(f"  - IoTSensor: {IoTSensor.query.count()}")
             print(f"  - IoTDataLog: {IoTDataLog.query.count()}")
             print(f"  - SystemLog: {SystemLog.query.count()}")
+            print(f"  - DailyPresence: {DailyPresence.query.count()}")
+            print(f"  - EmailNotification: {EmailNotification.query.count()}")
             
         print("\n✅ Base de données initialisée avec succès!")
         return True

@@ -164,7 +164,7 @@ function refreshData() {
         })
         .catch(err => {
             console.log('Erreur API stats:', err);
-            console.log('Données démo utilisées');
+            console.log('Utilisation des données de démonstration');
             initCharts();
         });
 }
@@ -182,7 +182,7 @@ function initCharts(data = null) {
             alerts: 3,
             detections_today: 156
         };
-        
+
         updateCharts(demoData, hourlyData, epiData, alertsData, cumulData);
     });
 }
@@ -470,6 +470,27 @@ function loadAlerts() {
             console.log('Erreur chargement alertes:', err);
             document.getElementById('alertsList').innerHTML = '<div style="padding: 12px; border-radius: 8px; color: #aaa; text-align: center;">Erreur chargement</div>';
         });
+}
+
+// Fonction d'export PDF
+function exportPDF() {
+    // Demander les dates à l'utilisateur
+    const startDate = prompt('Date de début (YYYY-MM-DD) ou laissez vide pour 7 derniers jours:', '');
+    const endDate = prompt('Date de fin (YYYY-MM-DD) ou laissez vide pour aujourd\'hui:', '');
+    
+    // Construire l'URL
+    let url = '/api/export/detection-pdf';
+    const params = [];
+    
+    if (startDate) params.push(`start_date=${startDate}`);
+    if (endDate) params.push(`end_date=${endDate}`);
+    
+    if (params.length > 0) {
+        url += '?' + params.join('&');
+    }
+    
+    // Ouvrir dans un nouvel onglet pour déclencher le téléchargement
+    window.open(url, '_blank');
 }
 
 // Initialisation au chargement

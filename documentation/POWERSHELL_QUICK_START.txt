@@ -1,0 +1,151 @@
+📝 INSTRUCTIONS POWERSHELL - DÉMARRAGE RAPIDE
+════════════════════════════════════════════════════════════════════════
+
+Pour Windows PowerShell, exécutez ces commandes une par une:
+
+
+ÉTAPE 1: Installer les packages Python
+════════════════════════════════════════════════════════════════════════
+
+Copier-coller dans PowerShell:
+
+python -m pip install -q mysql-connector-python PyMySQL python-dotenv tabulate
+
+
+ÉTAPE 2: Créer les répertoires
+════════════════════════════════════════════════════════════════════════
+
+New-Item -ItemType Directory -Force -Path "database" | Out-Null
+New-Item -ItemType Directory -Force -Path "logs" | Out-Null
+New-Item -ItemType Directory -Force -Path "instance" | Out-Null
+
+
+ÉTAPE 3: Créer .env depuis .env.example
+════════════════════════════════════════════════════════════════════════
+
+Copy-Item ".env.example" ".env" -Force
+
+
+ÉTAPE 4: CONFIGURER MYSQL (interactif)
+════════════════════════════════════════════════════════════════════════
+
+cd app
+python mysql_config_setup.py --all
+
+Répondre aux questions:
+  Host: localhost (ou votre serveur)
+  Port: 3306
+  User: epi_user
+  Password: [votre mot de passe]
+  Database: epi_detection_db
+
+
+ÉTAPE 5: VÉRIFIER LA CONNEXION
+════════════════════════════════════════════════════════════════════════
+
+python sync_databases.py --status
+
+Vous devriez voir:
+  ✓ SQLite: ...
+  ✓ MySQL: ...
+
+
+ÉTAPE 6: LANCER LA SYNCHRONISATION (dans PowerShell)
+════════════════════════════════════════════════════════════════════════
+
+python sync_databases.py --watch
+
+Vous verrez:
+  [1] ✓ SQLite→MySQL synced
+  [2] ✓ MySQL→SQLite synced
+  ...
+
+
+ÉTAPE 7: LANCER L'APP (AUTRE PowerShell, cd .. d'abord)
+════════════════════════════════════════════════════════════════════════
+
+cd ..
+python run_app.py run
+
+Vous verrez:
+  * Running on http://127.0.0.1:5000
+  * Press CTRL+C to quit
+
+
+ÉTAPE 8: TEST
+════════════════════════════════════════════════════════════════════════
+
+Ouvrir dans le navigateur:
+  http://localhost:5000
+
+Ou vérifier le statut:
+  python app\database_manager.py --status
+
+
+════════════════════════════════════════════════════════════════════════
+
+✅ C'EST TOUT! Vous avez SQLite + MySQL qui tournent ensemble! 🎉
+
+La synchronisation se fait automatiquement en arrière-plan.
+
+
+COMMANDES UTILES
+════════════════════════════════════════════════════════════════════════
+
+Vérifier le statut:
+  python app\sync_databases.py --status
+
+Vérifier la santé:
+  python app\database_manager.py --health
+
+Comparer les bases:
+  python app\database_manager.py --compare
+
+Synchroniser manuellement SQLite → MySQL:
+  python app\sync_databases.py --sync-sqlite
+
+Synchroniser manuellement MySQL → SQLite:
+  python app\sync_databases.py --sync-mysql
+
+
+DÉPANNAGE
+════════════════════════════════════════════════════════════════════════
+
+❌ MySQL not connected?
+   → Vérifier que MySQL est en cours d'exécution
+   → Vérifier les paramètres dans .env
+   → python app\mysql_config_setup.py --verify
+
+❌ "sync_databases.py: can't open file"?
+   → Vérifier que vous êtes dans le répertoire app/
+   → Ou utiliser le chemin complet: python app\sync_databases.py --watch
+
+❌ PowerShell erreur "caractère invalide"?
+   → C'est normal, PowerShell n'accepte pas &&
+   → Exécutez les commandes une par une
+   → Ou utilisez: cd app; python mysql_config_setup.py --all
+
+
+CONFIGURATION (.env)
+════════════════════════════════════════════════════════════════════════
+
+Le fichier .env doit contenir:
+
+DUAL_DATABASE=true
+SYNC_MODE=sqlite_primary
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=epi_user
+DB_PASSWORD=votre_mot_de_passe
+DB_NAME=epi_detection_db
+
+Éditez avec Notepad ou votre éditeur préféré.
+
+
+BESOIN D'AIDE?
+════════════════════════════════════════════════════════════════════════
+
+Lire:
+  START_HERE_DUAL_DB.txt
+  GUIDE_DUAL_DATABASE.md
+  INDEX_DUAL_DATABASE.txt

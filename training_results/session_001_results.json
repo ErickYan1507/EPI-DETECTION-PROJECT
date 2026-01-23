@@ -1,18 +1,18 @@
 {
   "session_number": 1,
-  "timestamp": "2025-12-20T08:08:01.240425",
+  "timestamp": "2026-01-15T22:33:37.467950",
   "data": {
     "session_number": 1,
     "model_name": "YOLOv5s-EPI",
     "model_version": "1.0",
     "dataset_name": "dataset",
     "dataset_size": 0,
-    "epochs": 100,
-    "batch_size": 16,
-    "training_time": 29091.016062498093,
-    "training_dir": "runs\\train\\epi_detection_v1",
-    "weights_path": "training_results\\models\\session_001\\best.pt",
-    "started_at": "2025-12-20T00:03:09.235637",
-    "completed_at": "2025-12-20T08:08:00.400638"
+    "epochs": 50,
+    "batch_size": 32,
+    "training_time": 19667.79506802559,
+    "training_dir": "runs\\train\\epi_detection_session_001",
+    "weights_path": "models\\best.pt",
+    "started_at": "2026-01-15T17:05:47.802359",
+    "completed_at": "2026-01-15T22:33:35.745955"
   }
 }

@@ -450,6 +450,143 @@
             </div>
         </div>
 
+        <!-- SECTION 0: Configuration Périphériques Physiques (Optionnel) -->
+        <div class="card" style="margin-bottom: 30px; background: rgba(139, 92, 246, 0.05); border: 2px solid rgba(139, 92, 246, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 class="card-title" style="margin: 0;">⚙️ Configuration Périphériques Physiques (Optionnel)</h2>
+                <button id="toggle-device-config" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.9em;">▼ Afficher</button>
+            </div>
+
+            <div id="device-config-section" style="display: none;">
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #8b5cf6; margin-top: 0; margin-bottom: 15px;">📍 Activation des Périphériques</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                        <!-- Arduino / TinkerCAD -->
+                        <div style="border: 1px solid rgba(139, 92, 246, 0.3); padding: 15px; border-radius: 8px; background: rgba(139, 92, 246, 0.08);">
+                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
+                                <input type="checkbox" id="device-arduino" checked style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                                <span style="font-weight: bold; color: #8b5cf6; font-size: 1.05em;">🔌 Arduino TinkerCAD</span>
+                            </label>
+                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
+                                • Détection de mouvement (PIR)<br>
+                                • Capteurs température/humidité<br>
+                                • LEDs d'état (vert/rouge)<br>
+                                • Buzzer d'alerte
+                            </div>
+                            <input type="text" id="arduino-port" placeholder="COM3 ou /dev/ttyUSB0" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="COM3">
+                        </div>
+
+                        <!-- Capteurs MQTT -->
+                        <div style="border: 1px solid rgba(59, 130, 246, 0.3); padding: 15px; border-radius: 8px; background: rgba(59, 130, 246, 0.08);">
+                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
+                                <input type="checkbox" id="device-mqtt" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                                <span style="font-weight: bold; color: #3b82f6; font-size: 1.05em;">🌐 Capteurs MQTT</span>
+                            </label>
+                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
+                                • Température ambiante<br>
+                                • Humidité relative<br>
+                                • Pression atmosphérique<br>
+                                • Qualité de l'air
+                            </div>
+                            <input type="text" id="mqtt-broker" placeholder="mqtt.example.com:1883" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="localhost:1883">
+                        </div>
+
+                        <!-- Capteurs Réseau (Network IoT) -->
+                        <div style="border: 1px solid rgba(249, 115, 22, 0.3); padding: 15px; border-radius: 8px; background: rgba(249, 115, 22, 0.08);">
+                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
+                                <input type="checkbox" id="device-network" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                                <span style="font-weight: bold; color: #f97316; font-size: 1.05em;">📡 Capteurs Réseau (HTTP)</span>
+                            </label>
+                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
+                                • Requêtes HTTP périodiques<br>
+                                • APIs REST personnalisées<br>
+                                • Webhooks IoT<br>
+                                • Intégration cloud
+                            </div>
+                            <input type="text" id="network-endpoint" placeholder="http://sensor-api.local/data" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="http://localhost:8000/api/sensors">
+                        </div>
+
+                        <!-- Capteurs Bluetooth -->
+                        <div style="border: 1px solid rgba(139, 92, 246, 0.3); padding: 15px; border-radius: 8px; background: rgba(139, 92, 246, 0.08);">
+                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
+                                <input type="checkbox" id="device-bluetooth" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                                <span style="font-weight: bold; color: #8b5cf6; font-size: 1.05em;">🔵 Appareils Bluetooth</span>
+                            </label>
+                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
+                                • Capteurs BLE wearables<br>
+                                • Traceurs de position<br>
+                                • Montres connectées<br>
+                                • Appareils médicaux
+                            </div>
+                            <input type="text" id="bluetooth-device" placeholder="Device UUID ou adresse MAC" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="">
+                        </div>
+
+                        <!-- Capteurs USB -->
+                        <div style="border: 1px solid rgba(6, 182, 212, 0.3); padding: 15px; border-radius: 8px; background: rgba(6, 182, 212, 0.08);">
+                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
+                                <input type="checkbox" id="device-usb" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                                <span style="font-weight: bold; color: #06b6d4; font-size: 1.05em;">🔌 Appareils USB</span>
+                            </label>
+                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
+                                • Capteurs USB directs<br>
+                                • Caméras thermiques<br>
+                                • Analyseurs de qualité<br>
+                                • Lecteurs de badge
+                            </div>
+                            <input type="text" id="usb-device-id" placeholder="Vendor ID:Product ID" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="">
+                        </div>
+
+                        <!-- Intégration Cloud / Edge -->
+                        <div style="border: 1px solid rgba(16, 185, 129, 0.3); padding: 15px; border-radius: 8px; background: rgba(16, 185, 129, 0.08);">
+                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
+                                <input type="checkbox" id="device-cloud" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                                <span style="font-weight: bold; color: #10b981; font-size: 1.05em;">☁️ Cloud / Edge Computing</span>
+                            </label>
+                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
+                                • Azure IoT Hub<br>
+                                • AWS IoT Core<br>
+                                • Google Cloud IoT<br>
+                                • Edge Devices (Nvidia Jetson)
+                            </div>
+                            <input type="text" id="cloud-config" placeholder="API Key ou Connection String" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="">
+                        </div>
+                    </div>
+
+                    <!-- Paramètres Généraux -->
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(139, 92, 246, 0.2);">
+                        <h4 style="color: #8b5cf6; margin-top: 0; margin-bottom: 15px;">⚙️ Paramètres Généraux</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div>
+                                <label style="color: #e2e8f0; font-size: 0.9em; display: block; margin-bottom: 5px;">Intervalle de scan (ms)</label>
+                                <input type="number" id="scan-interval" value="5000" min="1000" max="60000" style="width: 100%; padding: 6px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0;">
+                            </div>
+                            <div>
+                                <label style="color: #e2e8f0; font-size: 0.9em; display: block; margin-bottom: 5px;">Timeout de connexion (s)</label>
+                                <input type="number" id="connection-timeout" value="10" min="1" max="120" style="width: 100%; padding: 6px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0;">
+                            </div>
+                            <div>
+                                <label style="color: #e2e8f0; font-size: 0.9em; display: block; margin-bottom: 5px;">Tentatives de reconnexion</label>
+                                <input type="number" id="reconnect-attempts" value="5" min="1" max="20" style="width: 100%; padding: 6px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Boutons d'Action -->
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" id="apply-device-config" style="padding: 10px 20px; font-size: 1em; flex: 1; min-width: 150px;">✅ Appliquer Configuration</button>
+                    <button class="btn btn-secondary" id="test-devices" style="padding: 10px 20px; font-size: 1em; flex: 1; min-width: 150px;">🧪 Tester Périphériques</button>
+                    <button class="btn btn-secondary" id="reset-device-config" style="padding: 10px 20px; font-size: 1em; flex: 1; min-width: 150px;">🔄 Réinitialiser</button>
+                </div>
+
+                <!-- État de Connexion -->
+                <div id="device-status-log" style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 0.9em; color: #10b981; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid rgba(16, 185, 129, 0.3);">
+                    📍 État de connexion des périphériques...
+                </div>
+            </div>
+        </div>
+
         <!-- SECTION 1: Arduino / IoT Dashboard -->
         <div class="card" style="margin-bottom: 30px;">
             <h2 class="card-title">⚙️ Arduino TinkerCad - Système EPI Detection</h2>
@@ -1364,7 +1501,376 @@
 
 {% block scripts %}
 <script>
-    // Socket.IO client for IoT / simulator updates
+    // ===== CLASSE ARDUINOMANAGER - GESTION AVANCÉE ARDUINO =====
+    class ArduinoManager {
+        constructor(port = 'COM3') {
+            this.port = port;
+            this.connected = false;
+            this.metrics = {
+                motion_detected: false,
+                temperature: null,
+                humidity: null,
+                helmet: false,
+                vest: false,
+                glasses: false,
+                compliance: 0,
+                status: 'DISCONNECTED',
+                last_update: null
+            };
+            this.eventStream = null;
+            this.callbacks = [];
+        }
+
+        async connect() {
+            try {
+                const response = await fetch('/api/physical/arduino/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ port: this.port })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    this.connected = true;
+                    console.log('✅ Arduino connecté');
+                    this.startMetricsStream();
+                    return true;
+                }
+                
+                return false;
+            } catch (err) {
+                console.error('Erreur connexion Arduino:', err);
+                return false;
+            }
+        }
+
+        async disconnect() {
+            try {
+                if (this.eventStream) this.eventStream.close();
+                
+                await fetch('/api/physical/arduino/disconnect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ port: this.port })
+                });
+                
+                this.connected = false;
+                return true;
+            } catch (err) {
+                console.error('Erreur déconnexion Arduino:', err);
+                return false;
+            }
+        }
+
+        async sendCompliance(level) {
+            try {
+                const response = await fetch('/api/physical/arduino/send-compliance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ port: this.port, compliance: level })
+                });
+                return (await response.json()).status === 'ok';
+            } catch (err) {
+                console.error('Erreur conformité:', err);
+                return false;
+            }
+        }
+
+        async sendDetection(helmet, vest, glasses, confidence) {
+            try {
+                const response = await fetch('/api/physical/arduino/send-detection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ port: this.port, helmet, vest, glasses, confidence })
+                });
+                return (await response.json()).status === 'ok';
+            } catch (err) {
+                console.error('Erreur détection:', err);
+                return false;
+            }
+        }
+
+        startMetricsStream() {
+            if (this.eventStream) this.eventStream.close();
+            
+            try {
+                this.eventStream = new EventSource(`/api/physical/arduino/metrics-stream?port=${this.port}`);
+                
+                this.eventStream.onmessage = (event) => {
+                    try {
+                        this.metrics = JSON.parse(event.data);
+                        this.updateUI();
+                        this.callbacks.forEach(cb => cb(this.metrics));
+                    } catch (err) {
+                        console.error('Parse erreur:', err);
+                    }
+                };
+                
+                this.eventStream.onerror = () => {
+                    this.connected = false;
+                };
+            } catch (err) {
+                console.error('Stream erreur:', err);
+            }
+        }
+
+        updateUI() {
+            const compliance = this.metrics.compliance || 0;
+            
+            // LEDs
+            const greenIndicator = document.getElementById('led-green-indicator');
+            if (greenIndicator) {
+                greenIndicator.textContent = compliance >= 80 ? '🟢' : '⚫';
+            }
+            
+            const redIndicator = document.getElementById('led-red-indicator');
+            if (redIndicator) {
+                redIndicator.textContent = compliance < 80 ? '🔴' : '⚫';
+            }
+            
+            const buzzerIndicator = document.getElementById('buzzer-indicator');
+            if (buzzerIndicator) {
+                buzzerIndicator.textContent = compliance < 60 ? '🔊' : '🔇';
+            }
+        }
+    }
+
+    const arduinoManager = new ArduinoManager('COM3');
+
+    // ===== GESTION CONFIGURATION PÉRIPHÉRIQUES PHYSIQUES =====
+    class PhysicalDeviceManager {
+        constructor() {
+            this.config = this.loadConfig();
+            this.statusLog = document.getElementById('device-status-log');
+            this.initializeListeners();
+        }
+
+        loadConfig() {
+            const saved = localStorage.getItem('physicalDevicesConfig');
+            return saved ? JSON.parse(saved) : {
+                devices: {
+                    arduino: true,
+                    mqtt: false,
+                    network: false,
+                    bluetooth: false,
+                    usb: false,
+                    cloud: false
+                },
+                settings: {
+                    arduino_port: 'COM3',
+                    mqtt_broker: 'localhost:1883',
+                    network_endpoint: 'http://localhost:8000/api/sensors',
+                    bluetooth_device: '',
+                    usb_device_id: '',
+                    cloud_config: '',
+                    scan_interval: 5000,
+                    connection_timeout: 10,
+                    reconnect_attempts: 5
+                }
+            };
+        }
+
+        saveConfig() {
+            localStorage.setItem('physicalDevicesConfig', JSON.stringify(this.config));
+        }
+
+        initializeListeners() {
+            // Toggle device config section
+            document.getElementById('toggle-device-config')?.addEventListener('click', (e) => {
+                const section = document.getElementById('device-config-section');
+                section.style.display = section.style.display === 'none' ? 'block' : 'none';
+                e.target.textContent = section.style.display === 'none' ? '▶ Afficher' : '▼ Afficher';
+            });
+
+            // Apply configuration
+            document.getElementById('apply-device-config')?.addEventListener('click', () => this.applyConfiguration());
+
+            // Test devices
+            document.getElementById('test-devices')?.addEventListener('click', () => this.testDevices());
+
+            // Reset configuration
+            document.getElementById('reset-device-config')?.addEventListener('click', () => this.resetConfiguration());
+
+            // Load saved values
+            this.loadUIValues();
+        }
+
+        loadUIValues() {
+            // Load checkboxes
+            Object.entries(this.config.devices).forEach(([device, enabled]) => {
+                const checkbox = document.getElementById(`device-${device}`);
+                if (checkbox) checkbox.checked = enabled;
+            });
+
+            // Load text inputs
+            Object.entries(this.config.settings).forEach(([key, value]) => {
+                const input = document.getElementById(key.replace('_', '-'));
+                if (input) input.value = value;
+            });
+        }
+
+        applyConfiguration() {
+            // Save device states
+            ['arduino', 'mqtt', 'network', 'bluetooth', 'usb', 'cloud'].forEach(device => {
+                const checkbox = document.getElementById(`device-${device}`);
+                if (checkbox) {
+                    this.config.devices[device] = checkbox.checked;
+                }
+            });
+
+            // Save settings
+            const settingIds = ['arduino-port', 'mqtt-broker', 'network-endpoint', 'bluetooth-device', 'usb-device-id', 'cloud-config', 'scan-interval', 'connection-timeout', 'reconnect-attempts'];
+            settingIds.forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    const key = id.replace('-', '_');
+                    this.config.settings[key] = input.value;
+                }
+            });
+
+            this.saveConfig();
+            this.logStatus('✅ Configuration sauvegardée et appliquée');
+            
+            // Send to backend
+            this.syncWithBackend();
+        }
+
+        async testDevices() {
+            this.logStatus('🧪 Test des périphériques en cours...\n');
+
+            const tests = [];
+
+            if (this.config.devices.arduino) {
+                tests.push(this.testArduino());
+            }
+            if (this.config.devices.mqtt) {
+                tests.push(this.testMQTT());
+            }
+            if (this.config.devices.network) {
+                tests.push(this.testNetwork());
+            }
+            if (this.config.devices.bluetooth) {
+                tests.push(this.testBluetooth());
+            }
+            if (this.config.devices.usb) {
+                tests.push(this.testUSB());
+            }
+            if (this.config.devices.cloud) {
+                tests.push(this.testCloud());
+            }
+
+            const results = await Promise.allSettled(tests);
+            
+            results.forEach((result, idx) => {
+                if (result.status === 'fulfilled') {
+                    this.logStatus(result.value);
+                } else {
+                    this.logStatus(`❌ Erreur test ${idx}: ${result.reason}`);
+                }
+            });
+
+            this.logStatus('\n✔️ Test terminé');
+        }
+
+        async testArduino() {
+            const port = this.config.settings.arduino_port;
+            try {
+                const response = await fetch('/api/physical/arduino/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ port })
+                });
+                const data = await response.json();
+                return `🔌 Arduino (${port}): ${data.status === 'ok' ? '✅ Connecté' : '❌ Erreur'} - ${data.message || ''}`;
+            } catch (err) {
+                return `🔌 Arduino: ❌ Erreur - ${err.message}`;
+            }
+        }
+
+        async testMQTT() {
+            const broker = this.config.settings.mqtt_broker;
+            try {
+                const response = await fetch('/api/physical/mqtt/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ broker })
+                });
+                const data = await response.json();
+                return `🌐 MQTT (${broker}): ${data.status === 'ok' ? '✅ Connecté' : '❌ Erreur'} - ${data.message || ''}`;
+            } catch (err) {
+                return `🌐 MQTT: ❌ Erreur - ${err.message}`;
+            }
+        }
+
+        async testNetwork() {
+            const endpoint = this.config.settings.network_endpoint;
+            try {
+                const response = await fetch('/api/physical/network/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint })
+                });
+                const data = await response.json();
+                return `📡 Réseau (${endpoint}): ${data.status === 'ok' ? '✅ Connecté' : '❌ Erreur'} - ${data.message || ''}`;
+            } catch (err) {
+                return `📡 Réseau: ❌ Erreur - ${err.message}`;
+            }
+        }
+
+        async testBluetooth() {
+            return `🔵 Bluetooth: ⏳ Test en attente (Web Bluetooth API)`;
+        }
+
+        async testUSB() {
+            return `🔌 USB: ⏳ Test en attente (WebUSB API)`;
+        }
+
+        async testCloud() {
+            return `☁️ Cloud: ⏳ Test en attente (vérification API)`;
+        }
+
+        resetConfiguration() {
+            if (confirm('Êtes-vous sûr? Cette action réinitialisera tous les paramètres.')) {
+                localStorage.removeItem('physicalDevicesConfig');
+                this.config = this.loadConfig();
+                this.loadUIValues();
+                this.logStatus('🔄 Configuration réinitialisée');
+            }
+        }
+
+        async syncWithBackend() {
+            try {
+                const response = await fetch('/api/physical/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.config)
+                });
+                const data = await response.json();
+                this.logStatus(`\n📤 Synchronisation backend: ${data.status === 'ok' ? '✅' : '❌'}`);
+            } catch (err) {
+                console.warn('Sync error:', err);
+            }
+        }
+
+        logStatus(message) {
+            const log = document.getElementById('device-status-log');
+            if (log) {
+                const timestamp = new Date().toLocaleTimeString();
+                log.textContent = `[${timestamp}] ${message}\n` + log.textContent;
+                // Keep only last 50 lines
+                const lines = log.textContent.split('\n');
+                if (lines.length > 50) {
+                    log.textContent = lines.slice(0, 50).join('\n');
+                }
+            }
+        }
+    }
+
+    // Initialize physical device manager
+    const deviceManager = new PhysicalDeviceManager();
+
+    // ===== SOCKET.IO CLIENT FOR IoT / SIMULATOR UPDATES =====
     try {
         const socket = io();
 

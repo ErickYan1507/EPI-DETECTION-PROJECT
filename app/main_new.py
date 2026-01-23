@@ -10,8 +10,9 @@ from app.logger import logger, setup_logging
 from app.utils import ensure_directories
 
 # Initialiser les extensions
-db = None
-socketio = None
+from flask_sqlalchemy import SQLAlchemy
+db = SQLAlchemy()
+socketio = SocketIO()
 
 def create_app(config_name='development'):
     """Factory pour créer l'application Flask"""
@@ -30,13 +31,11 @@ def create_app(config_name='development'):
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
     
     # Extensions
-    from flask_sqlalchemy import SQLAlchemy
-    db = SQLAlchemy()
     db.init_app(app)
     
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     
-    socketio = SocketIO(app, cors_allowed_origins="*")
+    socketio.init_app(app, cors_allowed_origins="*")
     
     # Assurer les dossiers
     ensure_directories()
@@ -73,21 +72,11 @@ def create_app(config_name='development'):
     
     logger.info("=== Application créée avec succès ===")
     
-    return app, db, socketio
+    return app
 
-# Initialisation différée
-app = None
-db = None
-socketio = None
-
-def get_app():
-    """Récupérer ou créer l'application"""
-    global app, db, socketio
-    if app is None:
-        app, db, socketio = create_app()
-    return app, db, socketio
+# Créer l'app et les extensions globalement
+app = create_app()
 
 if __name__ == '__main__':
-    app, db, socketio = get_app()
     logger.info("Démarrage du serveur Flask...")
     socketio.run(app, host='0.0.0.0', port=5000, debug=config.DEBUG)

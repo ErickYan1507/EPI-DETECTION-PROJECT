@@ -1,0 +1,9 @@
+{
+  "timestamp": "2026-01-10T13:12:23.161993",
+  "checks": {
+    "data_yaml": true,
+    "epi_class_config": true,
+    "config_py": true,
+    "constants_py": true
+  }
+}

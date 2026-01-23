@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Alertes Email - EPI Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .status-inactive {
+            background: #f44336;
+            color: white;
+        }
+        
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .config-item:last-child {
+            border-bottom: none;
+        }
+        
+        .config-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .config-value {
+            color: #333;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e68900;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .alert-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+        
+        .alert-success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .alert-error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #f44336;
+        }
+        
+        .alert-warning {
+            background: #fff3e0;
+            color: #e65100;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .icon {
+            font-size: 20px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📧 Gestion des Alertes Email</h1>
+            <p class="subtitle">Configuration et test du système d'alertes pour non-conformité EPI</p>
+        </div>
+        
+        <!-- Status Card -->
+        <div class="card">
+            <h2>
+                <span class="icon">🔍</span>
+                État Système
+            </h2>
+            <div id="statusContainer" style="color: #999;">
+                <p>Chargement...</p>
+            </div>
+        </div>
+        
+        <!-- Configuration Grid -->
+        <div class="grid">
+            <!-- Current Config Card -->
+            <div class="card">
+                <h2>
+                    <span class="icon">⚙️</span>
+                    Configuration Actuelle
+                </h2>
+                <div id="configContainer">
+                    <p style="color: #999;">Chargement...</p>
+                </div>
+            </div>
+            
+            <!-- Test Card -->
+            <div class="card">
+                <h2>
+                    <span class="icon">🧪</span>
+                    Test d'Envoi
+                </h2>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                    Envoyer un email de test pour vérifier la configuration
+                </p>
+                <button class="btn-success" onclick="sendTestEmail()">
+                    <span class="icon">✉️</span> Envoyer Email de Test
+                </button>
+                <div id="testResult"></div>
+            </div>
+            
+            <!-- Alert Types Card -->
+            <div class="card">
+                <h2>
+                    <span class="icon">🚨</span>
+                    Types d'Alertes
+                </h2>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                    Déclencher une alerte de test
+                </p>
+                <div class="button-group">
+                    <button class="btn-warning" onclick="alertMissingEPI()">
+                        EPI Manquant
+                    </button>
+                    <button class="btn-warning" onclick="alertLowDetection()">
+                        Taux Faible
+                    </button>
+                    <button class="btn-danger" onclick="alertError()">
+                        Erreur Système
+                    </button>
+                </div>
+                <div id="alertResult"></div>
+            </div>
+        </div>
+        
+        <!-- Instructions Card -->
+        <div class="card">
+            <h2>
+                <span class="icon">📖</span>
+                Instructions de Configuration
+            </h2>
+            
+            <h3 style="margin-top: 15px; margin-bottom: 10px; color: #333;">Étape 1: Préparer Gmail</h3>
+            <ol style="color: #666; margin-left: 20px; line-height: 1.6;">
+                <li>Aller à <a href="https://myaccount.google.com/" target="_blank">myaccount.google.com</a></li>
+                <li>Cliquer <strong>Sécurité</strong></li>
+                <li>Activer <strong>Vérification en deux étapes</strong></li>
+                <li>Aller à <a href="https://myaccount.google.com/apppasswords" target="_blank">Mots de passe des applications</a></li>
+                <li>Copier le mot de passe généré (16 caractères)</li>
+            </ol>
+            
+            <h3 style="margin-top: 15px; margin-bottom: 10px; color: #333;">Étape 2: Configurer .env</h3>
+            <pre style="background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; color: #333;">ALERT_EMAIL_ENABLED=True
+ALERT_EMAIL_FROM=your.email@gmail.com
+ALERT_EMAIL_PASSWORD=xxxxxxxxxxxx
+ALERT_EMAIL_RECIPIENTS=admin@example.com
+
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+
+MIN_DETECTIONS_PER_MINUTE=1
+NO_DETECTION_THRESHOLD_SECONDS=300
+ALERT_COOLDOWN_SECONDS=600</pre>
+            
+            <h3 style="margin-top: 15px; margin-bottom: 10px; color: #333;">Étape 3: Tester</h3>
+            <p style="color: #666;">
+                Utiliser les boutons ci-dessus pour envoyer un email de test et vérifier la configuration.
+            </p>
+        </div>
+        
+        <!-- Documentation Link -->
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/docs/alerts/email_setup.md" style="color: white; text-decoration: none; font-weight: bold;">
+                📚 Voir la documentation complète →
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        // Charger la configuration au chargement
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStatus();
+            loadConfig();
+        });
+        
+        function loadStatus() {
+            fetch('/api/alerts/status')
+                .then(r => r.json())
+                .then(data => {
+                    const config = data.configuration;
+                    let html = '<div class="alert alert-info">';
+                    
+                    if (config.configured) {
+                        html += '✅ <strong>Système configuré et opérationnel</strong>';
+                        html += `<br>SMTP Connection: <strong>${config.smtp_connection}</strong>`;
+                    } else {
+                        html += '⚠️ <strong>Système non configuré</strong>';
+                        html += '<br>Veuillez configurer les variables d\'environnement';
+                    }
+                    
+                    html += '</div>';
+                    document.getElementById('statusContainer').innerHTML = html;
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    document.getElementById('statusContainer').innerHTML = 
+                        '<div class="alert alert-error">❌ Erreur lors du chargement du statut</div>';
+                });
+        }
+        
+        function loadConfig() {
+            fetch('/api/alerts/config')
+                .then(r => r.json())
+                .then(data => {
+                    let html = '';
+                    
+                    html += `
+                        <div class="config-item">
+                            <span class="config-label">Alertes Activées</span>
+                            <span class="config-value">
+                                <span class="status-badge ${data.enabled ? 'status-active' : 'status-inactive'}">
+                                    ${data.enabled ? 'OUI' : 'NON'}
+                                </span>
+                            </span>
+                        </div>
+                    `;
+                    
+                    html += `
+                        <div class="config-item">
+                            <span class="config-label">Email Expéditeur</span>
+                            <span class="config-value">${data.sender_email || 'Non configuré'}</span>
+                        </div>
+                    `;
+                    
+                    html += `
+                        <div class="config-item">
+                            <span class="config-label">Destinataires</span>
+                            <span class="config-value">${data.recipients_count} email(s)</span>
+                        </div>
+                    `;
+                    
+                    html += `
+                        <div class="config-item">
+                            <span class="config-label">Seuil No-Detection</span>
+                            <span class="config-value">${data.no_detection_threshold_seconds}s</span>
+                        </div>
+                    `;
+                    
+                    html += `
+                        <div class="config-item">
+                            <span class="config-label">Min Détections/min</span>
+                            <span class="config-value">${data.min_detections_per_minute}</span>
+                        </div>
+                    `;
+                    
+                    document.getElementById('configContainer').innerHTML = html;
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                });
+        }
+        
+        function sendTestEmail() {
+            const btn = event.target;
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Envoi...';
+            
+            fetch('/api/alerts/test', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    const resultDiv = document.getElementById('testResult');
+                    if (data.success) {
+                        resultDiv.innerHTML = '<div class="alert alert-success">✅ Email de test envoyé avec succès!</div>';
+                    } else {
+                        resultDiv.innerHTML = `<div class="alert alert-error">❌ ${data.message}</div>`;
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('testResult').innerHTML = 
+                        `<div class="alert alert-error">❌ Erreur: ${err.message}</div>`;
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                });
+        }
+        
+        function alertMissingEPI() {
+            fetch('/api/alerts/missing-epi', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    epi_type: 'helmet',
+                    duration_seconds: 300
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const resultDiv = document.getElementById('alertResult');
+                    if (data.success) {
+                        resultDiv.innerHTML = '<div class="alert alert-success">✅ Alerte EPI manquant envoyée</div>';
+                    } else {
+                        resultDiv.innerHTML = `<div class="alert alert-error">❌ ${data.message}</div>`;
+                    }
+                });
+        }
+        
+        function alertLowDetection() {
+            fetch('/api/alerts/low-detection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    detection_count: 2,
+                    time_window_minutes: 10
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const resultDiv = document.getElementById('alertResult');
+                    if (data.success) {
+                        resultDiv.innerHTML = '<div class="alert alert-success">✅ Alerte taux de détection faible envoyée</div>';
+                    } else {
+                        resultDiv.innerHTML = `<div class="alert alert-error">❌ ${data.message}</div>`;
+                    }
+                });
+        }
+        
+        function alertError() {
+            fetch('/api/alerts/error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    error_type: 'TestError',
+                    error_message: 'Test error message'
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const resultDiv = document.getElementById('alertResult');
+                    if (data.success) {
+                        resultDiv.innerHTML = '<div class="alert alert-success">✅ Alerte erreur système envoyée</div>';
+                    } else {
+                        resultDiv.innerHTML = `<div class="alert alert-error">❌ ${data.message}</div>`;
+                    }
+                });
+        }
+    </script>
+</body>
+</html>

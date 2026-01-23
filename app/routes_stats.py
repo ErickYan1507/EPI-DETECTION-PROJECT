@@ -95,18 +95,20 @@ def get_stats():
 @stats_bp.route('/chart/hourly', methods=['GET'])
 def get_hourly_data():
     """
-    Récupère les détections par heure pour les 24 dernières heures
-    Retourne: hours (labels) et detections (valeurs)
+    Récupère les détections et conformité par heure pour les 24 dernières heures
+    Retourne: hours (labels), detections (valeurs), compliance (taux de conformité par heure)
     """
     try:
         # Récupérer les détections des 24 dernières heures
         now = datetime.now()
         hours_data = {}
+        compliance_data = {}
         
         for i in range(24):
             hour = (now - timedelta(hours=i)).hour
             hour_label = f"{hour:02d}h"
-            hours_data[hour_label] = 0
+            hours_data[hour_label] = {'count': 0, 'persons': 0, 'compliant': 0}
+            compliance_data[hour_label] = 0
         
         # Récupérer les détections
         start_time = now - timedelta(hours=24)
@@ -114,21 +116,41 @@ def get_hourly_data():
             Detection.timestamp >= start_time
         ).all()
         
-        # Compter par heure
+        # Compter par heure et calculer la conformité
         for detection in detections:
             hour = detection.timestamp.hour
             hour_label = f"{hour:02d}h"
             if hour_label in hours_data:
-                hours_data[hour_label] += 1
+                hours_data[hour_label]['count'] += 1
+                total_persons = detection.total_persons or 0
+                hours_data[hour_label]['persons'] += total_persons
+                
+                # Personne conforme = avec tous les EPI
+                if total_persons > 0:
+                    compliant = min(
+                        detection.with_helmet or 0,
+                        detection.with_vest or 0,
+                        detection.with_glasses or 0,
+                        detection.with_boots or 0
+                    )
+                    hours_data[hour_label]['compliant'] += compliant
+        
+        # Calculer le taux de conformité par heure
+        for hour_label, data in hours_data.items():
+            if data['persons'] > 0:
+                compliance_data[hour_label] = round((data['compliant'] / data['persons'] * 100), 1)
+            else:
+                compliance_data[hour_label] = 0
         
         # Retourner les données triées par heure
         hours = sorted(hours_data.keys(), key=lambda x: int(x.split('h')[0]))
-        detections_count = [hours_data[h] for h in hours]
+        detections_count = [hours_data[h]['count'] for h in hours]
+        compliance_values = [compliance_data[h] for h in hours]
         
         return jsonify({
             'hours': hours,
             'detections': detections_count,
-            'compliance': [80 + (i % 20) for i in range(len(hours))],  # Données de démonstration
+            'compliance': compliance_values,
             'status': 'success'
         }), 200
         
@@ -475,3 +497,140 @@ def get_realtime():
     except Exception as e:
         print(f"❌ Erreur /api/realtime: {e}")
         return jsonify({'error': str(e), 'status': 'error'}), 500
+
+
+# ============================================================================
+# ENDPOINTS EXPORT PDF
+# ============================================================================
+
+@stats_bp.route('/export/detection-pdf', methods=['GET'])
+def export_detection_pdf():
+    """Exporter un rapport PDF des détections"""
+    try:
+        from app.pdf_export import PDFExporter
+        from flask import current_app, send_file
+        from datetime import date, timedelta
+
+        # Paramètres de date
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        start_date = None
+        end_date = None
+
+        if start_date_str:
+            try:
+                start_date = date.fromisoformat(start_date_str)
+            except ValueError:
+                return jsonify({'error': 'Format de date de début invalide (utilisez YYYY-MM-DD)'}), 400
+
+        if end_date_str:
+            try:
+                end_date = date.fromisoformat(end_date_str)
+            except ValueError:
+                return jsonify({'error': 'Format de date de fin invalide (utilisez YYYY-MM-DD)'}), 400
+
+        # Créer l'exporteur PDF
+        pdf_exporter = PDFExporter()
+
+        # Générer le rapport
+        pdf_path = pdf_exporter.generate_detection_report(
+            start_date=start_date,
+            end_date=end_date,
+            title="Rapport de Détection EPI"
+        )
+
+        # Retourner le fichier PDF
+        return send_file(
+            pdf_path,
+            as_attachment=True,
+            download_name=f"epi_detection_report_{date.today().strftime('%Y%m%d')}.pdf",
+            mimetype='application/pdf'
+        )
+
+    except Exception as e:
+        print(f"❌ Erreur export PDF détections: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@stats_bp.route('/export/training-pdf', methods=['GET'])
+def export_training_pdf():
+    """Exporter un rapport PDF des résultats d'entraînement"""
+    try:
+        from app.pdf_export import PDFExporter
+        from flask import send_file
+
+        # Paramètre optionnel pour un résultat spécifique
+        training_id = request.args.get('training_id', type=int)
+
+        # Créer l'exporteur PDF
+        pdf_exporter = PDFExporter()
+
+        # Générer le rapport
+        pdf_path = pdf_exporter.generate_training_report(
+            training_result_id=training_id,
+            title="Rapport de Résultats d'Entraînement"
+        )
+
+        # Retourner le fichier PDF
+        filename = f"training_report_{'id_' + str(training_id) + '_' if training_id else ''}{date.today().strftime('%Y%m%d')}.pdf"
+        return send_file(
+            pdf_path,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+
+    except Exception as e:
+        print(f"❌ Erreur export PDF entraînement: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@stats_bp.route('/export/presence-pdf', methods=['GET'])
+def export_presence_pdf():
+    """Exporter un rapport PDF des présences quotidiennes"""
+    try:
+        from app.pdf_export import PDFExporter
+        from flask import send_file
+        from datetime import date, timedelta
+
+        # Paramètres de date
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        start_date = None
+        end_date = None
+
+        if start_date_str:
+            try:
+                start_date = date.fromisoformat(start_date_str)
+            except ValueError:
+                return jsonify({'error': 'Format de date de début invalide (utilisez YYYY-MM-DD)'}), 400
+
+        if end_date_str:
+            try:
+                end_date = date.fromisoformat(end_date_str)
+            except ValueError:
+                return jsonify({'error': 'Format de date de fin invalide (utilisez YYYY-MM-DD)'}), 400
+
+        # Créer l'exporteur PDF
+        pdf_exporter = PDFExporter()
+
+        # Générer le rapport
+        pdf_path = pdf_exporter.generate_presence_report(
+            start_date=start_date,
+            end_date=end_date,
+            title="Rapport de Présence Quotidienne"
+        )
+
+        # Retourner le fichier PDF
+        return send_file(
+            pdf_path,
+            as_attachment=True,
+            download_name=f"presence_report_{date.today().strftime('%Y%m%d')}.pdf",
+            mimetype='application/pdf'
+        )
+
+    except Exception as e:
+        print(f"❌ Erreur export PDF présence: {e}")
+        return jsonify({'error': str(e)}), 500

@@ -8,13 +8,47 @@ from app.constants import CLASS_MAP, get_alert_type, get_compliance_level
 from app.logger import logger
 from app.utils import get_model_path
 
+# Importer le gestionnaire d'accélération matérielle
+try:
+    from app.hardware_optimizer import get_optimal_detector, HardwareOptimizer
+    HARDWARE_ACCELERATION_AVAILABLE = True
+except ImportError:
+    HARDWARE_ACCELERATION_AVAILABLE = False
+    logger.warning("Accélération matérielle non disponible")
+
 class EPIDetector:
     """Détecteur EPI utilisant YOLOv5 hautement optimisé"""
     
-    def __init__(self, model_path=None):
-        """Initialiser le détecteur avec le modèle"""
+    def __init__(self, model_path=None, use_hardware_acceleration=True, _is_pytorch_backend=False):
+        """
+        Initialiser le détecteur avec le modèle
+        
+        Args:
+            model_path: Chemin vers le modèle
+            use_hardware_acceleration: Utiliser l'accélération matérielle si disponible
+            _is_pytorch_backend: Flag interne pour éviter la récursion
+        """
         if model_path is None:
             model_path = get_model_path()
+        
+        # Tenter d'utiliser l'accélération matérielle SAUF si on est déjà le backend PyTorch
+        if not _is_pytorch_backend and use_hardware_acceleration and HARDWARE_ACCELERATION_AVAILABLE and config.USE_OPENVINO:
+            try:
+                logger.info("Tentative d'utilisation de l'accélération matérielle...")
+                self.hardware_optimizer = get_optimal_detector(model_name=os.path.basename(model_path))
+                self.use_hardware_acceleration = True
+                backend_info = self.hardware_optimizer.get_backend_info()
+                logger.info(f"✓ Accélération matérielle activée: {backend_info.get('backend', 'unknown').upper()}")
+                if 'device_info' in backend_info:
+                    logger.info(f"  Device: {backend_info['device_info'].get('device', 'unknown')}")
+                return
+            except Exception as e:
+                logger.warning(f"Impossible d'utiliser l'accélération matérielle: {e}")
+                logger.info("Fallback vers PyTorch standard")
+        
+        # Fallback standard PyTorch
+        self.use_hardware_acceleration = False
+        self.hardware_optimizer = None
         
         try:
             torch.cuda.empty_cache() if torch.cuda.is_available() else None
@@ -42,6 +76,11 @@ class EPIDetector:
     
     def detect(self, image):
         """Détecter les EPI sur une image avec timing optimisé"""
+        # Utiliser l'accélération matérielle si disponible
+        if self.use_hardware_acceleration and self.hardware_optimizer:
+            return self.hardware_optimizer.detect(image)
+        
+        # Sinon utiliser PyTorch standard
         start_time = time.perf_counter()
         
         try:
@@ -174,6 +213,11 @@ class EPIDetector:
     
     def draw_detections(self, image, detections):
         """Dessiner les boîtes de détection sur l'image"""
+        # Utiliser l'accélération matérielle si disponible
+        if self.use_hardware_acceleration and self.hardware_optimizer:
+            return self.hardware_optimizer.draw_detections(image, detections)
+        
+        # Sinon méthode standard
         img_copy = image.copy()
         
         for det in detections:

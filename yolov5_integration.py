@@ -14,8 +14,8 @@ class YOLOv5Detector:
         """
         self.device = device
         self.model = self.load_model(model_path)
-        self.classes = ['helmet', 'vest', 'glasses', 'person']
-        self.colors = [(0, 255, 0), (255, 0, 0), (0, 0, 255), (255, 255, 0)]
+        self.classes = ['helmet', 'glasses', 'person', 'vest', 'boots']
+        self.colors = [(0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 0), (255, 165, 0)]
         
     def load_model(self, model_path):
         """Charger le modèle YOLOv5"""

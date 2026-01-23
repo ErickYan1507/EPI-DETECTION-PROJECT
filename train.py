@@ -87,12 +87,9 @@ def detect_num_classes(dataset_path):
 
 def create_data_yaml(dataset_path, class_names):
     """Créer le fichier data.yaml pour YOLOv5"""
-    # Détecter le nombre de classes réel
-    detected_nc = detect_num_classes(dataset_path)
-    nc = max(len(class_names), detected_nc)
-    
-    # Étendre les noms de classes si nécessaire
-    names = list(class_names) + [f'class_{i}' for i in range(len(class_names), nc)]
+    # Utiliser seulement les classes spécifiées
+    nc = len(class_names)
+    names = list(class_names)
     
     yaml_content = f"""# Dataset EPI Detection
 path: {os.path.abspath(dataset_path)}
@@ -277,7 +274,7 @@ def save_to_unified_db(session_number, session_data):
         
         with app.app_context():
             # Préparer les données
-            class_names = session_data.get('class_names', ['helmet', 'vest', 'glasses', 'person', 'boots'])
+            class_names = session_data.get('class_names', ['helmet', 'glasses', 'person', 'vest', 'boots'])
             
             # Créer le résultat d'entraînement
             result = TrainingResult(
@@ -425,9 +422,7 @@ def train_model(data_yaml, epochs=10, batch_size=8, img_size=640, weights='yolov
         models_dir = Path('models')
         models_dir.mkdir(exist_ok=True)
         #MODIFICATION ICI
-        model_save_path = models_dir / f'{session_name}.pt'
-        shutil.copy(best_model, model_save_path)
-        print(f"\n✅ Modèle sauvegardé: {model_save_path}")
+        print(f"\n✅ Modèle disponible: {best_model}")
         return True, training_time
     
     return False, training_time
@@ -441,7 +436,7 @@ def main():
     parser.add_argument('--img-size', type=int, default=640, help='Taille des images')
     parser.add_argument('--weights', type=str, default='yolov5s.pt', help='Chemin des poids initiaux')
     parser.add_argument('--run-name', type=str, default=None, help='Nom de l\'exécution pour sauvegarder le modèle')
-    parser.add_argument('--classes', nargs='+', default=['helmet', 'vest', 'glasses', 'person', 'boots'],
+    parser.add_argument('--classes', nargs='+', default=['helmet', 'glasses', 'person', 'vest', 'boots'],
                        help='Noms des classes')
     parser.add_argument('--num-trainings', type=int, default=1, help='Nombre d\'entraînements successifs')
     parser.add_argument('--results-dir', default='training_results', help='Répertoire des résultats')
@@ -513,8 +508,7 @@ def main():
             best_model = training_dir / 'weights' / 'best.pt'
             
             #MODIFICATION
-            model_save_path = Path(args.results_dir) / 'models' / f'{session_name}.pt'
-            global_best_path = Path('models/best.pt')
+            # model_save_path = Path(args.results_dir) / 'models' / f'{session_name}.pt'
 
             if best_model.exists():
                 session_models_dir = Path(args.results_dir) / 'models' / f'session_{session_number:03d}'
@@ -525,12 +519,8 @@ def main():
                 print(f"✓ Modèle copié: {dest_model}")
 
                 #MODIFICATION
-                shutil.copy(best_model, model_save_path)
-                print(f"✓ Modèle sauvegardé dans models/: {model_save_path}")
-                
-                # Mise à jour du modèle global best.pt (pour utilisation immédiate)
-                shutil.copy(best_model, global_best_path)
-                print(f"✓ Modèle principal mis à jour: {global_best_path}")
+                # shutil.copy(best_model, model_save_path)
+                # print(f"✓ Modèle sauvegardé dans models/: {model_save_path}")
             
             # Préparer les données de session
             session_data = {
@@ -543,7 +533,7 @@ def main():
                 'batch_size': args.batch_size,
                 'training_time': training_time,
                 'training_dir': str(training_dir),
-                'weights_path': str(model_save_path if best_model.exists() else ''),
+                'weights_path': str(dest_model if best_model.exists() else ''),
                 'started_at': session_start.isoformat(),
                 'completed_at': datetime.now().isoformat()
             }

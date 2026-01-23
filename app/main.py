@@ -36,9 +36,12 @@ from app.notifications import NotificationManager
 from app.tinkercad_sim import TinkerCadSimulator
 from app.pdf_export import PDFExporter
 from app.routes_api import api_routes
+from app.routes_alerts import alert_bp
 from app.routes_iot import iot_routes
+from app.routes_physical_devices import physical_routes
 from app.routes_stats import stats_bp
 from app.dashboard import dashboard_bp
+from app.routes_notifications import notifications_bp
 from app.logger import logger
 from app.camera_options import get_camera_manager
 from app.audio_manager import get_audio_manager
@@ -231,10 +234,13 @@ class CameraManager:
         def worker():
             with self.app_context():
                 try:
+                    from app.database_unified import DailyPresence
+                    import json
+                    from datetime import date
+                    
                     # Extraire les métadonnées multi-modèles
                     model_votes_json = None
                     if 'model_votes' in stats:
-                        import json
                         model_votes_json = json.dumps(stats['model_votes'])
                     
                     detection_record = Detection(
@@ -247,6 +253,8 @@ class CameraManager:
                         compliance_rate=stats['compliance_rate'],
                         alert_type=stats.get('alert_type', 'safe'),
                         compliance_level=stats.get('compliance_level', 'safe'),
+                        raw_data=json.dumps(stats.get('raw_detections', [])),
+                        inference_time_ms=stats.get('inference_ms'),
                         model_used=stats.get('model_used', 'best.pt'),
                         ensemble_mode=stats.get('ensemble_mode', False),
                         model_votes=model_votes_json,
@@ -254,6 +262,57 @@ class CameraManager:
                     )
                     db.session.add(detection_record)
                     db.session.commit()
+                    
+                    # Gestion des présences quotidiennes
+                    today = date.today()
+                    total_persons = stats['total_persons']
+                    
+                    if total_persons > 0:
+                        # Pour chaque personne détectée, vérifier si déjà présente aujourd'hui
+                        # Pour simplifier, on utilise un identifiant temporaire basé sur le nombre de détections
+                        # Dans un vrai système, cela serait basé sur la reconnaissance faciale ou badge
+                        
+                        # Récupérer les présences d'aujourd'hui
+                        existing_presences = DailyPresence.query.filter_by(date=today).all()
+                        existing_count = len(existing_presences)
+                        
+                        # Si le nombre total de personnes détectées aujourd'hui est inférieur au nombre actuel,
+                        # cela signifie qu'il y a de nouvelles personnes
+                        new_persons = max(0, total_persons - existing_count)
+                        
+                        if new_persons > 0:
+                            # Ajouter les nouvelles présences
+                            equipment_status = {
+                                'helmet': stats['with_helmet'] > 0,
+                                'vest': stats['with_vest'] > 0,
+                                'glasses': stats['with_glasses'] > 0,
+                                'boots': stats.get('with_boots', 0) > 0
+                            }
+                            
+                            for i in range(new_persons):
+                                presence = DailyPresence(
+                                    badge_id=f'temp_{existing_count + i + 1:03d}',  # ID temporaire
+                                    date=today,
+                                    first_detection=datetime.utcnow(),
+                                    last_detection=datetime.utcnow(),
+                                    detection_count=1,
+                                    compliance_score=stats['compliance_rate'],
+                                    equipment_status=json.dumps(equipment_status),
+                                    source='camera'
+                                )
+                                db.session.add(presence)
+                            
+                            db.session.commit()
+                            logger.info(f"Ajouté {new_persons} nouvelles présences pour aujourd'hui")
+                        else:
+                            # Mettre à jour les dernières détections pour les personnes existantes
+                            for presence in existing_presences[:total_persons]:
+                                presence.last_detection = datetime.utcnow()
+                                presence.detection_count += 1
+                                presence.compliance_score = (presence.compliance_score + stats['compliance_rate']) / 2  # Moyenne
+                            
+                            db.session.commit()
+                    
                 except Exception as e:
                     logger.error(f"Erreur sauvegarde détection en BDD: {e}")
                     db.session.rollback()
@@ -305,8 +364,11 @@ pdf_exporter = PDFExporter()
 
 app.register_blueprint(api_routes)
 app.register_blueprint(iot_routes)
+app.register_blueprint(physical_routes)
 app.register_blueprint(stats_bp)
+app.register_blueprint(alert_bp)
 app.register_blueprint(dashboard_bp)
+app.register_blueprint(notifications_bp)
 
 @app.before_request
 def init_tinkercad_db():

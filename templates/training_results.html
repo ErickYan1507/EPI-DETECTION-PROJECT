@@ -18,8 +18,11 @@
             <button onclick="refreshData()" class="btn btn-secondary" title="Actualiser">
                 <i class="fas fa-sync-alt"></i> Actualiser
             </button>
-            <button onclick="exportResults()" class="btn btn-secondary" title="Exporter les données">
-                <i class="fas fa-download"></i> Exporter
+            <button onclick="exportTrainingPDF()" class="btn btn-primary" title="Exporter en PDF">
+                <i class="fas fa-file-pdf"></i> PDF
+            </button>
+            <button onclick="exportResults()" class="btn btn-secondary" title="Exporter les données JSON">
+                <i class="fas fa-download"></i> JSON
             </button>
         </div>
     </div>
@@ -609,6 +612,12 @@
 
     function showNotification(message, type = 'info') {
         console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+
+    // Fonction d'export PDF pour les résultats d'entraînement
+    function exportTrainingPDF() {
+        // Ouvrir dans un nouvel onglet pour déclencher le téléchargement
+        window.open('/api/export/training-pdf', '_blank');
     }
 </script>
 {% endblock %}

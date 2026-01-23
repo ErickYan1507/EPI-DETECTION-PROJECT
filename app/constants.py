@@ -2,19 +2,22 @@
 from enum import Enum
 
 # Dictionnaire mappant les indices de classe aux noms de classe
+# IMPORTANT: L'ordre DOIT correspondre à data.yaml (0-4)
 CLASS_MAP = {
     0: 'helmet',
-    1: 'vest',
-    2: 'glasses',
-    3: 'person'
+    1: 'glasses',
+    2: 'person',
+    3: 'vest',
+    4: 'boots'
 }
 
 # Couleurs pour la visualisation (par défaut)
 CLASS_COLORS = {
-    'helmet': (0, 255, 0),    # Vert
-    'vest': (255, 0, 0),      # Rouge
-    'glasses': (0, 0, 255),   # Bleu
-    'person': (255, 255, 0)   # Jaune
+    'helmet': (0, 255, 0),     # Vert
+    'glasses': (0, 0, 255),    # Bleu
+    'person': (255, 255, 0),   # Jaune
+    'vest': (255, 0, 0),       # Rouge
+    'boots': (255, 165, 0)     # Orange
 }
 
 # --- Niveaux de conformité et alertes ---

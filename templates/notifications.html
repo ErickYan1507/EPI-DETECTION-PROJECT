@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - EPI Detection{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/notifications.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="notifications-container">
+    <!-- En-tête -->
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-envelope"></i> Notifications par Email</h1>
+            <p class="header-subtitle">Configuration et gestion des rapports automatiques</p>
+        </div>
+        <div class="header-actions">
+            <button onclick="sendScheduledNotifications()" class="btn btn-secondary" title="Envoyer maintenant">
+                <i class="fas fa-paper-plane"></i> Envoyer Programmées
+            </button>
+            <button onclick="exportPresencePDF()" class="btn btn-primary" title="Exporter rapport de présence PDF">
+                <i class="fas fa-file-pdf"></i> Rapport Présence PDF
+            </button>
+            <button onclick="addNotification()" class="btn btn-primary" title="Ajouter notification">
+                <i class="fas fa-plus"></i> Ajouter
+            </button>
+        </div>
+    </div>
+
+    <!-- Configuration SMTP -->
+    <div class="smtp-config">
+        <h3><i class="fas fa-cog"></i> Configuration SMTP</h3>
+        <div class="config-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Serveur SMTP:</label>
+                    <input type="text" id="smtpServer" value="smtp.gmail.com" placeholder="smtp.gmail.com">
+                </div>
+                <div class="form-group">
+                    <label>Port:</label>
+                    <input type="number" id="smtpPort" value="587" placeholder="587">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email expéditeur:</label>
+                    <input type="email" id="senderEmail" placeholder="votre.email@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe:</label>
+                    <input type="password" id="senderPassword" placeholder="Mot de passe application">
+                </div>
+            </div>
+            <button onclick="saveSmtpConfig()" class="btn btn-secondary">Sauvegarder Configuration</button>
+        </div>
+    </div>
+
+    <!-- Liste des notifications -->
+    <div class="notifications-list">
+        <h3><i class="fas fa-list"></i> Notifications Configurées</h3>
+        <div id="notificationsTable">
+            <div class="loading">Chargement...</div>
+        </div>
+    </div>
+
+    <!-- Test d'envoi -->
+    <div class="test-section">
+        <h3><i class="fas fa-flask"></i> Test d'Envoi</h3>
+        <div class="test-form">
+            <div class="form-group">
+                <label>Email de test:</label>
+                <input type="email" id="testEmail" placeholder="test@example.com">
+            </div>
+            <button onclick="sendTestEmail()" class="btn btn-secondary">Envoyer Test</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour ajouter/modifier notification -->
+<div class="modal fade" id="notificationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuration Notification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="notificationForm">
+                    <div class="mb-3">
+                        <label class="form-label">Adresse Email</label>
+                        <input type="email" class="form-control" id="emailAddress" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type de Rapport</label>
+                        <select class="form-select" id="notificationType" required>
+                            <option value="daily">Quotidien</option>
+                            <option value="weekly">Hebdomadaire</option>
+                            <option value="monthly">Mensuel</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Inclure dans le rapport:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeDetections" checked>
+                            <label class="form-check-label">Détections</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeAlerts" checked>
+                            <label class="form-check-label">Alertes</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includePresence" checked>
+                            <label class="form-check-label">Présences</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeCompliance" checked>
+                            <label class="form-check-label">Conformité</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isActive" checked>
+                            <label class="form-check-label">Actif</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="saveNotification()">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+{% endblock %}
+{% endblock %}</content>
+<parameter name="filePath">D:\projet\EPI-DETECTION-PROJECT\templates\notifications.html
