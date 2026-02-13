@@ -1,0 +1,83 @@
+{
+  "source": "REAL DATA - Production Ready",
+  "model": {
+    "path": "D:\\projet\\EPI-DETECTION-PROJECT\\models\\best.pt",
+    "framework": "YOLOv5",
+    "version": "best.pt",
+    "input_size": 640,
+    "performance": {
+      "mAP_0_5": 0.9756,
+      "precision": 0.915,
+      "recall": 0.9494,
+      "f1_score": 0.9319
+    }
+  },
+  "training": {
+    "directory": "D:\\projet\\EPI-DETECTION-PROJECT\\runs\\train\\epi_detection_session_003",
+    "results_csv": "D:\\projet\\EPI-DETECTION-PROJECT\\runs\\train\\epi_detection_session_003\\results.csv",
+    "epochs": 99,
+    "total_epochs": 127
+  },
+  "classes": {
+    "count": 5,
+    "names": [
+      "Personne",
+      "Casque",
+      "Gilet",
+      "Bottes",
+      "Lunettes"
+    ],
+    "mapping": {
+      "0": "Personne",
+      "1": "Casque",
+      "2": "Gilet",
+      "3": "Bottes",
+      "4": "Lunettes"
+    },
+    "colors_bgr": {
+      "Personne": [
+        255,
+        255,
+        0
+      ],
+      "Casque": [
+        0,
+        255,
+        0
+      ],
+      "Gilet": [
+        255,
+        0,
+        0
+      ],
+      "Bottes": [
+        255,
+        165,
+        0
+      ],
+      "Lunettes": [
+        0,
+        0,
+        255
+      ]
+    }
+  },
+  "detection_config": {
+    "confidence_threshold": 0.5,
+    "iou_threshold": 0.45,
+    "max_detections": 100,
+    "device": "cuda",
+    "use_half_precision": true
+  },
+  "features": {
+    "uploads": true,
+    "unified_monitoring": true,
+    "real_time_detection": true,
+    "persistence": true,
+    "api_endpoints": [
+      "/api/detect",
+      "/api/detections",
+      "/api/alerts"
+    ]
+  }
+}

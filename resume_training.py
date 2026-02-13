@@ -18,7 +18,7 @@ def resume_training():
     # Chercher le dernier checkpoint
     runs_dir = 'runs/train'
     if os.path.exists(runs_dir):
-        subdirs = [d for d in os.listdir(runs_dir) if d.startswith('epi_cpu_optimized')]
+        subdirs = [d for d in os.listdir(runs_dir) if d.startswith('epi_detection_session_003')]
         if subdirs:
             latest_run = max(subdirs, key=lambda x: os.path.getctime(os.path.join(runs_dir, x)))
             weights_path = f'{runs_dir}/{latest_run}/weights/last.pt'
@@ -45,7 +45,7 @@ def resume_training():
         '--device', 'cpu',
         '--workers', '2',
         '--project', 'runs/train',
-        '--name', 'epi_cpu_optimized_resume',
+        '--name', 'epi_detection_session_003_resume',  # DEPRECATED: ancien nom 'epi_cpu_optimized_resume'
         '--cache', 'disk',
         '--optimizer', 'Adam',
         '--freeze', '10',

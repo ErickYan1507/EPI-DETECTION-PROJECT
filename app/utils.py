@@ -80,3 +80,32 @@ def get_model_path():
     if os.path.exists(best_model):
         return best_model
     return config.DEFAULT_MODEL
+
+
+def get_local_yolov5_repo():
+    """Retourne le chemin vers un clone local de YOLOv5 si présent.
+
+    Cherche dans plusieurs emplacements raisonnables (projet root, vendor/yolov5,
+    ultralytics/yolov5). Renvoie une string (chemin) si trouvé, sinon None.
+    Utilisé pour appeler torch.hub.load(repo_or_dir=LOCAL_PATH, ...)
+    afin d'éviter d'essayer de télécharger le dépôt depuis Internet.
+    """
+    # Emplacements candidats relatifs au root du projet
+    candidates = [
+        Path(__file__).resolve().parents[1] / 'yolov5',
+        Path(__file__).resolve().parents[1] / 'vendor' / 'yolov5',
+        Path(__file__).resolve().parents[2] / 'yolov5',
+        Path.cwd() / 'yolov5',
+        Path.cwd() / 'vendor' / 'yolov5',
+        Path.cwd() / 'ultralytics' / 'yolov5',
+    ]
+
+    for p in candidates:
+        try:
+            if p.exists() and p.is_dir():
+                # basic sanity: check for detect.py or models directory in the repo
+                if (p / 'models').exists() or (p / 'detect.py').exists():
+                    return str(p)
+        except Exception:
+            continue
+    return None

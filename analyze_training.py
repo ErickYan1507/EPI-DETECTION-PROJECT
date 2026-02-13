@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Charger les résultats
-df = pd.read_csv('runs/train/epi_high_precision/results.csv')
+df = pd.read_csv('runs/train/epi_detection_session_003/results.csv')
 
 # Métriques finales
 print('=== MÉTRIQUES FINALES ===')

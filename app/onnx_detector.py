@@ -7,7 +7,7 @@ import numpy as np
 import time
 from pathlib import Path
 from app.logger import logger
-from app.constants import CLASS_MAP, get_alert_type, get_compliance_level
+from app.constants import CLASS_MAP, get_alert_type, get_compliance_level, calculate_compliance_score
 
 try:
     import onnxruntime as ort
@@ -219,7 +219,14 @@ class ONNXDetector:
         return colors.get(class_name, (255, 255, 255))
     
     def _calculate_statistics(self, detections):
-        """Calculer les statistiques de conformité"""
+        """
+        Calculer les statistiques avec le nouvel algorithme de conformité.
+        
+        RÈGLE CRITIQUE:
+        - La classe 'personne' doit être présente pour compter les personnes
+        - Les autres EPI seuls ne signifient pas qu'une personne est présente
+        - Si 'personne' n'est pas détectée, le nombre de personnes = 0 et conformité = 0%
+        """
         class_counts = {'person': 0, 'helmet': 0, 'vest': 0, 'glasses': 0, 'boots': 0}
         
         for det in detections:
@@ -227,19 +234,26 @@ class ONNXDetector:
             if class_name in class_counts:
                 class_counts[class_name] += 1
         
-        total_persons = class_counts['person']
+        total_persons = class_counts['person']  # RÈGLE: Doit venir de la détection 'person'
         helmets = class_counts['helmet']
         vests = class_counts['vest']
         glasses = class_counts['glasses']
         boots = class_counts['boots']
         
+        # RÈGLE: Ne PAS déduire le nombre de personnes des EPI si 'person' n'est pas détecté
+        # Si personne n'est pas détecté, alors 0 personnes = 0% de conformité
         if total_persons == 0:
-            total_persons = max(helmets, vests, glasses, boots)
-        
-        compliance_rate = 0.0
-        if total_persons > 0:
-            compliance_rate = (helmets / total_persons) * 100
-            compliance_rate = max(0.0, min(100.0, compliance_rate))
+            # Personne n'est pas détectée => 0% de conformité
+            compliance_rate = 0.0
+        else:
+            # Personne est détectée => calculer le score selon l'algorithme
+            compliance_rate = calculate_compliance_score(
+                total_persons=total_persons,
+                with_helmet=helmets,
+                with_vest=vests,
+                with_glasses=glasses,
+                with_boots=boots
+            )
         
         return {
             'total_persons': int(total_persons),

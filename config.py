@@ -1,5 +1,9 @@
 import os
 from urllib.parse import quote_plus
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement depuis .env.email
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env.email'))
 
 class Config:
     # Chemins
@@ -22,20 +26,21 @@ class Config:
     }
     
     # Seuils - OPTIMISÉS POUR RÉDUIRE NMS TIME LIMIT
-    CONFIDENCE_THRESHOLD = 0.5  # Seuil de confiance pour les détections
+    CONFIDENCE_THRESHOLD = 0.2  # Seuil de confiance pour les détections (réduit à 0.2 pour détecter helmet, vest)
     IOU_THRESHOLD = 0.65  # Augmenté de 0.45 pour moins de fusions
     
     # ========== MULTI-MODÈLES & ENSEMBLE ==========
     # Activer le système multi-modèles (détection avec tous les modèles)
-    MULTI_MODEL_ENABLED = False  # MODÈLE UNIQUE: best.pt.lower() == 'true'
+    MULTI_MODEL_ENABLED = True  # UTILISER TOUS LES MODÈLES DISPONIBLES
     
     # Stratégie d'agrégation des résultats multi-modèles
-    # Options: 'union_nms', 'weighted_voting', 'average'
-    ENSEMBLE_STRATEGY = os.getenv('ENSEMBLE_STRATEGY', 'weighted_voting')
+    # Options: 'union_nms' (combine toutes les détections), 'weighted_voting' (nécessite MIN_ENSEMBLE_VOTES), 'average'
+    # BUG FIX: Utiliser 'union_nms' car 'weighted_voting' avec MIN_ENSEMBLE_VOTES=2 rejette les détections d'un seul modèle
+    ENSEMBLE_STRATEGY = os.getenv('ENSEMBLE_STRATEGY', 'union_nms')
     
     # Poids des modèles pour l'agrégation pondérée
     MODEL_WEIGHTS = {
-        'best.pt': 1.0,
+        'best.pt': 1.0,  # Modèle principal avec poids maximal
         'epi_detection_session_003.pt': 0.8,
         'epi_detection_session_004.pt': 0.9,
         'epi_detection_session_005.pt': 0.85
@@ -45,9 +50,13 @@ class Config:
     NMS_IOU_THRESHOLD = 0.65  # Augmenté de 0.5 pour NMS plus efficace
     
     # Nombre minimum de modèles qui doivent être d'accord (pour weighted_voting)
-    MIN_ENSEMBLE_VOTES = 2
+    # BUG: Avec MIN_ENSEMBLE_VOTES=2, un seul modèle n'est pas suffisant, donc toutes les détections sont rejetées
+    # SOLUTION: Utiliser 'union_nms' au lieu de 'weighted_voting'
+    MIN_ENSEMBLE_VOTES = 1  # Réduit de 2 à 1 au cas où weighted_voting serait réactivé
     
     # Mode ensemble par défaut (peut être overridé par requête)
+    # Pour uploads: True (meilleure précision)
+    # Pour caméra: False (performance)
     DEFAULT_USE_ENSEMBLE = True
     
     # Utiliser ensemble pour caméra (performance impact)

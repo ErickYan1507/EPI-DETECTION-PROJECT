@@ -258,12 +258,12 @@ class Alert(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'timestamp': utc_to_local(self.timestamp).strftime('%H:%M:%S') if self.timestamp else None,
+            'timestamp': utc_to_local(self.timestamp).strftime('%d/%m/%Y %H:%M:%S') if self.timestamp else None,
             'type': self.type,
             'message': self.message,
             'severity': self.severity,
             'resolved': self.resolved,
-            'resolved_at': utc_to_local(self.resolved_at).strftime('%H:%M:%S') if self.resolved_at else None
+            'resolved_at': utc_to_local(self.resolved_at).strftime('%d/%m/%Y %H:%M:%S') if self.resolved_at else None
         }
 
 

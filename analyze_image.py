@@ -1,8 +1,16 @@
 import torch
 import cv2
 from pathlib import Path
+from app.utils import get_local_yolov5_repo
 
-model = torch.hub.load('ultralytics/yolov5', 'custom', path='models/best.pt', force_reload=False)
+# Prefer a local yolov5 clone to avoid attempting network downloads when offline
+repo_or_dir = get_local_yolov5_repo()
+if repo_or_dir:
+    print(f"Using local YOLOv5 repo: {repo_or_dir}")
+    model = torch.hub.load(repo_or_dir, 'custom', path='models/best.pt', force_reload=False)
+else:
+    print("No local YOLOv5 repo found — falling back to 'ultralytics/yolov5' (requires internet if not cached)")
+    model = torch.hub.load('ultralytics/yolov5', 'custom', path='models/best.pt', force_reload=False)
 
 # Tester avec confiance très basse pour voir TOUS les résultats
 model.conf = 0.01

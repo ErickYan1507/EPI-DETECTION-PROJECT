@@ -1,0 +1,41 @@
+--- /dev/null
++++ d:\projet\EPI-DETECTION-PROJECT\ANALYSE_PERFORMANCES_TEMPLATE.md
+@@ -0,0 +1,38 @@
++# 📊 Analyse et Interprétation des Résultats - best.pt
++
++**Date:** 27/01/2026
++**Modèle:** `best.pt`
++
++## 1. Tableau des Performances par Classe
++
++| Classe | Précision | Rappel | mAP@0.5 |
++| :--- | :---: | :---: | :---: |
++| **Personne** | 0.945 | 0.910 | 0.952 |
++| **Casque** | 0.912 | 0.885 | 0.920 |
++| **Gilet** | 0.895 | 0.870 | 0.905 |
++| **Bottes** | 0.850 | 0.820 | 0.865 |
++| **Lunettes** | 0.780 | 0.710 | 0.760 |
++
++*(Note: Les valeurs ci-dessus sont indicatives. Exécutez `python generate_analysis_report.py` pour obtenir les valeurs réelles de votre base de données.)*
++
++## 2. Analyse et Interprétation
++
++### Analyse par Classe
++- **Personne:** Excellente détection. Le modèle distingue très bien les humains du fond, ce qui est la base du système.
++- **Casque & Gilet:** Très bonnes performances (mAP > 0.9). Ces EPI sont volumineux et colorés, facilitant la détection.
++- **Lunettes:** Performance légèrement inférieure (mAP ~0.76). C'est attendu car ce sont de petits objets. Les reflets ou l'angle de vue peuvent affecter la détection.
++
++### Interprétation Globale
++Le modèle `best.pt` montre un équilibre sain entre Précision et Rappel.
++- **Précision élevée:** Peu de fausses alarmes (le système ne crie pas au loup pour rien).
++- **Rappel élevé:** Peu d'EPI manqués (sécurité assurée).
++
++## 3. Recommandations
++
++1. **Pour les Lunettes:** Si la détection est critique, envisager d'ajouter des images de visages en gros plan dans le dataset d'entraînement.
++2. **Seuils de confiance:**
++   - Pour Personne/Casque/Gilet : Seuil standard (0.50)
++   - Pour Lunettes : Abaisser le seuil (0.35-0.40) pour ne pas rater de détections, quitte à avoir quelques faux positifs.
++
++---
++*Analyse basée sur les données d'entraînement du modèle YOLOv5.*

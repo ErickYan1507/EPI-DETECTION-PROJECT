@@ -29,7 +29,7 @@
                 </div>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button onclick="exportPDF()" class="glass" style="padding: 10px 20px; border: none; border-radius: 12px; color: #fff; cursor: pointer; backdrop-filter: blur(10px); background: rgba(139, 21, 56, 0.2);">
+                <button onclick="openPDFModal()" class="glass" style="padding: 10px 20px; border: none; border-radius: 12px; color: #fff; cursor: pointer; backdrop-filter: blur(10px); background: rgba(139, 21, 56, 0.2);">
                     <i class="fas fa-file-pdf"></i> PDF
                 </button>
                 <button onclick="refreshData()" class="glass" style="padding: 10px 20px; border: none; border-radius: 12px; color: #fff; cursor: pointer; backdrop-filter: blur(10px); background: rgba(65, 105, 225, 0.2);">
@@ -201,6 +201,39 @@
                 <!-- Rempli dynamiquement depuis API -->
                 <div style="padding: 12px; border-radius: 8px; color: #aaa; text-align: center;">
                     <i class="fas fa-spinner fa-spin"></i> Chargement des alertes...
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Export PDF -->
+        <div id="pdfModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center;">
+            <div class="glass-dark" style="padding: 30px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); max-width: 500px; width: 90%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="color: #fff; margin: 0;"><i class="fas fa-file-pdf"></i> Export PDF</h3>
+                    <button onclick="closePDFModal()" style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 24px;">✕</button>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="color: #ddd; display: block; margin-bottom: 8px;">Date de début:</label>
+                    <input type="date" id="pdfStartDate" style="width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(255,255,255,0.05); color: #fff; font-size: 14px;" />
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="color: #ddd; display: block; margin-bottom: 8px;">Date de fin:</label>
+                    <input type="date" id="pdfEndDate" style="width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(255,255,255,0.05); color: #fff; font-size: 14px;" />
+                </div>
+
+                <div style="color: #aaa; font-size: 13px; margin-bottom: 20px; padding: 10px; border-left: 3px solid #4169E1; background: rgba(65, 105, 225, 0.1);">
+                    <i class="fas fa-info-circle"></i> Laissez blanc pour les derniers 7 jours par défaut
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button onclick="closePDFModal()" style="padding: 10px 20px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(255,255,255,0.05); color: #ddd; cursor: pointer; font-size: 14px;">
+                        <i class="fas fa-times"></i> Annuler
+                    </button>
+                    <button id="exportPdfBtn" onclick="exportPDF()" style="padding: 10px 20px; border: none; border-radius: 8px; background: rgba(139, 21, 56, 0.8); color: #fff; cursor: pointer; font-size: 14px; font-weight: bold;">
+                        <i class="fas fa-download"></i> Générer PDF
+                    </button>
                 </div>
             </div>
         </div>
@@ -555,8 +588,108 @@ function updateCharts(data, hourlyData, epiData, alertsData, cumulData) {
     });
 }
 
+// Fonction pour ouvrir la modal PDF
+function openPDFModal() {
+    const today = new Date().toISOString().split('T')[0];
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    // Préremplir avec les valeurs par défaut (7 derniers jours)
+    document.getElementById('pdfStartDate').value = sevenDaysAgo;
+    document.getElementById('pdfEndDate').value = today;
+    
+    document.getElementById('pdfModal').style.display = 'flex';
+}
+
+// Fonction pour fermer la modal PDF
+function closePDFModal() {
+    document.getElementById('pdfModal').style.display = 'none';
+}
+
+// Fermer la modal au clic en dehors du contenu
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('pdfModal');
+    modal?.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closePDFModal();
+        }
+    });
+});
+
 function exportPDF() {
-    alert('Export PDF - Fonctionnalité en développement');
+    const startDate = document.getElementById('pdfStartDate')?.value;
+    const endDate = document.getElementById('pdfEndDate')?.value;
+    
+    // Créer l'URL avec les paramètres de date
+    // NOTE: route définie dans app/routes_stats.py est '/api/export/detection-pdf'
+    let url = '/api/export/detection-pdf';
+    const params = [];
+    
+    if (startDate) params.push(`start_date=${startDate}`);
+    if (endDate) params.push(`end_date=${endDate}`);
+    
+    if (params.length > 0) {
+        url += '?' + params.join('&');
+    }
+    
+    // Montrer un message de chargement
+    const exportBtn = document.getElementById('exportPdfBtn');
+    const originalText = exportBtn.innerHTML;
+    exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
+    exportBtn.disabled = true;
+    
+    console.log('📥 Requesting PDF from:', url);
+    
+    // Télécharger le PDF (avec fallback)
+    fetch(url)
+        .then(response => {
+            console.log('📊 Response status:', response.status);
+            const contentType = response.headers.get('content-type');
+
+            if (!response.ok) {
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json().then(data => { throw new Error(data.error || `Erreur HTTP ${response.status}`); });
+                }
+                return response.text().then(text => { throw new Error(`Erreur serveur (${response.status}): ${text.substring(0,200)}`); });
+            }
+
+            if (!contentType || !contentType.includes('application/pdf')) {
+                return response.text().then(text => { throw new Error(`Format invalide. Attendu PDF, reçu: ${contentType}`); });
+            }
+
+            return response.blob();
+        })
+        .then(blob => {
+            console.log('✅ PDF received, size:', blob.size, 'bytes');
+            if (blob.size < 1000) throw new Error('PDF seems too small');
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `rapport_epi_${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+            exportBtn.innerHTML = '<i class="fas fa-check"></i> Téléchargement réussi!';
+            setTimeout(() => { closePDFModal(); }, 1200);
+        })
+        .catch(err => {
+            console.error('❌ Erreur export PDF (fetch):', err);
+            // Fallback: ouvrir l'URL dans un nouvel onglet pour laisser le navigateur gérer le téléchargement
+            try {
+                console.warn('Tentative de fallback: ouverture directe de l\'URL dans un nouvel onglet');
+                window.open(url, '_blank');
+            } catch (e) {
+                console.error('Fallback failed:', e);
+                alert(`❌ Erreur lors de l'export: ${err.message}`);
+            }
+        })
+        .finally(() => {
+            setTimeout(() => {
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+                exportBtn.style.background = '';
+            }, 2000);
+        });
 }
 
 function loadDetections() {
@@ -628,15 +761,22 @@ function loadAlerts() {
                     
                     const color = severityColors[severity] || '#aaa';
                     
-                    // Utiliser la fonction formatDate avec validation
-                    const dateStr = formatDate(alert.timestamp);
+                    // Utiliser directement le timestamp formaté par l'API
+                    const dateStr = alert.timestamp || new Date().toLocaleString('fr-FR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
                     
                     const alertEl = `
                         <div style="padding: 12px; border-radius: 8px; background: rgba(${severity === 'high' ? '255,107,107' : severity === 'medium' ? '255,165,0' : '65,105,225'},0.1); border-left: 4px solid ${color}; color: ${color};">
                             <div style="display: flex; justify-content: space-between; align-items: start;">
                                 <div style="flex: 1;">
                                     <div style="font-weight: bold; margin-bottom: 5px;">${alert.message || 'Alerte'}</div>
-                                    <div style="font-size: 0.9em; color: #aaa;">${dateStr}</div>
+                                    <div style="font-size: 0.9em; color: #aaa;"><i class="fas fa-clock"></i> ${dateStr}</div>
                                 </div>
                             </div>
                         </div>

@@ -4,57 +4,70 @@ import numpy as np
 import time
 from pathlib import Path
 from config import config
-from app.constants import CLASS_MAP, get_alert_type, get_compliance_level
+from app.constants import CLASS_MAP, get_alert_type, get_compliance_level, calculate_compliance_score
 from app.logger import logger
-from app.utils import get_model_path
-
-# Importer le gestionnaire d'accélération matérielle
-try:
-    from app.hardware_optimizer import get_optimal_detector, HardwareOptimizer
-    HARDWARE_ACCELERATION_AVAILABLE = True
-except ImportError:
-    HARDWARE_ACCELERATION_AVAILABLE = False
-    logger.warning("Accélération matérielle non disponible")
+from app.utils import get_model_path, get_local_yolov5_repo
 
 class EPIDetector:
     """Détecteur EPI utilisant YOLOv5 hautement optimisé"""
     
-    def __init__(self, model_path=None, use_hardware_acceleration=True, _is_pytorch_backend=False):
+    def __init__(self, model_path=None):
         """
         Initialiser le détecteur avec le modèle
         
         Args:
             model_path: Chemin vers le modèle
-            use_hardware_acceleration: Utiliser l'accélération matérielle si disponible
-            _is_pytorch_backend: Flag interne pour éviter la récursion
         """
         if model_path is None:
             model_path = get_model_path()
         
-        # Tenter d'utiliser l'accélération matérielle SAUF si on est déjà le backend PyTorch
-        if not _is_pytorch_backend and use_hardware_acceleration and HARDWARE_ACCELERATION_AVAILABLE and config.USE_OPENVINO:
-            try:
-                logger.info("Tentative d'utilisation de l'accélération matérielle...")
-                self.hardware_optimizer = get_optimal_detector(model_name=os.path.basename(model_path))
-                self.use_hardware_acceleration = True
-                backend_info = self.hardware_optimizer.get_backend_info()
-                logger.info(f"✓ Accélération matérielle activée: {backend_info.get('backend', 'unknown').upper()}")
-                if 'device_info' in backend_info:
-                    logger.info(f"  Device: {backend_info['device_info'].get('device', 'unknown')}")
-                return
-            except Exception as e:
-                logger.warning(f"Impossible d'utiliser l'accélération matérielle: {e}")
-                logger.info("Fallback vers PyTorch standard")
-        
-        # Fallback standard PyTorch
-        self.use_hardware_acceleration = False
-        self.hardware_optimizer = None
-        
         try:
             torch.cuda.empty_cache() if torch.cuda.is_available() else None
             
-            self.model = torch.hub.load('ultralytics/yolov5', 'custom', 
-                                       path=model_path, force_reload=False)
+            # Prefer a local clone of YOLOv5 (to work offline) if present.
+            repo_or_dir = get_local_yolov5_repo()
+            if repo_or_dir:
+                logger.info(f"Using local YOLOv5 repo for torch.hub: {repo_or_dir}")
+                # Try a direct import of hubconf.py from the local repo and call custom() directly.
+                # This is more robust when torch.hub.load with a local path behaves unexpectedly.
+                try:
+                    import importlib.util
+                    import sys
+                    hubconf_path = Path(repo_or_dir) / 'hubconf.py'
+                    if hubconf_path.exists():
+                        # Ensure the local repo root is on sys.path so hubconf imports (models.*, utils.*) work
+                        repo_root = str(Path(repo_or_dir).resolve())
+                        inserted = False
+                        if repo_root not in sys.path:
+                            sys.path.insert(0, repo_root)
+                            inserted = True
+                        try:
+                            spec = importlib.util.spec_from_file_location('local_yolov5_hubconf', str(hubconf_path))
+                            hubmod = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(hubmod)
+                            if hasattr(hubmod, 'custom'):
+                                logger.info('Calling hubconf.custom() directly from local yolov5')
+                                # call with same args used by torch.hub.load('ultralytics/yolov5','custom',...)
+                                self.model = hubmod.custom(path=model_path, autoshape=True, _verbose=False, device=None)
+                            else:
+                                raise RuntimeError('local hubconf.py has no function "custom"')
+                        finally:
+                            # Clean up sys.path insertion to avoid side-effects
+                            if inserted and repo_root in sys.path:
+                                try:
+                                    sys.path.remove(repo_root)
+                                except Exception:
+                                    pass
+                    else:
+                        raise FileNotFoundError(f'hubconf.py not found in {repo_or_dir}')
+                except Exception as e_local:
+                    logger.warning(f"Direct import of local hubconf failed: {e_local}; falling back to torch.hub.load")
+                    # Fallback to torch.hub.load with the local repo path
+                    self.model = torch.hub.load(repo_or_dir, 'custom', path=model_path, force_reload=False)
+            else:
+                # Default behavior: use the ultralytics repo (this will try to download if not cached)
+                logger.info("No local YOLOv5 found, falling back to 'ultralytics/yolov5' (may require internet)")
+                self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path, force_reload=False)
             self.model.conf = config.CONFIDENCE_THRESHOLD
             self.model.iou = config.IOU_THRESHOLD
             self.model.max_det = config.MAX_DETECTIONS
@@ -76,11 +89,6 @@ class EPIDetector:
     
     def detect(self, image):
         """Détecter les EPI sur une image avec timing optimisé"""
-        # Utiliser l'accélération matérielle si disponible
-        if self.use_hardware_acceleration and self.hardware_optimizer:
-            return self.hardware_optimizer.detect(image)
-        
-        # Sinon utiliser PyTorch standard
         start_time = time.perf_counter()
         
         try:
@@ -159,20 +167,34 @@ class EPIDetector:
         return self.calculate_statistics_optimized(class_counts)
     
     def calculate_statistics_optimized(self, class_counts):
-        """Calculer les statistiques sans pandas"""
-        total_persons = class_counts['person']
+        """
+        Calculer les statistiques avec le nouvel algorithme de conformité.
+        
+        RÈGLE CRITIQUE:
+        - La classe 'personne' doit être présente pour compter les personnes
+        - Les autres EPI seuls ne signifient pas qu'une personne est présente
+        - Si 'personne' n'est pas détectée, le nombre de personnes = 0 et conformité = 0%
+        """
+        total_persons = class_counts['person']  # RÈGLE: Doit venir de la détection 'person'
         helmets = class_counts['helmet']
         vests = class_counts['vest']
         glasses = class_counts['glasses']
         boots = class_counts.get('boots', 0)
         
+        # RÈGLE: Ne PAS déduire le nombre de personnes des EPI si 'person' n'est pas détecté
+        # Si personne n'est pas détecté, alors 0 personnes = 0% de conformité
         if total_persons == 0:
-            total_persons = max(helmets, vests, glasses, boots)
-        
-        compliance_rate = 0.0
-        if total_persons > 0:
-            compliance_rate = (helmets / total_persons) * 100
-            compliance_rate = max(0.0, min(100.0, compliance_rate))
+            # Personne n'est pas détectée => 0% de conformité
+            compliance_rate = 0.0
+        else:
+            # Personne est détectée => calculer le score selon l'algorithme
+            compliance_rate = calculate_compliance_score(
+                total_persons=total_persons,
+                with_helmet=helmets,
+                with_vest=vests,
+                with_glasses=glasses,
+                with_boots=boots
+            )
         
         return {
             'total_persons': int(total_persons),
@@ -213,11 +235,6 @@ class EPIDetector:
     
     def draw_detections(self, image, detections):
         """Dessiner les boîtes de détection sur l'image"""
-        # Utiliser l'accélération matérielle si disponible
-        if self.use_hardware_acceleration and self.hardware_optimizer:
-            return self.hardware_optimizer.draw_detections(image, detections)
-        
-        # Sinon méthode standard
         img_copy = image.copy()
         
         for det in detections:

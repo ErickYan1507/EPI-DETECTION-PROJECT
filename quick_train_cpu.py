@@ -31,7 +31,7 @@ def main():
         '--device', 'cpu',
         '--workers', '2',  # Réduit pour CPU limité
         '--project', 'runs/train',
-        '--name', 'epi_cpu_optimized',
+        '--name', 'epi_detection_session_003',  # DEPRECATED: ancien nom 'epi_cpu_optimized'
         '--cache', 'disk',  # Disk au lieu de RAM pour mémoire limitée
         '--optimizer', 'Adam',
         '--freeze', '10',

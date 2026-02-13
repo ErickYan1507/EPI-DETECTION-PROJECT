@@ -114,12 +114,27 @@
             color: #999;
             position: relative;
             overflow: hidden;
+            border: 2px solid rgba(102, 126, 234, 0.3);
         }
 
         .camera-feed video {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            display: block;
+            background: #000;
+        }
+
+        .camera-feed #overlay-canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 10;
+            pointer-events: none;
+            /* Debug: bordure visible */
+            border: 2px solid yellow !important;
         }
 
         .camera-feed.offline {
@@ -254,24 +269,54 @@
 
         .detection-list {
             margin-top: 15px;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .detection-item {
             background: var(--bg-tertiary);
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 6px;
+            padding: 12px;
+            border-radius: 8px;
             border-left: 4px solid var(--color-secondary);
             display: flex;
             justify-content: space-between;
             align-items: center;
             color: var(--text-secondary);
+            transition: all 0.2s ease;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .detection-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .detection-item-empty {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            border-radius: 8px;
+            border: 1px dashed var(--border-color);
+            font-style: italic;
+        }
+
+        .detection-item-more {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            text-align: center;
+            color: #999;
+            border-radius: 8px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9em;
         }
 
         .detection-item.helmet {
-            border-left-color: #fbbf24;
+            border-left-color: #10b981;
         }
 
         .detection-item.vest {
@@ -651,7 +696,7 @@
                 <h2 class="card-title">📹 Flux Caméra en Direct</h2>
                 <div class="camera-feed" id="camera-feed">
                     <video id="video-feed" width="100%" height="100%" autoplay playsinline></video>
-                    <canvas id="overlay-canvas" style="position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;"></canvas>
+                    <canvas id="overlay-canvas" style="position:absolute; left:0; top:0; pointer-events:none;"></canvas>
                 </div>
                 <div class="controls">
                     <button class="btn btn-primary" id="start-camera-btn">▶️ Démarrer Webcam</button>
@@ -1175,78 +1220,264 @@
         // ===== Simulation Détections =====
         // Couleurs et labels pour chaque classe
         const CLASS_STYLES = {
-            'helmet': { color: '#10b981', label: 'Casque' },
-            'vest': { color: '#f97316', label: 'Gilet' },
-            'glasses': { color: '#06b6d4', label: 'Lunettes' },
-            'person': { color: '#6366f1', label: 'Personne' },
-            'boots': { color: '#8b5cf6', label: 'Bottes' },
-            'unknown': { color: '#ffffff', label: 'Inconnu' }
+            'helmet': { color: '#10b981', label: 'Casque', emoji: '🪖' },
+            'vest': { color: '#f97316', label: 'Gilet', emoji: '🟧' },
+            'glasses': { color: '#06b6d4', label: 'Lunettes', emoji: '👓' },
+            'person': { color: '#6366f1', label: 'Personne', emoji: '👤' },
+            'boots': { color: '#8b5cf6', label: 'Bottes', emoji: '👢' },
+            'unknown': { color: '#ffffff', label: 'Inconnu', emoji: '❓' }
         };
 
         function drawDetections(detections) {
             const video = document.getElementById('video-feed');
             const canvas = document.getElementById('overlay-canvas');
-            if (!canvas || !video) return;
+            if (!canvas || !video) {
+                console.error('❌ Canvas ou Video non trouvés!', { canvas: !!canvas, video: !!video });
+                return;
+            }
 
-            // Ajuster la taille du canvas au video display size
+            console.log('✅ drawDetections() APPELÉE avec:', detections.length, 'détections');
+
+            // 🔴 IMPORTANT: Synchroniser canvas avec dimensions vidéo visibles
             const rect = video.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
+            // Convertir en entiers (pixels réels du canvas)
+            canvas.width = Math.round(rect.width);
+            canvas.height = Math.round(rect.height);
+            
+            console.log('📏 Canvas dimensions:', canvas.width, '×', canvas.height);
+            
+            // Ne pas réappliquer le style à chaque fois (fait une fois au démarrage)
+            if (!canvas.style.position || canvas.style.position !== 'absolute') {
+                canvas.style.position = 'absolute';
+                canvas.style.left = '0px';
+                canvas.style.top = '0px';
+                canvas.style.zIndex = '10';
+                canvas.style.pointerEvents = 'none';
+                canvas.style.border = '2px solid red';  // DEBUG: Bordure rouge pour voir le canvas
+                console.log('🔴 Canvas styling appliqué (avec bordure debug)');
+            }
 
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Si aucune détection, rien à dessiner
-            if (!detections || detections.length === 0) return;
+            // Si aucune détection, afficher message discret
+            if (!detections || detections.length === 0) {
+                console.log('ℹ️ Aucune détection à afficher');
+                ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
+                ctx.font = '14px Arial';
+                ctx.fillText('✓ En attente de détections...', 15, 35);
+                return;
+            }
 
-            // Video natural size vs displayed size
+            console.log('🎯 Affichage', detections.length, 'détections');
+
+            // 🎯 Obtenir les vraies dimensions vidéo
             const videoWidth = video.videoWidth || canvas.width;
             const videoHeight = video.videoHeight || canvas.height;
-            const scaleX = canvas.width / videoWidth;
-            const scaleY = canvas.height / videoHeight;
+            
+            console.log('📹 Vidéo dimensions:', videoWidth, '×', videoHeight);
+            
+            // Gestion du ratio d'aspect
+            let displayWidth = canvas.width;
+            let displayHeight = canvas.height;
+            let offsetX = 0;
+            let offsetY = 0;
 
-            detections.forEach(det => {
-                // Supporter soit 'class_name' soit 'class'
-                const cls = det.class_name || det.class || 'unknown';
-                const bbox = det.bbox || det.box || det.bbox_xyxy || null;
-                if (!bbox) return;
+            const videoAspect = videoWidth / videoHeight;
+            const canvasAspect = canvas.width / canvas.height;
 
-                // bbox attendu: [x1, y1, x2, y2]
-                const x1 = bbox[0] * scaleX;
-                const y1 = bbox[1] * scaleY;
-                const x2 = bbox[2] * scaleX;
-                const y2 = bbox[3] * scaleY;
+            if (videoAspect > canvasAspect) {
+                // Vidéo plus large
+                displayWidth = canvas.width;
+                displayHeight = canvas.width / videoAspect;
+                offsetY = (canvas.height - displayHeight) / 2;
+            } else {
+                // Vidéo plus haute
+                displayHeight = canvas.height;
+                displayWidth = canvas.height * videoAspect;
+                offsetX = (canvas.width - displayWidth) / 2;
+            }
 
-                const w = x2 - x1;
-                const h = y2 - y1;
+            const scaleX = displayWidth / videoWidth;
+            const scaleY = displayHeight / videoHeight;
 
-                const style = CLASS_STYLES[cls] || CLASS_STYLES['unknown'];
-                ctx.strokeStyle = style.color;
-                ctx.lineWidth = Math.max(2, Math.round(Math.min(canvas.width, canvas.height) / 200));
-                ctx.fillStyle = style.color;
+            console.log('📊 Ratio calcul:', { videoAspect, canvasAspect, scaleX, scaleY, displayWidth, displayHeight, offsetX, offsetY });
 
-                // Rectangle
-                ctx.beginPath();
-                ctx.rect(x1, y1, w, h);
-                ctx.stroke();
+            // 📊 Compteur de détections affichées
+            let detectionCount = 0;
 
-                // Label background
-                const label = `${style.label} ${(det.confidence || det.conf || 0) * 100 ? Math.round((det.confidence || det.conf || 0) * 100) + '%' : ''}`;
-                ctx.font = `${Math.max(12, Math.round(canvas.height / 40))}px sans-serif`;
-                const textMetrics = ctx.measureText(label);
-                const pad = 6;
-                const labelW = textMetrics.width + pad * 2;
-                const labelH = parseInt(ctx.font, 10) + pad;
+            // 🔥 AFFICHER TOUTES LES DÉTECTIONS (pas de limite!)
+            detections.forEach((det, idx) => {
+                try {
+                    // Supporter plusieurs formats de données
+                    const cls = det.class_name || det.class || 'unknown';
+                    
+                    // Chercher le bbox dans plusieurs formats possibles
+                    let bbox = det.bbox || det.box || det.bbox_xyxy;
+                    
+                    // ⭐ CONVERSION: Si format x1, y1, x2, y2 → convertir en [x1, y1, x2, y2]
+                    if (!bbox && det.x1 !== undefined && det.y1 !== undefined && det.x2 !== undefined && det.y2 !== undefined) {
+                        bbox = [det.x1, det.y1, det.x2, det.y2];
+                        console.log(`✨ Format converti: x1/y1/x2/y2 → bbox array`);
+                    }
+                    
+                    if (!bbox) {
+                        console.warn(`⚠️ Détection ${idx} n'a pas de bbox!`, det);
+                        return;
+                    }
 
-                // Draw label background (semi-transparent)
-                ctx.globalAlpha = 0.85;
-                ctx.fillRect(x1, Math.max(0, y1 - labelH - 4), labelW, labelH);
-                ctx.globalAlpha = 1.0;
+                    // Vérifier que bbox est un array ou convertible
+                    if (!Array.isArray(bbox)) {
+                        console.warn(`⚠️ Détection ${idx} bbox n'est pas un array!`, bbox);
+                        return;
+                    }
 
-                // Draw label text
-                ctx.fillStyle = '#000000';
-                ctx.fillText(label, x1 + pad, Math.max(0, y1 - 6));
+                    // Vérifier les valeurs
+                    if (bbox.length < 4 || bbox.some(v => isNaN(v))) {
+                        console.warn(`⚠️ Détection ${idx} bbox invalide!`, bbox);
+                        return;
+                    }
+
+                    detectionCount++;
+
+                    // 📐 Coordonnées en pixels affichés
+                    const x1 = offsetX + bbox[0] * scaleX;
+                    const y1 = offsetY + bbox[1] * scaleY;
+                    const x2 = offsetX + bbox[2] * scaleX;
+                    const y2 = offsetY + bbox[3] * scaleY;
+
+                    console.log(`✅ Détection #${idx+1}: ${cls} @ bbox=[${bbox[0]},${bbox[1]},${bbox[2]},${bbox[3]}] → pixels=[${Math.round(x1)},${Math.round(y1)},${Math.round(x2)},${Math.round(y2)}]`);
+
+                    const w = Math.max(2, x2 - x1);
+                    const h = Math.max(2, y2 - y1);
+
+                    const style = CLASS_STYLES[cls] || CLASS_STYLES['unknown'];
+                    const confidence = (det.confidence || det.conf || 0);
+                    const confidencePercent = Math.round(confidence * 100);
+
+                    // Largeur du trait - RÉDUIT pour un look plus fin
+                    const lineWidth = Math.max(1, Math.round(Math.min(w, h) / 80));
+                    
+                    // ═══════════════════════════════════════════════════════
+                    // 🎨 DESSINER LA BOÎTE ENGLOBANTE - Style Professional
+                    // ═══════════════════════════════════════════════════════
+
+                    // ÉTAPE 1: Ombre extérieure - RÉDUITE
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+                    ctx.lineWidth = Math.max(1, lineWidth + 1);
+                    ctx.globalAlpha = 0.4;
+                    ctx.strokeRect(x1 - 2, y1 - 2, w + 4, h + 4);
+                    
+                    // ÉTAPE 2: Bordure principale colorée - FIN ET NETTE
+                    ctx.strokeStyle = style.color;
+                    ctx.lineWidth = Math.max(1.5, lineWidth + 0.5);
+                    ctx.globalAlpha = 1.0;
+                    ctx.strokeRect(x1, y1, w, h);
+                    
+                    // ÉTAPE 3: Bordure secondaire (lueur) - OPTIONNELLE
+                    ctx.strokeStyle = style.color;
+                    ctx.lineWidth = 0.5;
+                    ctx.globalAlpha = 0.6;
+                    ctx.strokeRect(x1 - 1, y1 - 1, w + 2, h + 2);
+
+                    // ÉTAPE 4: LABEL EN HAUT
+                    const label = `${style.emoji} ${style.label} ${confidencePercent}%`;
+                    const fontSize = Math.max(12, Math.round(Math.min(displayWidth, displayHeight) / 40));
+                    ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+                    
+                    const textMetrics = ctx.measureText(label);
+                    const labelW = textMetrics.width + 16;
+                    const labelH = fontSize + 10;
+                    
+                    // Position label: haut de la boîte
+                    let labelX = x1;
+                    let labelY = Math.max(labelH, y1 - 5);
+                    
+                    // Fond du label (couleur classe)
+                    ctx.fillStyle = style.color;
+                    ctx.globalAlpha = 0.92;
+                    ctx.fillRect(labelX, labelY - labelH + 2, labelW, labelH - 2);
+                    
+                    // Bordure label - FINE
+                    ctx.strokeStyle = style.color;
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = 1.0;
+                    ctx.strokeRect(labelX, labelY - labelH + 2, labelW, labelH - 2);
+                    
+                    // Texte label (blanc pour contraste)
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.globalAlpha = 1.0;
+                    ctx.textAlign = 'left';
+                    ctx.fillText(label, labelX + 8, labelY - 5);
+
+                    // ÉTAPE 5: Coins de la boîte (décoration)
+                    ctx.strokeStyle = style.color;
+                    ctx.lineWidth = Math.max(0.8, lineWidth * 0.8);
+                    ctx.globalAlpha = 0.8;
+                    const cornerSize = Math.max(8, Math.round(Math.min(w, h) / 7));
+                    
+                    // Coin haut-gauche
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1 + cornerSize);
+                    ctx.lineTo(x1, y1);
+                    ctx.lineTo(x1 + cornerSize, y1);
+                    ctx.stroke();
+                    
+                    // Coin haut-droit
+                    ctx.beginPath();
+                    ctx.moveTo(x2 - cornerSize, y1);
+                    ctx.lineTo(x2, y1);
+                    ctx.lineTo(x2, y1 + cornerSize);
+                    ctx.stroke();
+                    
+                    // Coin bas-droit
+                    ctx.beginPath();
+                    ctx.moveTo(x2, y2 - cornerSize);
+                    ctx.lineTo(x2, y2);
+                    ctx.lineTo(x2 - cornerSize, y2);
+                    ctx.stroke();
+                    
+                    // Coin bas-gauche
+                    ctx.beginPath();
+                    ctx.moveTo(x1 + cornerSize, y2);
+                    ctx.lineTo(x1, y2);
+                    ctx.lineTo(x1, y2 - cornerSize);
+                    ctx.stroke();
+
+                    // ÉTAPE 6: Numéro/ID circulaire (haut-droit)
+                    const idRadius = Math.max(14, Math.round(Math.min(w, h) / 12));
+                    ctx.fillStyle = style.color;
+                    ctx.globalAlpha = 0.85;
+                    ctx.beginPath();
+                    ctx.arc(x2 - idRadius - 5, y1 + idRadius + 5, idRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Texte du numéro
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.globalAlpha = 1.0;
+                    ctx.font = `bold ${Math.round(idRadius * 1.2)}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText((idx + 1).toString(), x2 - idRadius - 5, y1 + idRadius + 5);
+                    
+                    ctx.textAlign = 'left';
+                    ctx.globalAlpha = 1.0;
+
+                    console.log(`🎨 Boîte dessinée pour détection #${idx+1}`);
+                } catch (err) {
+                    console.error(`❌ Erreur dessin détection ${idx}:`, err);
+                }
             });
+
+            // 📊 Afficher le nombre total de détections en bas
+            if (detectionCount > 0) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(10, canvas.height - 35, 200, 30);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(`🎯 Détections: ${detectionCount} objets`, 15, canvas.height - 15);
+            }
         }
         async function simulateDetections() {
             const videoElement = document.getElementById('video-feed');
@@ -1385,24 +1616,63 @@
                     'boots': '👢 Bottes'
                 };
                 
-                // Limiter strictement à 3 détections pour économiser la RAM
-                const maxDetections = Math.min(detections.length, 3);
-                for (let i = 0; i < maxDetections; i++) {
-                    const det = detections[i];
-                    const item = document.createElement('div');
-                    const className = det.class_name || det.class || 'unknown';
-                    const confidence = det.confidence || 0;
-                    item.className = `detection-item ${className}`;
-                    item.innerHTML = `
-                        <span>${classLabels[className] || className}</span>
-                        <span class="confidence">${(confidence * 100).toFixed(0)}%</span>
-                    `;
-                    detectionsList.appendChild(item);
+                if (detections.length === 0) {
+                    const noDetItem = document.createElement('div');
+                    noDetItem.className = 'detection-item-empty';
+                    noDetItem.innerHTML = '<span>ℹ️ Aucune détection</span>';
+                    detectionsList.appendChild(noDetItem);
+                } else {
+                    // 🔥 AFFICHER TOUTES LES DÉTECTIONS (pas de limite!)
+                    // Afficher jusqu'à 20 dans la liste pour ne pas surcharger, mais TOUTES sur le canvas
+                    const maxListDetections = Math.min(detections.length, 20);
+                    
+                    for (let i = 0; i < maxListDetections; i++) {
+                        const det = detections[i];
+                        const item = document.createElement('div');
+                        const className = det.class_name || det.class || 'unknown';
+                        const confidence = det.confidence || 0;
+                        const confPercent = Math.round(confidence * 100);
+                        const style = CLASS_STYLES[className] || CLASS_STYLES['unknown'];
+                        
+                        item.className = `detection-item`;
+                        item.style.borderLeft = `4px solid ${style.color}`;
+                        item.style.backgroundColor = `${style.color}11`;
+                        
+                        // Barre de confiance visuelle
+                        const barWidth = Math.round((confPercent / 100) * 60);
+                        
+                        item.innerHTML = `
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold; color: ${style.color}; margin-bottom: 4px;">
+                                        #${i+1} ${style.emoji} ${classLabels[className] || className}
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85em;">
+                                        <div style="background: rgba(255,255,255,0.2); height: 6px; width: 60px; border-radius: 3px; overflow: hidden;">
+                                            <div style="background: ${style.color}; height: 100%; width: ${barWidth}px; transition: width 0.3s;"></div>
+                                        </div>
+                                        <span style="font-weight: bold; color: ${style.color}; min-width: 40px;">${confPercent}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        detectionsList.appendChild(item);
+                    }
+                    
+                    // Afficher le total si > 20
+                    if (detections.length > 20) {
+                        const moreItem = document.createElement('div');
+                        moreItem.className = 'detection-item-more';
+                        moreItem.innerHTML = `<span>+${detections.length - 20} détection(s) supplémentaire(s) (affichée sur le flux vidéo)</span>`;
+                        moreItem.style.opacity = '0.7';
+                        moreItem.style.fontStyle = 'italic';
+                        moreItem.style.fontSize = '0.9em';
+                        detectionsList.appendChild(moreItem);
+                    }
                 }
 
-                // Dessiner les boîtes sur le canvas overlay (limiter aussi le drawing)
-                const limitedDetections = detections.slice(0, maxDetections);
-                drawDetections(limitedDetections);
+                // 🎯 DESSINER TOUTES LES DÉTECTIONS SUR LE CANVAS (sans limite!)
+                drawDetections(detections);
                 
                 // Envoyer les données réelles à l'Arduino
                 if (stats.total_persons > 0) {

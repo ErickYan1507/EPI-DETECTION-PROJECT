@@ -5,23 +5,29 @@ from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO
 from flask_cors import CORS
 import logging
+import os
+from pathlib import Path
 from config import config
 from app.logger import logger, setup_logging
 from app.utils import ensure_directories
+from app.database_unified import db
 
-# Initialiser les extensions
-from flask_sqlalchemy import SQLAlchemy
-db = SQLAlchemy()
+# Initialiser les extensions (socketio uniquement ici)
 socketio = SocketIO()
 
 def create_app(config_name='development'):
     """Factory pour créer l'application Flask"""
-    global db, socketio
+    global socketio
     
     logger.info(f"=== Création de l'application (mode: {config_name}) ===")
     
-    # Créer l'app Flask
-    app = Flask(__name__)
+    # Déterminer le chemin racine du projet
+    project_root = Path(__file__).parent.parent
+    template_folder = os.path.join(project_root, 'templates')
+    static_folder = os.path.join(project_root, 'static')
+    
+    # Créer l'app Flask avec chemins explicites
+    app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
     
     # Configuration
     app.config.from_object(config)
@@ -43,9 +49,11 @@ def create_app(config_name='development'):
     # Enregistrer les blueprints
     from app.routes_api import api_routes
     from app.dashboard import dashboard_bp
+    from app.routes_stats import stats_bp
     
     app.register_blueprint(api_routes)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(stats_bp)
     
     # Routes statiques
     @app.route('/')

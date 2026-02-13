@@ -257,6 +257,119 @@ class EmailNotifier:
             except Exception as e:
                 logger.error(f"Erreur envoi notification {notification.id}: {e}")
     
+    def generate_monthly_report(self):
+        """Générer le rapport mensuel"""
+        today = date.today()
+        month_start = today.replace(day=1)
+        
+        # Dernier jour du mois
+        if today.month == 12:
+            month_end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            month_end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+        
+        # Statistiques du mois
+        detections = Detection.query.filter(
+            db.func.date(Detection.timestamp).between(month_start, month_end)
+        ).all()
+        
+        alerts = Alert.query.filter(
+            db.func.date(Alert.timestamp).between(month_start, month_end)
+        ).all()
+        
+        presences = DailyPresence.query.filter(
+            DailyPresence.date.between(month_start, month_end)
+        ).all()
+        
+        # Calculs
+        total_detections = len(detections)
+        avg_compliance = sum(d.compliance_rate for d in detections if d.compliance_rate) / len(detections) if detections else 0
+        total_alerts = len(alerts)
+        total_presences = len(presences)
+        
+        # Grouper par jour
+        daily_stats = {}
+        for d in detections:
+            day = d.timestamp.date()
+            if day not in daily_stats:
+                daily_stats[day] = {'detections': 0, 'compliance': [], 'alerts': 0}
+            daily_stats[day]['detections'] += 1
+            if d.compliance_rate:
+                daily_stats[day]['compliance'].append(d.compliance_rate)
+        
+        for a in alerts:
+            day = a.timestamp.date()
+            if day not in daily_stats:
+                daily_stats[day] = {'detections': 0, 'compliance': [], 'alerts': 0}
+            daily_stats[day]['alerts'] += 1
+        
+        # Contenu HTML pour le rapport mensuel
+        html = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                .header {{ background: #228B22; color: white; padding: 20px; border-radius: 5px; }}
+                .stats {{ display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap; }}
+                .stat-card {{ background: #f5f5f5; padding: 15px; border-radius: 5px; flex: 1; min-width: 150px; text-align: center; }}
+                .stat-value {{ font-size: 2em; font-weight: bold; color: #228B22; }}
+                table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                th {{ background: #f2f2f2; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Rapport Mensuel - EPI Detection</h1>
+                <p>Mois: {today.strftime('%B %Y')}</p>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value">{total_detections}</div>
+                    <div>Détections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{avg_compliance:.1f}%</div>
+                    <div>Conformité Moyenne</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{total_alerts}</div>
+                    <div>Alertes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{total_presences}</div>
+                    <div>Journées Travaillées</div>
+                </div>
+            </div>
+            
+            <h2>Statistiques Quotidiennes</h2>
+            <table>
+                <tr>
+                    <th>Date</th>
+                    <th>Détections</th>
+                    <th>Conformité Moyenne</th>
+                    <th>Alertes</th>
+                </tr>
+                {"".join(f"<tr><td>{day.strftime('%d/%m/%Y')}</td><td>{stats['detections']}</td><td>{(sum(stats['compliance'])/len(stats['compliance']) if stats['compliance'] else 0):.1f}%</td><td>{stats['alerts']}</td></tr>" for day, stats in sorted(daily_stats.items()))}
+            </table>
+            
+            <h2>Alertes du Mois</h2>
+            <table>
+                <tr>
+                    <th>Date</th>
+                    <th>Heure</th>
+                    <th>Type</th>
+                    <th>Sévérité</th>
+                </tr>
+                {"".join(f"<tr><td>{a.timestamp.strftime('%d/%m/%Y')}</td><td>{a.timestamp.strftime('%H:%M')}</td><td>{a.type}</td><td>{a.severity}</td></tr>" for a in alerts[:20])}
+            </table>
+        </body>
+        </html>
+        """
+        
+        return html
+    
     def add_email_notification(self, email, notification_type, **kwargs):
         """Ajouter une nouvelle notification par email"""
         notification = EmailNotification(

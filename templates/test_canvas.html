@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Canvas Detections</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        #canvas-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background: #000;
+            margin: 20px 0;
+            border: 2px solid #ccc;
+        }
+        #test-canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            border: 1px solid red;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        .log {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Canvas Detections</h1>
+        
+        <div id="canvas-container">
+            <canvas id="test-canvas"></canvas>
+        </div>
+        
+        <div>
+            <button onclick="testCanvasBasic()">Test 1: Canvas Basique</button>
+            <button onclick="testCanvasDetections()">Test 2: Canvas avec Boîtes</button>
+            <button onclick="testCanvasDimensions()">Test 3: Dimensions Canvas</button>
+            <button onclick="testAPIDetection()">Test 4: API /api/detect</button>
+            <button onclick="clearLog()">Effacer Log</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        // Canvas Styles
+        const CLASS_STYLES = {
+            'helmet': { color: '#10b981', label: 'Casque', emoji: '🪖' },
+            'vest': { color: '#f97316', label: 'Gilet', emoji: '🟧' },
+            'glasses': { color: '#06b6d4', label: 'Lunettes', emoji: '👓' },
+            'person': { color: '#6366f1', label: 'Personne', emoji: '👤' },
+            'boots': { color: '#8b5cf6', label: 'Bottes', emoji: '👢' },
+            'unknown': { color: '#ffffff', label: 'Inconnu', emoji: '❓' }
+        };
+
+        function log(msg) {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `<div>[${time}] ${msg}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function testCanvasBasic() {
+            log('🔵 Test 1: Canvas Basique');
+            const canvas = document.getElementById('test-canvas');
+            const container = document.getElementById('canvas-container');
+            
+            // Check if element exists
+            if (!canvas) {
+                log('❌ Canvas not found!');
+                return;
+            }
+            log('✅ Canvas trouvé');
+            
+            // Set dimensions
+            canvas.width = Math.round(container.offsetWidth);
+            canvas.height = Math.round(container.offsetHeight);
+            log(`✅ Canvas dimensions: ${canvas.width} x ${canvas.height}`);
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                log('❌ Impossible d\'obtenir le contexte 2D!');
+                return;
+            }
+            log('✅ Contexte 2D obtenu');
+            
+            // Clear and draw
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            log('✅ Canvas vidé (noir)');
+            
+            // Draw test rectangle
+            ctx.fillStyle = '#00FF00';
+            ctx.fillRect(100, 100, 200, 150);
+            log('✅ Rectangle vert dessiné (100, 100, 200, 150)');
+            
+            // Draw test circle
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.arc(500, 300, 50, 0, Math.PI * 2);
+            ctx.fill();
+            log('✅ Cercle rouge dessiné (500, 300, r=50)');
+        }
+
+        function testCanvasDetections() {
+            log('🔵 Test 2: Canvas avec Boîtes Colorées');
+            const canvas = document.getElementById('test-canvas');
+            const container = document.getElementById('canvas-container');
+            
+            canvas.width = Math.round(container.offsetWidth);
+            canvas.height = Math.round(container.offsetHeight);
+            
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            log('✅ Canvas préparé');
+            
+            // Détections test
+            const detections = [
+                { 
+                    class_name: 'person', 
+                    bbox: [100, 100, 300, 400], 
+                    confidence: 0.95 
+                },
+                { 
+                    class_name: 'helmet', 
+                    bbox: [120, 120, 160, 160], 
+                    confidence: 0.88 
+                },
+                { 
+                    class_name: 'vest', 
+                    bbox: [310, 200, 400, 350], 
+                    confidence: 0.82 
+                },
+                { 
+                    class_name: 'glasses', 
+                    bbox: [135, 130, 155, 145], 
+                    confidence: 0.76 
+                },
+                { 
+                    class_name: 'boots', 
+                    bbox: [140, 380, 200, 420], 
+                    confidence: 0.71 
+                }
+            ];
+            
+            log(`🔥 Dessinage de ${detections.length} détections...`);
+            
+            detections.forEach((det, idx) => {
+                const bbox = det.bbox;
+                const style = CLASS_STYLES[det.class_name] || CLASS_STYLES['unknown'];
+                const confidence = Math.round(det.confidence * 100);
+                
+                const x1 = bbox[0];
+                const y1 = bbox[1];
+                const x2 = bbox[2];
+                const y2 = bbox[3];
+                const w = x2 - x1;
+                const h = y2 - y1;
+                
+                // Draw border
+                ctx.strokeStyle = style.color;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x1, y1, w, h);
+                
+                // Draw label
+                const label = `#${idx+1} ${style.emoji} ${style.label} ${confidence}%`;
+                ctx.fillStyle = style.color;
+                ctx.fillRect(x1, y1 - 30, 200, 25);
+                
+                ctx.fillStyle = '#FFF';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(label, x1 + 5, y1 - 10);
+                
+                log(`✅ Détection #${idx+1}: ${style.label} @ (${x1},${y1}) ${confidence}%`);
+            });
+            
+            log('✅ Toutes les boîtes dessinées!');
+        }
+
+        function testCanvasDimensions() {
+            log('🔵 Test 3: Vérification Dimensions Canvas');
+            const canvas = document.getElementById('test-canvas');
+            const container = document.getElementById('canvas-container');
+            
+            log(`Container (DOM): ${container.offsetWidth} x ${container.offsetHeight}`);
+            log(`Canvas (CSS): ${canvas.style.width} x ${canvas.style.height}`);
+            log(`Canvas (pixels): ${canvas.width} x ${canvas.height}`);
+            
+            // Set proper dimensions
+            canvas.width = Math.round(container.offsetWidth);
+            canvas.height = Math.round(container.offsetHeight);
+            
+            log('✅ Canvas dimensions synchronisées');
+            log(`Canvas (pixels) APRÈS: ${canvas.width} x ${canvas.height}`);
+            
+            // Draw corners to verify
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(0, 0, 20, 20);
+            ctx.fillRect(canvas.width - 20, 0, 20, 20);
+            ctx.fillRect(0, canvas.height - 20, 20, 20);
+            ctx.fillRect(canvas.width - 20, canvas.height - 20, 20, 20);
+            
+            log('✅ Coins marqués (rouge = limites canvas)');
+        }
+
+        async function testAPIDetection() {
+            log('🔵 Test 4: Appel API /api/detect');
+            log('⏳ Envoi requête...');
+            
+            try {
+                // Create a simple test image
+                const canvas = document.createElement('canvas');
+                canvas.width = 480;
+                canvas.height = 360;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw a simple pattern
+                ctx.fillStyle = '#333';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(50, 50, 100, 100);
+                
+                const imageBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                log(`✅ Image de test générée: ${imageBase64.length} bytes`);
+                
+                const response = await fetch('/api/detect?use_ensemble=false', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: imageBase64,
+                        use_ensemble: false
+                    })
+                });
+                
+                log(`📡 Réponse API: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ Erreur: ${errorText}`);
+                    return;
+                }
+                
+                const result = await response.json();
+                log(`✅ Réponse JSON reçue`);
+                log(`   Success: ${result.success}`);
+                log(`   Détections: ${(result.detections || []).length}`);
+                log(`   Stats: ${JSON.stringify(result.statistics || {})}`);
+                
+                if (result.detections && result.detections.length > 0) {
+                    log(`✅ ${result.detections.length} détections trouvées!`);
+                    result.detections.forEach((det, idx) => {
+                        log(`   #${idx+1}: ${det.class_name || det.class} (${Math.round((det.confidence || 0)*100)}%)`);
+                    });
+                } else {
+                    log(`ℹ️ Aucune détection`);
+                }
+            } catch (err) {
+                log(`❌ Erreur: ${err.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

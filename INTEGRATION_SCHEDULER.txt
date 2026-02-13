@@ -1,0 +1,56 @@
+"""
+INSTRUCTIONS: Intégrer le Report Scheduler au démarrage Flask
+
+Ajoutez ceci au fichier app.py (ou où vous démarrez Flask):
+"""
+
+# ============ À AJOUTER DANS APP.PY ============
+
+# 1. Importer le scheduler
+from app.report_scheduler import init_report_scheduler, get_report_scheduler
+
+# 2. Après la création de l'app Flask, ajouter:
+if __name__ == '__main__':
+    # Initialiser le scheduler de rapports email
+    init_report_scheduler()
+    
+    # Démarrer l'app
+    socketio.run(app, host='127.0.0.1', port=5000, debug=True)
+
+# 3. [OPTIONNEL] Pour arrêter proprement:
+def shutdown_scheduler():
+    """Arrêter le scheduler à l'arrêt de l'app"""
+    scheduler = get_report_scheduler()
+    if scheduler:
+        scheduler.stop()
+
+# Ajouter à la fin de app.py:
+import atexit
+atexit.register(shutdown_scheduler)
+
+# ============ EXEMPLE COMPLET ============
+
+"""
+# app.py exemple
+
+from flask import Flask
+from flask_socketio import SocketIO
+from app.report_scheduler import init_report_scheduler, get_report_scheduler
+import atexit
+
+app = Flask(__name__)
+socketio = SocketIO(app)
+
+# ... configuration ...
+
+def shutdown_scheduler():
+    scheduler = get_report_scheduler()
+    if scheduler:
+        scheduler.stop()
+
+atexit.register(shutdown_scheduler)
+
+if __name__ == '__main__':
+    init_report_scheduler()
+    socketio.run(app, host='127.0.0.1', port=5000, debug=True)
+"""

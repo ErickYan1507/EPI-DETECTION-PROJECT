@@ -42,6 +42,7 @@ from app.routes_physical_devices import physical_routes
 from app.routes_stats import stats_bp
 from app.dashboard import dashboard_bp
 from app.routes_notifications import notifications_bp
+from app.routes_email_config import email_bp
 from app.logger import logger
 from app.camera_options import get_camera_manager
 from app.audio_manager import get_audio_manager
@@ -250,6 +251,7 @@ class CameraManager:
                         with_helmet=stats['with_helmet'],
                         with_vest=stats['with_vest'],
                         with_glasses=stats['with_glasses'],
+                        with_boots=stats['with_boots'],
                         compliance_rate=stats['compliance_rate'],
                         alert_type=stats.get('alert_type', 'safe'),
                         compliance_level=stats.get('compliance_level', 'safe'),
@@ -333,6 +335,15 @@ app.config['SECRET_KEY'] = 'epi_detection_secret_key'
 
 CORS(app)
 db.init_app(app)
+
+# Créer les tables au démarrage de l'application
+with app.app_context():
+    try:
+        db.create_all()
+        logger.info("✓ Tables de base de données créées/vérifiées")
+    except Exception as e:
+        logger.error(f"Erreur création tables: {e}")
+
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 detector = None
@@ -369,6 +380,7 @@ app.register_blueprint(stats_bp)
 app.register_blueprint(alert_bp)
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(notifications_bp)
+app.register_blueprint(email_bp)
 
 @app.before_request
 def init_tinkercad_db():
@@ -399,6 +411,11 @@ def tinkercad_page():
 def unified_monitoring():
     """Afficher la page de monitoring unifiée (Caméra + Détection + IoT)"""
     return render_template('unified_monitoring.html')
+
+@app.route('/test_canvas')
+def test_canvas():
+    """Page de test du canvas pour diagnostiquer les boîtes colorées"""
+    return render_template('test_canvas.html')
 
 @app.route('/training-results')
 def training_results_page():
@@ -625,6 +642,9 @@ def handle_led_control(data):
         logger.error(f"Erreur handle_led_control: {e}")
 
 def process_image(image_path):
+    """Traiter une image pour détecter les EPI"""
+    global detector, multi_detector
+    
     image = cv2.imread(image_path)
     if image is None:
         logger.error(f"Impossible de charger l'image: {image_path}")
@@ -644,28 +664,38 @@ def process_image(image_path):
             'detections_count': 0
         }
     
-    # Utiliser multi_detector en priorité avec mode ensemble pour uploads
-    if multi_detector is None and detector is None:
-        logger.warning("Détecteur non initialisé, création d'une nouvelle instance...")
-        try:
-            det = EPIDetector()
-        except Exception as e:
-            logger.error(f"Erreur création détecteur: {e}")
+    # Utiliser multi_detector si disponible (meilleure précision pour uploads)
+    det = None
+    if multi_detector and len(multi_detector.models) > 0:
+        det = multi_detector
+        use_ensemble = True
+    elif detector:
+        det = detector
+        use_ensemble = False
+    else:
+        logger.error("Aucun détecteur disponible")
+        return {
+            'success': False,
+            'error': 'Aucun détecteur disponible',
+            'statistics': {},
+            'detections_count': 0
+        }
+    
+    try:
+        # Utiliser mode ensemble pour uploads (meilleure précision, pas de contrainte temps réel)
+        if hasattr(det, 'detect'):
+            if use_ensemble and hasattr(det, 'use_ensemble'):
+                detections, stats = det.detect(image, use_ensemble=True)
+            else:
+                detections, stats = det.detect(image)
+        else:
+            logger.error("Détecteur n'a pas la méthode detect")
             return {
                 'success': False,
-                'error': f'Erreur création détecteur: {str(e)}',
+                'error': 'Détecteur invalide',
                 'statistics': {},
                 'detections_count': 0
             }
-    else:
-        det = multi_detector or detector
-    
-    try:
-        # Utiliser ensemble pour uploads (meilleure précision, pas de contrainte temps réel)
-        if hasattr(det, 'detect') and hasattr(det, 'use_ensemble'):
-            detections, stats = det.detect(image, use_ensemble=True)
-        else:
-            detections, stats = det.detect(image)
     except Exception as e:
         logger.error(f"Erreur détection: {e}")
         return {
@@ -675,26 +705,95 @@ def process_image(image_path):
             'detections_count': 0
         }
     
+    # Formater les détections pour JSON
+    formatted_detections = []
+    for det_item in detections:
+        bbox = det_item.get('bbox', [0, 0, 0, 0])
+        x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
+        
+        formatted_detections.append({
+            'class_name': det_item.get('class', 'unknown'),
+            'confidence': round(float(det_item.get('confidence', 0)), 3),
+            'x1': int(x1),
+            'y1': int(y1),
+            'x2': int(x2),
+            'y2': int(y2)
+        })
+    
+    # Dessiner les détections
     try:
         if hasattr(det, 'draw_detections'):
             result_image = det.draw_detections(image, detections)
         else:
             result_image = image
+        
         result_path = image_path.replace('.', '_result.')
         cv2.imwrite(result_path, result_image)
+        logger.info(f"Image de résultat sauvegardée: {result_path}")
     except Exception as e:
         logger.error(f"Erreur sauvegarde résultat: {e}")
         result_path = image_path
     
+    # Sauvegarder en base de données
+    try:
+        detection_record = Detection(
+            image_path=image_path,
+            source='image',
+            total_persons=stats.get('total_persons', 0),
+            with_helmet=stats.get('with_helmet', 0),
+            with_vest=stats.get('with_vest', 0),
+            with_glasses=stats.get('with_glasses', 0),
+            with_boots=stats.get('with_boots', 0),
+            compliance_rate=stats.get('compliance_rate', 0),
+            compliance_level=stats.get('compliance_level', 'safe'),
+            alert_type=stats.get('alert_type', 'safe'),
+            model_used=stats.get('model_used', 'best.pt'),
+            ensemble_mode=stats.get('ensemble_mode', False),
+            inference_time_ms=stats.get('inference_ms', 0),
+            raw_data=json.dumps(stats.get('raw_detections', []))
+        )
+        db.session.add(detection_record)
+        db.session.commit()
+        logger.info(f"✓ Détection image sauvegardée en BD: ID={detection_record.id}")
+    except Exception as e:
+        logger.warning(f"⚠️ Impossible de sauvegarder la détection en BD: {e}")
+        try:
+            db.session.rollback()
+        except:
+            pass
+    
+    # Convertir le chemin fichier en URL accessible
+    try:
+        # Le chemin est dans BASE_DIR/static/uploads/...
+        # Extraire le chemin relatif depuis le répertoire racine
+        uploads_folder = os.path.abspath(config.UPLOAD_FOLDER)  # .../static/uploads
+        result_path_abs = os.path.abspath(result_path)
+        
+        if result_path_abs.startswith(uploads_folder):
+            relative_path = os.path.relpath(result_path_abs, uploads_folder)
+            # Construire l'URL vers /static/uploads/...
+            image_url = f'/static/uploads/{relative_path.replace(os.sep, "/")}'
+            logger.info(f"Image URL (static): {image_url}")
+        else:
+            logger.warning(f"Chemin en dehors de uploads: {result_path_abs}")
+            image_url = None
+    except Exception as e:
+        logger.error(f"Erreur conversion URL: {e}")
+        image_url = None
+    
     return {
         'success': True,
         'image_path': result_path,
+        'image_url': image_url or result_path,
         'statistics': stats,
-        'detections_count': len(detections)
+        'detections': formatted_detections,
+        'detections_count': len(formatted_detections)
     }
 
 def process_video(video_path):
     """Traiter une vidéo pour détecter les EPI"""
+    global detector, multi_detector
+    
     try:
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
@@ -707,24 +806,23 @@ def process_video(video_path):
                 'frames_processed': 0
             }
         
-        # Obtenir l'initialisation du détecteur
-        global detector, multi_detector
-        det = multi_detector or detector
-        
-        if det is None:
-            logger.warning("Détecteur non initialisé, création d'une nouvelle instance...")
-            try:
-                det = EPIDetector()
-            except Exception as e:
-                logger.error(f"Erreur création détecteur: {e}")
-                cap.release()
-                return {
-                    'success': False,
-                    'error': f'Erreur création détecteur: {str(e)}',
-                    'statistics': {},
-                    'detections_count': 0,
-                    'frames_processed': 0
-                }
+        # Utiliser le détecteur global (préférence: multi_detector)
+        if multi_detector and len(multi_detector.models) > 0:
+            det = multi_detector
+            use_ensemble = False  # Pour vidéo, pas d'ensemble (trop lent)
+        elif detector:
+            det = detector
+            use_ensemble = False
+        else:
+            logger.error("Aucun détecteur disponible")
+            cap.release()
+            return {
+                'success': False,
+                'error': 'Aucun détecteur disponible',
+                'statistics': {},
+                'detections_count': 0,
+                'frames_processed': 0
+            }
         
         # Récupérer les propriétés vidéo
         fps = cap.get(cv2.CAP_PROP_FPS)
@@ -810,6 +908,7 @@ def process_video(video_path):
                 with_helmet=all_stats['with_helmet'],
                 with_vest=all_stats['with_vest'],
                 with_glasses=all_stats['with_glasses'],
+                with_boots=all_stats['with_boots'],
                 compliance_rate=all_stats['average_compliance'],
                 compliance_level=_get_compliance_level(all_stats['average_compliance']),
                 alert_type=_get_alert_type(all_stats['average_compliance']),
@@ -1055,6 +1154,8 @@ def real_time_detection():
     import base64
     import numpy as np
     
+    logger.info("[DETECT] === ENTREE ROUTE /api/detect ===")
+    
     try:
         data = request.json
         if not data or 'image' not in data:
@@ -1096,16 +1197,29 @@ def real_time_detection():
             detections, stats = det.detect(image)
         
         # Formater les détections pour le frontend
+        logger.info(f"[DETECT] Avant formatage: {len(detections)} brutes détections")
         detection_results = []
-        for det in detections:
-            detection_results.append({
-                'class_name': det.get('class', 'unknown'),
-                'confidence': round(det.get('confidence', 0), 3),
-                'x1': int(det.get('x1', 0)),
-                'y1': int(det.get('y1', 0)),
-                'x2': int(det.get('x2', 0)),
-                'y2': int(det.get('y2', 0))
-            })
+        logger.info(f"[DETECT] Début boucle de formatage")
+        for i, det_item in enumerate(detections):
+            try:
+                bbox = det_item.get('bbox', [0, 0, 0, 0])
+                x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
+                
+                formatted_det = {
+                    'class_name': det_item.get('class', 'unknown'),
+                    'confidence': round(float(det_item.get('confidence', 0)), 3),
+                    'x1': int(x1),
+                    'y1': int(y1),
+                    'x2': int(x2),
+                    'y2': int(y2)
+                }
+                detection_results.append(formatted_det)
+                logger.info(f"[DETECT] Det {i}: {formatted_det['class_name']} formatée")
+            except Exception as format_err:
+                logger.error(f"[DETECT] Erreur formatage {i}: {format_err}")
+                detection_results.append(det_item)
+        
+        logger.info(f"[DETECT] Après formatage: {len(detection_results)} formatées détections")
         
         # Préparer la réponse avec vraies statistiques
         response = {
@@ -1131,13 +1245,14 @@ def real_time_detection():
             if stats.get('total_persons', 0) > 0:
                 detection_record = Detection(
                     timestamp=datetime.now(),
-                    person_count=stats.get('total_persons', 0),
-                    helmet_count=stats.get('with_helmet', 0),
-                    vest_count=stats.get('with_vest', 0),
-                    glasses_count=stats.get('with_glasses', 0),
-                    boots_count=stats.get('with_boots', 0),
+                    source='image',
+                    total_persons=stats.get('total_persons', 0),
+                    with_helmet=stats.get('with_helmet', 0),
+                    with_vest=stats.get('with_vest', 0),
+                    with_glasses=stats.get('with_glasses', 0),
+                    with_boots=stats.get('with_boots', 0),
                     compliance_rate=stats.get('compliance_rate', 0),
-                    confidence_scores=json.dumps({'avg': 0}),
+                    raw_data=json.dumps({}),
                     alert_type=stats.get('alert_type', 'none')
                 )
                 db.session.add(detection_record)

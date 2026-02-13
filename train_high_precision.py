@@ -22,7 +22,7 @@ def train_high_precision():
         'img_size': 640,  # Taille d'image standard optimisée
         'device': 'cuda:0' if torch.cuda.is_available() else 'cpu',
         'project': 'runs/train',
-        'name': 'epi_high_precision',
+        'name': 'epi_detection_session_003',  # DEPRECATED: ancien nom 'epi_high_precision'
         'hyp': 'yolov5/data/hyps/hyp.scratch-high.yaml',  # Hyperparamètres pour haute précision
     }
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     success = train_high_precision()
     if success:
         print("\n✅ Entraînement haute précision terminé avec succès!")
-        print("📁 Résultats dans: runs/train/epi_high_precision/")
+        print("📁 Résultats dans: runs/train/epi_detection_session_003/")
         print("🏆 Modèle sauvegardé dans: models/best.pt")
     else:
         print("\n❌ Échec de l'entraînement haute précision")

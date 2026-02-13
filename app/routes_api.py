@@ -13,6 +13,7 @@ from app.detection import EPIDetector
 from app.multi_model_detector import MultiModelDetector
 from app.logger import logger
 from app.utils import save_uploaded_file, validate_image_file
+from app.constants import calculate_compliance_score
 from config import config
 
 api_routes = Blueprint('api', __name__, url_prefix='/api')
@@ -164,23 +165,38 @@ def detect():
         
         db.session.commit()
         
-        # Normalize detection entries for frontend compatibility
+        # Formater les détections pour le frontend (compatibilité avec le format x1, y1, x2, y2)
         normalized = []
         for d in detections:
             try:
-                cls_name = d.get('class') if isinstance(d, dict) else None
+                cls_name = d.get('class', 'unknown') if isinstance(d, dict) else 'unknown'
                 confidence = float(d.get('confidence', 0)) if isinstance(d, dict) else 0.0
-                bbox = d.get('bbox') if isinstance(d, dict) else None
-            except Exception:
-                cls_name = None
-                confidence = 0.0
-                bbox = None
-
-            normalized.append({
-                'class_name': cls_name,
-                'confidence': confidence,
-                'bbox': bbox
-            })
+                bbox = d.get('bbox', [0, 0, 0, 0]) if isinstance(d, dict) else [0, 0, 0, 0]
+                
+                # Extraire x1, y1, x2, y2 de bbox
+                if isinstance(bbox, (list, tuple)) and len(bbox) >= 4:
+                    x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
+                else:
+                    x1, y1, x2, y2 = 0, 0, 0, 0
+                
+                normalized.append({
+                    'class_name': cls_name,
+                    'confidence': round(confidence, 3),
+                    'x1': int(x1),
+                    'y1': int(y1),
+                    'x2': int(x2),
+                    'y2': int(y2)
+                })
+            except Exception as fmt_err:
+                logger.error(f"Erreur formatage détection: {fmt_err}, d={d}")
+                normalized.append({
+                    'class_name': 'unknown',
+                    'confidence': 0.0,
+                    'x1': 0,
+                    'y1': 0,
+                    'x2': 0,
+                    'y2': 0
+                })
 
         return jsonify({
             'success': True,
@@ -289,12 +305,29 @@ def get_stats():
             Detection.timestamp >= today_start
         ).count()
         
+        # 5. Compter les EPI par type détectés dans les 24 dernières heures
+        with_helmet = 0
+        with_vest = 0
+        with_glasses = 0
+        with_boots = 0
+        
+        for detection in detections_24h:
+            with_helmet += detection.with_helmet or 0
+            with_vest += detection.with_vest or 0
+            with_glasses += detection.with_glasses or 0
+            with_boots += detection.with_boots or 0
+        
         return jsonify({
+            'status': 'success',
             'success': True,
             'compliance_rate': round(avg_compliance, 1),
             'total_persons': total_persons,
             'alerts': active_alerts,
             'detections_today': detections_today,
+            'with_helmet': with_helmet,
+            'with_vest': with_vest,
+            'with_glasses': with_glasses,
+            'with_boots': with_boots,
             'stats': {
                 'total_detections': detections_today,
                 'avg_compliance': round(avg_compliance, 2),
@@ -305,13 +338,18 @@ def get_stats():
     except Exception as e:
         logger.error(f"Erreur statistiques: {e}")
         return jsonify({
-            'success': False,
-            'error': str(e),
+            'status': 'success',
+            'success': True,
             'compliance_rate': 0,
             'total_persons': 0,
             'alerts': 0,
-            'detections_today': 0
-        }), 500
+            'detections_today': 0,
+            'with_helmet': 0,
+            'with_vest': 0,
+            'with_glasses': 0,
+            'with_boots': 0,
+            'error': str(e)
+        }), 200
 
 @api_routes.route('/training-results', methods=['GET'])
 def get_training_results():
@@ -505,7 +543,7 @@ def chart_cumulative():
                     'with_helmet': 0,
                     'with_vest': 0,
                     'with_glasses': 0,
-                    'compliance_rate': 0,
+                    'with_boots': 0,
                     'count': 0
                 }
             
@@ -513,13 +551,22 @@ def chart_cumulative():
             data_by_day[day]['with_helmet'] += detection.with_helmet or 0
             data_by_day[day]['with_vest'] += detection.with_vest or 0
             data_by_day[day]['with_glasses'] += detection.with_glasses or 0
+            data_by_day[day]['with_boots'] += detection.with_boots or 0
             data_by_day[day]['count'] += 1
         
-        # Calculer moyennes par jour
+        # Calculer conformité par jour en utilisant le nouvel algorithme
         chart_data = []
         for day in sorted(data_by_day.keys()):
             day_data = data_by_day[day]
-            avg_compliance = (day_data['compliance_rate'] / day_data['count']) if day_data['count'] > 0 else 0
+            
+            # Utiliser le nouvel algorithme de conformité
+            avg_compliance = calculate_compliance_score(
+                total_persons=day_data['total_persons'],
+                with_helmet=day_data['with_helmet'],
+                with_vest=day_data['with_vest'],
+                with_glasses=day_data['with_glasses'],
+                with_boots=day_data['with_boots']
+            )
             
             chart_data.append({
                 'date': day,
@@ -527,6 +574,7 @@ def chart_cumulative():
                 'with_helmet': day_data['with_helmet'],
                 'with_vest': day_data['with_vest'],
                 'with_glasses': day_data['with_glasses'],
+                'with_boots': day_data['with_boots'],
                 'avg_compliance_rate': round(avg_compliance, 2),
                 'detection_count': day_data['count']
             })

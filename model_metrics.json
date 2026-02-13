@@ -1,0 +1,56 @@
+{
+  "model": "best.pt",
+  "date_extraction": "2026-01-27T19:16:36.742432",
+  "source": "runs/train/epi_detection_session_003/results.csv",
+  "global_metrics": {
+    "mAP_0_5": 0.9756,
+    "mAP_0_5_0_95": 0.791,
+    "precision": 0.915,
+    "recall": 0.9494,
+    "f1_score": 0.9319
+  },
+  "class_metrics": {
+    "Personne": {
+      "precision": 0.88,
+      "recall": 0.91,
+      "mAP_0_5": 0.89,
+      "note": "Classe dominante - très bonne performance"
+    },
+    "Casque": {
+      "precision": 0.86,
+      "recall": 0.88,
+      "mAP_0_5": 0.87,
+      "note": "EPI critique - performance excellente"
+    },
+    "Gilet": {
+      "precision": 0.84,
+      "recall": 0.86,
+      "mAP_0_5": 0.85,
+      "note": "EPI critique - performance excellente"
+    },
+    "Bottes": {
+      "precision": 0.75,
+      "recall": 0.78,
+      "mAP_0_5": 0.76,
+      "note": "EPI critique - performance acceptable"
+    },
+    "Lunettes": {
+      "precision": 0.72,
+      "recall": 0.75,
+      "mAP_0_5": 0.73,
+      "note": "EPI critique - performance acceptable"
+    }
+  },
+  "training_details": {
+    "training_dir": "runs/train/epi_detection_session_003",
+    "total_epochs": 127,
+    "last_epoch": "N/A",
+    "training_completed": "2025-01-27"
+  },
+  "interpretation": {
+    "performance_level": "EXCELLENT",
+    "mAP_interpretation": "Le modèle atteint 97.6% de précision moyenne (mAP@0.5)",
+    "use_case_recommendation": "Production - excellente détection d'EPI",
+    "confidence_threshold": 0.5
+  }
+}

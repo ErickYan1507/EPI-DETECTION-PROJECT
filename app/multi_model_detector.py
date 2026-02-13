@@ -8,6 +8,7 @@ import numpy as np
 import time
 import glob
 import os
+import math
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 from collections import defaultdict
@@ -352,13 +353,14 @@ class MultiModelDetector:
         if not all_stats:
             return self._get_empty_stats()
         
-        # Moyenner les comptages
+        # Pour les comptages, utiliser math.ceil (arrondir vers le haut) 
+        # pour favoriser la détection si au moins 1 modèle détecte quelque chose
         avg_stats = {
-            'total_persons': int(np.mean([s.get('total_persons', 0) for s in all_stats])),
-            'with_helmet': int(np.mean([s.get('with_helmet', 0) for s in all_stats])),
-            'with_vest': int(np.mean([s.get('with_vest', 0) for s in all_stats])),
-            'with_glasses': int(np.mean([s.get('with_glasses', 0) for s in all_stats])),
-            'with_boots': int(np.mean([s.get('with_boots', 0) for s in all_stats])),
+            'total_persons': int(max(1, math.ceil(np.mean([s.get('total_persons', 0) for s in all_stats])))) if any(s.get('total_persons', 0) > 0 for s in all_stats) else 0,
+            'with_helmet': int(math.ceil(np.mean([s.get('with_helmet', 0) for s in all_stats]))),
+            'with_vest': int(math.ceil(np.mean([s.get('with_vest', 0) for s in all_stats]))),
+            'with_glasses': int(math.ceil(np.mean([s.get('with_glasses', 0) for s in all_stats]))),
+            'with_boots': int(math.ceil(np.mean([s.get('with_boots', 0) for s in all_stats]))),
             'compliance_rate': float(np.mean([s.get('compliance_rate', 0) for s in all_stats])),
         }
         

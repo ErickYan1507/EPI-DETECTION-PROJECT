@@ -82,3 +82,51 @@ def get_alert_type(compliance_rate: float) -> AlertType:
     if compliance_rate >= MEDIUM_COMPLIANCE_THRESHOLD:
         return AlertType.AVERTISSEMENT
     return AlertType.CRITIQUE
+
+
+def calculate_compliance_score(
+    total_persons: int,
+    with_helmet: int,
+    with_vest: int,
+    with_glasses: int,
+    with_boots: int
+) -> float:
+    """
+    Calcule le score de conformité selon l'algorithme personnalisé:
+    - 100% si TOUS les EPI sont détectés (pour au moins 1 personne)
+    - 90% si 1 ou 2 classes manquent
+    - 60% si 3 classes manquent
+    - 10% si 4 classes manquent
+    - 0% si aucun EPI ou pas de personne détectée
+    
+    RÈGLE CRITIQUE: La classe 'personne' doit être obligatoirement détectée.
+    Si 'personne' n'est pas détectée, le score est 0%.
+    
+    Les autres classes (EPI) détectées seules ne comptent PAS comme une personne présente.
+    """
+    # RÈGLE: Si aucune personne n'est détectée, retourner 0%
+    if total_persons == 0:
+        return 0.0
+    
+    # Classes requises pour la conformité
+    required_classes = ['helmet', 'vest', 'glasses', 'boots']
+    required_epi_counts = [with_helmet, with_vest, with_glasses, with_boots]
+    
+    # Compter combien de classes EPI ont au moins une détection
+    # (Pour chaque personne, on doit avoir tous les EPI)
+    detected_epi = sum(1 for count in required_epi_counts if count > 0)
+    missing_epi = 4 - detected_epi  # Nombre de classes EPI manquantes
+    
+    # Appliquer la règle de score selon le nombre de classes manquantes
+    if missing_epi == 0:
+        # Tous les EPI sont détectés
+        return 100.0
+    elif missing_epi <= 2:
+        # 1 ou 2 classes manquent
+        return 90.0
+    elif missing_epi == 3:
+        # 3 classes manquent
+        return 60.0
+    else:  # missing_epi == 4
+        # 4 classes manquent (aucun EPI)
+        return 10.0

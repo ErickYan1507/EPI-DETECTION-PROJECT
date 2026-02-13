@@ -205,13 +205,31 @@
                 document.getElementById('avgValAccuracy').textContent = 
                     (summary.avg_val_accuracy * 100).toFixed(2) + '%';
                 
-                if (summary.latest_training) {
-                    const date = new Date(summary.latest_training.timestamp);
-                    document.getElementById('latestTraining').textContent = date.toLocaleDateString('fr-FR');
+                if (summary.latest_training && summary.latest_training.timestamp) {
+                    document.getElementById('latestTraining').textContent = formatDate(summary.latest_training.timestamp);
                 }
             }
         } catch (error) {
             console.error('Erreur:', error);
+        }
+    }
+
+    // Helper function to safely format date
+    function formatDate(timestamp) {
+        try {
+            if (!timestamp) return '-';
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) {
+                return '-';
+            }
+            return date.toLocaleDateString('fr-FR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        } catch (e) {
+            console.error('Date format error:', e, timestamp);
+            return '-';
         }
     }
 
@@ -226,7 +244,7 @@
         
         tbody.innerHTML = trainingResults.map(result => `
             <tr>
-                <td>${new Date(result.timestamp).toLocaleDateString('fr-FR')}</td>
+                <td>${formatDate(result.timestamp)}</td>
                 <td><strong>${result.model_name}</strong></td>
                 <td>${result.model_version || '-'}</td>
                 <td>${result.epochs || '-'}</td>
@@ -316,7 +334,7 @@
                     <h4>Informations</h4>
                     <dl>
                         <dt>Temps d'entraînement:</dt><dd>${formatTime(result.training_time_seconds)}</dd>
-                        <dt>Date:</dt><dd>${new Date(result.timestamp).toLocaleString('fr-FR')}</dd>
+                        <dt>Date:</dt><dd>${formatDate(result.timestamp)}</dd>
                         <dt>Statut:</dt><dd><span class="status-badge ${result.status}">${result.status}</span></dd>
                     </dl>
                 </div>
@@ -342,7 +360,7 @@
         charts.accuracy = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: trainingResults.map(r => new Date(r.timestamp).toLocaleDateString('fr-FR')),
+                labels: trainingResults.map((r, idx) => `#${idx + 1}`),
                 datasets: [
                     {
                         label: 'Train Accuracy',
@@ -394,7 +412,7 @@
         charts.loss = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: trainingResults.map(r => new Date(r.timestamp).toLocaleDateString('fr-FR')),
+                labels: trainingResults.map((r, idx) => `#${idx + 1}`),
                 datasets: [
                     {
                         label: 'Train Loss',
@@ -443,7 +461,7 @@
         charts.pr = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: trainingResults.map(r => new Date(r.timestamp).toLocaleDateString('fr-FR')),
+                labels: trainingResults.map((r, idx) => `#${idx + 1}`),
                 datasets: [
                     {
                         label: 'Precision',
@@ -578,7 +596,7 @@
     function convertToCSV(data) {
         const headers = ['Date', 'Modèle', 'Version', 'Epochs', 'Train Loss', 'Val Loss', 'Train Acc', 'Val Acc'];
         const rows = data.map(r => [
-            new Date(r.timestamp).toLocaleDateString('fr-FR'),
+            formatDate(r.timestamp),
             r.model_name,
             r.model_version,
             r.epochs,

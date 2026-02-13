@@ -7,6 +7,17 @@ import sys
 import os
 import argparse
 from app.main import app, socketio
+from app.report_scheduler import init_report_scheduler, get_report_scheduler
+import atexit
+
+def shutdown_scheduler():
+    """Arrêter le scheduler à l'arrêt de l'app"""
+    scheduler = get_report_scheduler()
+    if scheduler:
+        scheduler.stop()
+
+# Enregistrer l'arrêt propre du scheduler
+atexit.register(shutdown_scheduler)
 
 def main():
     parser = argparse.ArgumentParser(description='Système de Détection EPI')
@@ -31,6 +42,10 @@ def main():
         API: http://{args.host}:{args.port}/api/detect
         ========================================
         """)
+        
+        # Initialiser le scheduler de rapports email
+        print("📧 Initialisation du scheduler de rapports...")
+        init_report_scheduler()
         
         socketio.run(app, host=args.host, port=args.port, debug=True)
     

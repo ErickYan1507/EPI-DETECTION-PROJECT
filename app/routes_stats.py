@@ -10,10 +10,21 @@ Routes pour les statistiques en temps réel
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 from app.database_unified import db, Detection, Alert, TrainingResult, Worker
+from app.constants import calculate_compliance_score
 from sqlalchemy import func, and_
 import json
+import os
 
 stats_bp = Blueprint('stats', __name__, url_prefix='/api')
+
+
+@stats_bp.route('/ping', methods=['GET'])
+def ping():
+    """Endpoint de test pour vérifier que l'API répond"""
+    try:
+        return jsonify({'status': 'ok', 'message': 'pong', 'time': datetime.utcnow().isoformat() + 'Z'}), 200
+    except Exception:
+        return jsonify({'status': 'error'}), 500
 
 # ============================================================================
 # ENDPOINT: /api/stats - Statistiques globales en temps réel
@@ -53,16 +64,20 @@ def get_stats():
         with_glasses = sum(d.with_glasses or 0 for d in today_detections)
         with_boots = sum(d.with_boots or 0 for d in today_detections)
         
-        # Taux de conformité
-        if total_persons > 0:
-            # Personne en conformité = avec tous les EPI
-            compliant_persons = sum(
-                min(d.with_helmet or 0, d.with_vest or 0, d.with_glasses or 0, d.with_boots or 0)
-                for d in today_detections
-            )
-            compliance_rate = (compliant_persons / total_persons * 100) if total_persons > 0 else 0
+        # Taux de conformité - Utiliser le nouvel algorithme
+        # RÈGLE: Si personne = 0 → conformité = 0%
+        #        Si personne > 0 → appliquer le nouvel algorithme
+        if total_persons == 0:
+            compliance_rate = 0.0  # Aucune personne détectée
         else:
-            compliance_rate = 0
+            # Utiliser le nouvel algorithme avec le nombre total d'EPI détectés
+            compliance_rate = calculate_compliance_score(
+                total_persons=total_persons,
+                with_helmet=with_helmet,
+                with_vest=with_vest,
+                with_glasses=with_glasses,
+                with_boots=with_boots
+            )
         
         # Compter les alertes actives
         active_alerts = Alert.query.filter(
@@ -116,7 +131,7 @@ def get_hourly_data():
             Detection.timestamp >= start_time
         ).all()
         
-        # Compter par heure et calculer la conformité
+        # Compter par heure et calculer la conformité avec le nouvel algorithme
         for detection in detections:
             hour = detection.timestamp.hour
             hour_label = f"{hour:02d}h"
@@ -124,21 +139,29 @@ def get_hourly_data():
                 hours_data[hour_label]['count'] += 1
                 total_persons = detection.total_persons or 0
                 hours_data[hour_label]['persons'] += total_persons
-                
-                # Personne conforme = avec tous les EPI
-                if total_persons > 0:
-                    compliant = min(
-                        detection.with_helmet or 0,
-                        detection.with_vest or 0,
-                        detection.with_glasses or 0,
-                        detection.with_boots or 0
-                    )
-                    hours_data[hour_label]['compliant'] += compliant
         
-        # Calculer le taux de conformité par heure
+        # Calculer le taux de conformité par heure en utilisant le nouvel algorithme
         for hour_label, data in hours_data.items():
             if data['persons'] > 0:
-                compliance_data[hour_label] = round((data['compliant'] / data['persons'] * 100), 1)
+                # Recalculer la conformité avec le nouvel algorithme
+                # Récupérer les détections pour cette heure (filtrage en mémoire pour compatibilité SQLite)
+                hour_int = int(hour_label.split('h')[0])
+                detections_hour = [d for d in detections if d.timestamp and d.timestamp.hour == hour_int]
+                
+                # Compter les EPI totaux pour cette heure
+                total_helmet = sum(d.with_helmet or 0 for d in detections_hour)
+                total_vest = sum(d.with_vest or 0 for d in detections_hour)
+                total_glasses = sum(d.with_glasses or 0 for d in detections_hour)
+                total_boots = sum(d.with_boots or 0 for d in detections_hour)
+                
+                # Appliquer le nouvel algorithme
+                compliance_data[hour_label] = calculate_compliance_score(
+                    total_persons=data['persons'],
+                    with_helmet=total_helmet,
+                    with_vest=total_vest,
+                    with_glasses=total_glasses,
+                    with_boots=total_boots
+                )
             else:
                 compliance_data[hour_label] = 0
         
@@ -470,15 +493,15 @@ def get_realtime():
             glasses.append(det.with_glasses or 0)
             boots.append(det.with_boots or 0)
             
-            # Taux de conformité pour cette détection
+            # Taux de conformité pour cette détection - Utiliser le nouvel algorithme
             if det.total_persons and det.total_persons > 0:
-                compliant = min(
-                    det.with_helmet or 0,
-                    det.with_vest or 0,
-                    det.with_glasses or 0,
-                    det.with_boots or 0
+                rate = calculate_compliance_score(
+                    total_persons=det.total_persons,
+                    with_helmet=det.with_helmet or 0,
+                    with_vest=det.with_vest or 0,
+                    with_glasses=det.with_glasses or 0,
+                    with_boots=det.with_boots or 0
                 )
-                rate = (compliant / det.total_persons * 100)
                 compliance_rates.append(round(rate, 2))
             else:
                 compliance_rates.append(0)
@@ -540,6 +563,11 @@ def export_detection_pdf():
             title="Rapport de Détection EPI"
         )
 
+        # Vérifier que le fichier existe
+        if not os.path.exists(pdf_path):
+            print(f"❌ PDF file not found: {pdf_path}")
+            return jsonify({'error': 'Erreur: le fichier PDF n\'a pas pu être créé'}), 500
+
         # Retourner le fichier PDF
         return send_file(
             pdf_path,
@@ -549,8 +577,12 @@ def export_detection_pdf():
         )
 
     except Exception as e:
-        print(f"❌ Erreur export PDF détections: {e}")
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        error_msg = str(e)
+        traceback_str = traceback.format_exc()
+        print(f"❌ Erreur export PDF détections: {error_msg}")
+        print(f"Traceback: {traceback_str}")
+        return jsonify({'error': f'Erreur lors de la génération du PDF: {error_msg}'}), 500
 
 
 @stats_bp.route('/export/training-pdf', methods=['GET'])
@@ -559,6 +591,7 @@ def export_training_pdf():
     try:
         from app.pdf_export import PDFExporter
         from flask import send_file
+        from datetime import date
 
         # Paramètre optionnel pour un résultat spécifique
         training_id = request.args.get('training_id', type=int)
@@ -573,7 +606,8 @@ def export_training_pdf():
         )
 
         # Retourner le fichier PDF
-        filename = f"training_report_{'id_' + str(training_id) + '_' if training_id else ''}{date.today().strftime('%Y%m%d')}.pdf"
+        id_part = f"id_{training_id}_" if training_id else ""
+        filename = f"training_report_{id_part}{date.today().strftime('%Y%m%d')}.pdf"
         return send_file(
             pdf_path,
             as_attachment=True,
