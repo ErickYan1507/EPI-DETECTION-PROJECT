@@ -47,7 +47,7 @@ def main():
         print("📧 Initialisation du scheduler de rapports...")
         init_report_scheduler()
         
-        socketio.run(app, host=args.host, port=args.port, debug=True)
+        socketio.run(app, host=args.host, port=args.port, debug=False, use_reloader=False)
     
     elif args.mode == 'test':
         print("Lancement des tests...")

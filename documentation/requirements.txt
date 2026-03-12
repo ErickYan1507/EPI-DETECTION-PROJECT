@@ -24,3 +24,4 @@ urllib3>=2.5.0 ; python_version > "3.8" # not directly required, pinned by Snyk 
 pygame>=2.0.0
 pyttsx3>=2.90
 scipy
+pyserial

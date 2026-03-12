@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Détection EPI - Téléchargement et Analyse Modernes{% endblock %}
 
@@ -9,11 +9,15 @@
         padding: 0;
         box-sizing: border-box;
     }
+    html {
+        background: var(--bg-primary);
+    }
 
     body {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
         min-height: 100vh;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text-primary);
     }
 
     .container-main {
@@ -25,7 +29,7 @@
     /* ========== HEADER ========== */
     .header-section {
         text-align: center;
-        color: white;
+        color: var(--text-primary);
         margin-bottom: 50px;
     }
 
@@ -49,7 +53,7 @@
     }
 
     .upload-box {
-        background: white;
+        background: var(--glass-bg);
         border-radius: 20px;
         padding: 40px;
         box-shadow: 0 20px 60px rgba(0,0,0,0.3);
@@ -106,7 +110,7 @@
     .preview-box {
         border-radius: 15px;
         overflow: hidden;
-        background: #f8f9ff;
+        background: rgba(255, 255, 255, 0.08);
         display: none;
         position: relative;
     }
@@ -123,8 +127,8 @@
 
     .preview-info {
         padding: 15px;
-        background: white;
-        border-top: 1px solid #eee;
+        background: rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--border-color);
     }
 
     .preview-filename {
@@ -172,12 +176,14 @@
     }
 
     .btn-secondary {
-        background: #f0f0f0;
-        color: #333;
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
     }
 
     .btn-secondary:hover {
-        background: #e0e0e0;
+        background: var(--bg-secondary);
+        border-color: var(--color-secondary);
     }
 
     /* ========== LOADING SPINNER ========== */
@@ -185,7 +191,7 @@
         display: none;
         text-align: center;
         padding: 40px;
-        background: white;
+        background: var(--glass-bg);
         border-radius: 20px;
         box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         margin: 40px 0;
@@ -263,7 +269,7 @@
     }
 
     .results-container {
-        background: white;
+        background: var(--glass-bg);
         border-radius: 20px;
         padding: 40px;
         box-shadow: 0 20px 60px rgba(0,0,0,0.3);
@@ -295,7 +301,7 @@
         border-radius: 15px;
         overflow: hidden;
         margin-bottom: 30px;
-        background: #f8f9ff;
+        background: rgba(255, 255, 255, 0.08);
     }
 
     .detection-image {
@@ -427,7 +433,7 @@
 
     /* ========== INTERPRETATION ========== */
     .interpretation-section {
-        background: #f8f9ff;
+        background: rgba(255, 255, 255, 0.08);
         border-radius: 15px;
         padding: 25px;
         margin-top: 30px;
@@ -448,7 +454,7 @@
     }
 
     .interpretation-item {
-        background: white;
+        background: rgba(255, 255, 255, 0.08);
         padding: 15px;
         border-radius: 10px;
         border-left: 4px solid;
@@ -480,6 +486,105 @@
         color: #f44336;
     }
 
+    /* ========== THEME + GLASSMORPHISM OVERRIDES ========== */
+    .upload-box,
+    .loading-container,
+    .results-container {
+        background: var(--glass-bg);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+    }
+
+    .upload-label {
+        border: 2px dashed var(--color-secondary);
+        background: linear-gradient(135deg, rgba(65, 105, 225, 0.12) 0%, rgba(139, 21, 56, 0.12) 100%);
+    }
+
+    .upload-label:hover {
+        border-color: var(--color-primary);
+        background: linear-gradient(135deg, rgba(65, 105, 225, 0.24) 0%, rgba(139, 21, 56, 0.24) 100%);
+    }
+
+    .upload-label.dragover {
+        border-color: var(--color-primary);
+        background: linear-gradient(135deg, rgba(65, 105, 225, 0.35) 0%, rgba(139, 21, 56, 0.35) 100%);
+    }
+
+    .upload-label h3,
+    .upload-box h3[style],
+    .results-container h3[style],
+    .results-header h2,
+    .interpretation-title,
+    .item-label {
+        color: var(--text-primary) !important;
+    }
+
+    .upload-label p,
+    .stat-label {
+        color: var(--text-secondary);
+    }
+
+    .preview-box,
+    .interpretation-section,
+    .interpretation-item,
+    .detection-image-wrapper {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--border-color);
+    }
+
+    .preview-info {
+        background: rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--border-color);
+    }
+
+    .preview-filename {
+        color: var(--text-primary);
+    }
+
+    .preview-size,
+    #emptyPreview[style],
+    #uploadLabel p[style] {
+        color: var(--text-tertiary) !important;
+    }
+
+    .results-header {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .results-header-icon,
+    .upload-icon,
+    .stat-value {
+        color: var(--color-secondary);
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, rgba(65, 105, 225, 0.16) 0%, rgba(139, 21, 56, 0.16) 100%);
+        border-left: 5px solid var(--color-secondary);
+        border: 1px solid var(--border-color);
+    }
+
+    .interpretation-section {
+        border-left: 5px solid var(--color-secondary);
+    }
+
+    .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--bg-secondary);
+        border-color: var(--color-secondary);
+    }
+
+    .spinner {
+        border-color: rgba(255, 255, 255, 0.2);
+        border-top-color: var(--color-secondary);
+    }
+
     /* ========== RESPONSIVE ========== */
     @media (max-width: 768px) {
         .upload-wrapper {
@@ -493,14 +598,89 @@
         .container-main {
             padding: 20px 10px;
         }
+
+        .button-section {
+            flex-direction: column;
+        }
+
+        .compliance-meter {
+            width: 170px;
+            height: 170px;
+        }
+
+        .compliance-inner,
+        .compliance-circle {
+            font-size: 2.2em;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .header-section h1 {
+            font-size: 2em;
+        }
+
+        .upload-box,
+        .results-container,
+        .loading-container {
+            padding: 20px;
+        }
+
+        .upload-label {
+            padding: 36px 20px;
+        }
+
+        .stats-grid,
+        .detections-grid,
+        .interpretation-content {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    body.light-mode .upload-box,
+    body.light-mode .loading-container,
+    body.light-mode .results-container,
+    body.light-mode .preview-box,
+    body.light-mode .preview-info,
+    body.light-mode .interpretation-section,
+    body.light-mode .interpretation-item,
+    body.light-mode .detection-image-wrapper,
+    body.light-mode .stat-card {
+        background: rgba(255, 255, 255, 0.9) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border-color) !important;
+    }
+
+    body.light-mode .upload-label {
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(139, 21, 56, 0.08) 100%);
+    }
+
+    body.light-mode .upload-label:hover,
+    body.light-mode .upload-label.dragover {
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.18) 0%, rgba(139, 21, 56, 0.14) 100%);
+    }
+
+    body.light-mode .compliance-section {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(251, 191, 36, 0.16) 100%);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    body.light-mode .compliance-inner {
+        background: rgba(255, 255, 255, 0.94);
+        color: var(--text-primary);
+    }
+
+    body.light-mode .compliance-circle {
+        box-shadow: none;
     }
 </style>
 
 <div class="container-main">
     <!-- HEADER -->
     <div class="header-section">
-        <h1><i class="fas fa-microscope"></i> Détection EPI Pro</h1>
+        <h1><i class="fas fa-microscope"></i> Détection EPI </h1>
         <p>Détection et Analyse Avancées avec Visualisation Moderne</p>
+      
     </div>
 
     <!-- ALERT MESSAGE -->
@@ -643,7 +823,10 @@
 
     // ========== FILE SELECTION ==========
     fileInput.addEventListener('change', updatePreview);
-    uploadLabel.addEventListener('click', () => fileInput.click());
+    uploadLabel.addEventListener('click', (e) => {
+        e.preventDefault();
+        fileInput.click();
+    });
 
     function updatePreview() {
         const file = fileInput.files[0];
@@ -667,6 +850,11 @@
         reader.readAsDataURL(file);
     }
 
+    fileInput.addEventListener('change', () => {
+        updatePreview();
+        fileInput.blur();
+    });
+
     // ========== FORM SUBMISSION ==========
     uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -689,10 +877,10 @@
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('type', file.type.startsWith('image/') ? 'image' : 'video');
+        formData.append('type', file.type.startsWith('image/') ?'image' : 'video');
 
         try {
-            console.log('📤 Téléchargement:', file.name);
+            console.log('Téléchargement:', file.name);
             const response = await fetch('/upload', {
                 method: 'POST',
                 body: formData
@@ -703,19 +891,19 @@
             }
 
             const data = await response.json();
-            console.log('✅ Réponse:', data);
+            console.log('Réponse:', data);
 
             if (data.success) {
-                showAlert('✅ Analyse complétée avec succès!', 'success');
+                showAlert('Analyse complétée avec succès!', 'success');
                 displayResults(data);
                 fileInput.value = '';
                 updatePreview();
             } else {
-                showAlert('❌ ' + (data.error || 'Unknown error'), 'error');
+                showAlert('Erreur: ' + (data.error || 'Unknown error'), 'error');
             }
         } catch (error) {
             console.error('Error:', error);
-            showAlert('❌ Error: ' + error.message, 'error');
+            showAlert('Erreur: ' + error.message, 'error');
         } finally {
             loadingContainer.classList.remove('active');
             isProcessing = false;
@@ -757,6 +945,7 @@
 
         // Interpretation
         displayInterpretation(stats);
+        notifyArduino(stats);
 
         resultsSection.classList.add('show');
         setTimeout(() => {
@@ -769,27 +958,27 @@
         statsGrid.innerHTML = `
             <div class="stat-card">
                 <div class="stat-value">${stats.total_persons || 0}</div>
-                <div class="stat-label">👥 Total Personnes</div>
+                <div class="stat-label">Total Personnes</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">${stats.with_helmet || 0}</div>
-                <div class="stat-label">🪖 Avec Casque</div>
+                <div class="stat-label">Avec Casque</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">${stats.with_vest || 0}</div>
-                <div class="stat-label">🦺 Avec Gilet</div>
+                <div class="stat-label">Avec Gilet</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">${stats.with_glasses || 0}</div>
-                <div class="stat-label">👓 Avec Lunettes</div>
+                <div class="stat-label">Avec Lunettes</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">${stats.with_boots || 0}</div>
-                <div class="stat-label">👢 Avec Bottes</div>
+                <div class="stat-label">Avec Bottes</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">${Math.round(stats.compliance_rate || 0)}%</div>
-                <div class="stat-label">✅ Conformité</div>
+                <div class="stat-label">Conformité</div>
             </div>
         `;
     }
@@ -811,8 +1000,9 @@
         };
 
         detectionsGrid.innerHTML = detections.map(det => {
-            const confidence = Math.round((det.confidence || 0) * 100);
-            const className = det.class_name || 'unknown';
+            const rawConfidence = Number(det.confidence || 0);
+            const confidence = Math.round(rawConfidence <= 1 ? rawConfidence * 100 : rawConfidence);
+            const className = det.class_name || det.class || det.name || 'unknown';
             const color = colors[className.toLowerCase()] || '#667eea';
             
             return `
@@ -834,34 +1024,61 @@
         const compliance = Math.round(stats.compliance_rate || 0);
 
         function getStatus(percentage) {
-            if (percentage >= 80) return { class: 'item-good', text: '✅ Bon', emoji: '✅' };
-            if (percentage >= 50) return { class: 'item-warning', text: '⚠️ Attention', emoji: '⚠️' };
-            return { class: 'item-danger', text: '❌ Critique', emoji: '❌' };
+            if (percentage >= 80) return { class: 'item-good', text: 'Bon', emoji: 'OK' };
+            if (percentage >= 50) return { class: 'item-warning', text: 'Attention', emoji: '!' };
+            return { class: 'item-danger', text: 'Critique', emoji: 'X' };
         }
 
-        const helmetStatus = total > 0 ? getStatus((helmet / total) * 100) : getStatus(0);
-        const vestStatus = total > 0 ? getStatus((vest / total) * 100) : getStatus(0);
-        const bootStatus = total > 0 ? getStatus((boots / total) * 100) : getStatus(0);
+        const helmetStatus = total > 0 ?getStatus((helmet / total) * 100) : getStatus(0);
+        const vestStatus = total > 0 ?getStatus((vest / total) * 100) : getStatus(0);
+        const bootStatus = total > 0 ?getStatus((boots / total) * 100) : getStatus(0);
 
         document.getElementById('interpretationContent').innerHTML = `
             <div class="interpretation-item ${helmetStatus.class}">
-                <div class="item-label">👷 Conformité Casque</div>
-                <div class="item-value">${helmetStatus.emoji} ${total > 0 ? Math.round((helmet/total)*100) : 0}%</div>
+                <div class="item-label">Conformité Casque</div>
+                <div class="item-value">${helmetStatus.emoji} ${total > 0 ?Math.round((helmet/total)*100) : 0}%</div>
             </div>
             <div class="interpretation-item ${vestStatus.class}">
-                <div class="item-label">🦺 Conformité Gilet</div>
-                <div class="item-value">${vestStatus.emoji} ${total > 0 ? Math.round((vest/total)*100) : 0}%</div>
+                <div class="item-label">Conformité Gilet</div>
+                <div class="item-value">${vestStatus.emoji} ${total > 0 ?Math.round((vest/total)*100) : 0}%</div>
             </div>
             <div class="interpretation-item ${bootStatus.class}">
-                <div class="item-label">👢 Conformité Bottes</div>
-                <div class="item-value">${bootStatus.emoji} ${total > 0 ? Math.round((boots/total)*100) : 0}%</div>
+                <div class="item-label">Conformité Bottes</div>
+                <div class="item-value">${bootStatus.emoji} ${total > 0 ?Math.round((boots/total)*100) : 0}%</div>
             </div>
-            <div class="interpretation-item ${compliance >= 80 ? 'item-good' : compliance >= 50 ? 'item-warning' : 'item-danger'}">
-                <div class="item-label">📊 Score Global</div>
-                <div class="item-value">${compliance >= 80 ? '✅' : compliance >= 50 ? '⚠️' : '❌'} ${compliance}%</div>
+            <div class="interpretation-item ${compliance >= 80 ?'item-good' : compliance >= 50 ?'item-warning' : 'item-danger'}">
+                <div class="item-label">Score Global</div>
+                <div class="item-value">${compliance >= 80 ?'OK' : compliance >= 50 ?'!' : 'X'} ${compliance}%</div>
             </div>
         `;
+    }
+
+    function notifyArduino(stats) {
+        const payload = {
+            total_persons: Number(stats.total_persons || 0),
+            with_helmet: Number(stats.with_helmet || 0),
+            with_vest: Number(stats.with_vest || 0),
+            with_glasses: Number(stats.with_glasses || 0),
+            with_boots: Number(stats.with_boots || 0)
+        };
+
+        const complianceLevel = payload.total_persons > 0
+            ? Math.round(Number(stats.compliance_rate || 0))
+            : 0;
+
+        fetch('/api/arduino/send-detection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch((err) => console.log('Arduino detection error:', err));
+
+        fetch('/api/arduino/send-compliance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level: complianceLevel })
+        }).catch((err) => console.log('Arduino compliance error:', err));
     }
 </script>
 
 {% endblock %}
+

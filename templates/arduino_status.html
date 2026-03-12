@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Arduino - Monitoring</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;padding:18px;background:#111;color:#eee}
+    .card{background:#1b1b1b;padding:12px;border-radius:8px;max-width:720px}
+    .status{font-weight:700}
+    .green{color:#7CFC00}.yellow{color:#FFD700}.red{color:#FF6347}
+    pre{background:#0f0f0f;padding:8px;border-radius:6px;overflow:auto}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Arduino - Monitoring</h2>
+    <p>Etat de la connexion et dernières métriques (polling toutes les 3s)</p>
+    <div id="summary">
+      <div>Status: <span id="statusText" class="status">-</span></div>
+      <div>Port: <span id="port">-</span></div>
+      <div>Baud: <span id="baud">-</span></div>
+    </div>
+
+    <h3>Métriques</h3>
+    <pre id="metrics">-</pre>
+
+    <h3>Historique (dernier)</h3>
+    <pre id="history">-</pre>
+  </div>
+
+<script>
+async function fetchStatus(){
+  try{
+    const r = await fetch('http://localhost:5000/api/arduino/status');
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    document.getElementById('port').textContent = j.port || '-';
+    document.getElementById('baud').textContent = j.baud || '-';
+    const s = j.connected ?'CONNECTÉ' : 'DÉCONNECTÉ';
+    const stEl = document.getElementById('statusText');
+    stEl.textContent = s;
+    stEl.className = j.connected ?'status green' : 'status red';
+    document.getElementById('metrics').textContent = JSON.stringify(j.metrics, null, 2) || '-';
+    document.getElementById('history').textContent = JSON.stringify(j.history || [], null, 2);
+  }catch(e){
+    document.getElementById('statusText').textContent = 'ERREUR';
+    document.getElementById('statusText').className = 'status red';
+    document.getElementById('metrics').textContent = String(e);
+  }
+}
+
+fetchStatus();
+setInterval(fetchStatus, 3000);
+</script>
+</body>
+</html>

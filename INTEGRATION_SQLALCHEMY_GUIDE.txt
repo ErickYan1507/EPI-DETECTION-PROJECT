@@ -1,0 +1,313 @@
+╔═══════════════════════════════════════════════════════════════════════╗
+║          GUIDE D'INTÉGRATION: Notifications SQLAlchemy                 ║
+║              Comment ajouter le nouveau système à main.py               ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+📋 RÉSUMÉ DE L'INTÉGRATION
+═══════════════════════════════════════════════════════════════════════
+
+Vous avez maintenant deux options pour votre système de notifications:
+
+1️⃣ ANCIEN SYSTÈME (toujours actif)
+   ├─ app/notifications_handler.py
+   ├─ database/notifications.db (SQLite séparé)
+   └─ .notification_config.json
+   
+   ✓ Opérationnel
+   ✗ Base de données séparée
+   ✗ Configuration JSON externe
+
+2️⃣ NOUVEAU SYSTÈME (SQLAlchemy) [RECOMMANDÉ]
+   ├─ app/notifications_manager_sqlalchemy.py
+   ├─ Models dans app/database_unified.py
+   └─ Utilise app.db (même BD que Detection, IoT, etc.)
+   
+   ✓ Intégré à la base unifiée
+   ✓ Support multi-bases (MySQL, PostgreSQL)
+   ✓ Configuration persistée dans la BD
+
+
+🚀 ÉTAPE 1: ACTIVATION DU NOUVEAU SYSTÈME
+═══════════════════════════════════════════════════════════════════════
+
+OPTION A - Rapide (Recommandé)
+───────────────────────────────
+
+Modifier app/main.py à la ligne ~360:
+
+AVANT:
+  notifier = NotificationManager()
+
+APRÈS:
+  # Utiliser le nouveau système SQLAlchemy
+  from app.notifications_manager_sqlalchemy import NotificationsManagerSQLAlchemy
+  notifier = NotificationsManagerSQLAlchemy(app)
+
+Puis à la ligne ~420 dans le before_first_request:
+
+  # Assurer que les tables existent
+  @app.before_first_request
+  def init_database():
+      with app.app_context():
+          from app.database_unified import db
+          db.create_all()
+
+RESULT:
+  ✓ Les 4 tables de notifications créées dans app.db
+  ✓ Pas de database/notifications.db séparé
+  ✓ Configuration persistée dans notification_config
+
+
+OPTION B - Avec Migration des données
+──────────────────────────────────────
+
+Si vous aviez des données dans l'ancien système:
+
+1. Lancer le script de migration:
+   $ python migrate_notifications_data.py
+
+2. Vérifier que les données sont copiées:
+   $ sqlite3 instance/app.db
+   > SELECT email FROM notification_recipient;
+
+3. Puis appliquer l'Option A ci-dessus
+
+
+🔧 ÉTAPE 2: VÉRIFICATION
+═══════════════════════════════════════════════════════════════════════
+
+Après les modifications, lancez:
+
+$ python test_notifications_sqlalchemy.py
+
+Vous devriez voir:
+  ✅ TEST 1: Modèles SQLAlchemy      → PASS
+  ✅ TEST 2: Manager SQLAlchemy      → PASS
+  ✅ TEST 3: Comparaison systèmes    → PASS
+  ...
+  
+  🎉 TOUS LES TESTS SONT PASSÉS!
+
+
+☑️ ÉTAPE 3: DÉMARRAGE DE L'APPLICATION
+═══════════════════════════════════════════════════════════════════════
+
+Lancer Flask normalement:
+
+$ python run_app.py
+ou
+$ python run_app.py dev
+
+Vérifier les logs pour:
+  ✓ "Initializing real-time sync..."
+  ✓ "MultiModelDetector initialized..."
+  ✓ "Notifications system ready"
+
+Allez à:
+  http://localhost:5000/notifications
+
+Vous verrez l'interface de gestion des notifications.
+
+
+📝 EXEMPLE DE CODE COMPLET POUR main.py
+═══════════════════════════════════════════════════════════════════════
+
+---CUT HERE (ligne ~40)---
+
+from app.notifications_manager_sqlalchemy import NotificationsManagerSQLAlchemy  # NOUVEAU
+
+---CUT HERE (ligne ~365)---
+
+# === NOTIFICATIONS ===
+# Nouveau système SQLAlchemy (recommandé)
+api_notif_manager = NotificationsManagerSQLAlchemy(app)
+
+# (Ancien système optionnel)
+# notifier = NotificationManager()
+
+---CUT HERE (ligne ~420)---
+
+@app.before_first_request
+def init_database():
+    """Initialiser toutes les tables au démarrage"""
+    with app.app_context():
+        from app.database_unified import db
+        db.create_all()
+        logger.info("✓ All database tables initialized")
+
+---END CUT---
+
+
+📊 COMPARAISON: AVANT vs APRÈS
+═══════════════════════════════════════════════════════════════════════
+
+AVANT (Ancien système):
+  
+  Structure:
+    database/ 
+      └─ notifications.db (séparé)
+    app/
+      └─ notifications_handler.py
+    .notification_config.json (séparé)
+    
+  Inconvénients:
+    ❌ Configuration en JSON (difficile à versionner)
+    ❌ Base de données séparée (sauvegarde multiple)
+    ❌ Pas de transaction ACID
+    ❌ Difficile de faire des requêtes croisées
+
+
+APRÈS (Nouveau système SQLAlchemy):
+  
+  Structure:
+    instance/
+      └─ app.db (unifié pour tout)
+    app/
+      ├─ notifications_manager_sqlalchemy.py
+      └─ database_unified.py (models inclus)
+    
+  Avantages:
+    ✅ Configuration dans la BD (versionné, sécurisé)
+    ✅ Base de données unifiée
+    ✅ Transactions ACID automatiques
+    ✅ Requêtes croisées possibles (ex: détections + notifications)
+
+
+🔌 INTÉGRATION AVEC LES AUTRES MODULES
+═══════════════════════════════════════════════════════════════════════
+
+Le nouveau système s'intègre parfaitement:
+
+Detection → Notifications
+  ├─ Créer une notification après une détection problématique
+  └─ Exemple:
+      from app.database_unified import db
+      from app.notifications_manager_sqlalchemy import NotificationsManagerSQLAlchemy
+      
+      manager = NotificationsManagerSQLAlchemy()
+      manager.send_to_all_recipients(
+          subject="Détection problématique",
+          body_html="<h1>PPE manquant détecté!</h1>"
+      )
+
+IoT Sensors → Notifications
+  ├─ Envoyer une notification si capteur défaillant
+  └─ Exemple:
+      if sensor.status == 'error':
+          manager.send_to_all_recipients(
+              subject=f"Alerte capteur: {sensor.name}",
+              body_html=f"<p>Statut: {sensor.status}</p>"
+          )
+
+Scheduled Reports
+  ├─ Envoyer des rapports programmés
+  └─ Exemple:
+      manager.save_report_schedule(
+          report_type='daily',
+          is_enabled=True,
+          send_hour=8
+      )
+
+
+⚙️ CONFIGURATION AVANCÉE
+═══════════════════════════════════════════════════════════════════════
+
+Pour utiliser MySQL en production:
+
+1. Installer MySQL:
+   $ pip install mysql-connector-python
+
+2. Modifier config.py:
+   DATABASE_URI = 'mysql+pymysql://user:pass@localhost/epi_detection'
+
+3. Redémarrer l'application:
+   Les tables se créeront automatiquement
+
+Les modèles SQLAlchemy sont compatibles avec:
+  • SQLite (développement)
+  • MySQL (production)
+  • PostgreSQL (scalabilité)
+
+
+🐛 DÉPANNAGE D'INTÉGRATION
+═══════════════════════════════════════════════════════════════════════
+
+Problème: ImportError "cannot import NotificationsManagerSQLAlchemy"
+Soutenir: Vérifiez:
+  1. Le fichier app/notifications_manager_sqlalchemy.py existe
+  2. L'import est correct: from app.notifications_manager_sqlalchemy import ...
+
+Problème: "No such table: notification_config"
+Solution: Lancer db.create_all() manuellement:
+  $ python -c "from app import create_app; from app.database_unified import db; app = create_app(); app.app_context().push(); db.create_all()"
+
+Problème: Les tables existent dans l'ancien db mais pas dans le nouveau
+Solution: Lancer le script de migration:
+  $ python migrate_notifications_data.py
+
+Problème: Interface web ne montre pas les données
+Solution: Vérifier:
+  1. Les tables existent: http://localhost:5000/api/notifications/config
+  2. Les destinataires sont sauvés: http://localhost:5000/api/notifications/recipients
+  3. Les logs pour erreurs
+
+
+✅ CHECKLIST D'INTÉGRATION
+═══════════════════════════════════════════════════════════════════════
+
+Pour valider que tout fonctionne:
+
+□ Fichier app/notifications_manager_sqlalchemy.py existe
+□ Models ajoutés à app/database_unified.py
+  □ NotificationConfig
+  □ NotificationRecipient
+  □ NotificationHistory
+  □ ReportSchedule
+
+□ Script test_notifications_sqlalchemy.py fonctionne
+  □ TEST 1: Modèles SQLAlchemy ✓
+  □ TEST 2: Manager SQLAlchemy ✓
+  □ TEST 3 à 7: Tous passent ✓
+
+□ (Optionnel) Script migrate_notifications_data.py exécuté
+  □ Anciennes données copiées
+  □ Statut de migration affichée
+  
+□ app/main.py modifié
+  □ Import NotificationsManagerSQLAlchemy
+  □ Initialisation api_notif_manager = NotificationsManagerSQLAlchemy(app)
+  □ db.create_all() dans before_first_request
+
+□ Application redémarrée
+  □ Logs montrent "Notifications system ready"
+  □ Pas d'erreur de table manquante
+
+□ Interface web accessible
+  □ http://localhost:5000/notifications charge
+  □ Section configuration email visible
+  □ Section destinataires visible
+  □ Pouvoir ajouter destinataires
+
+
+📚 DOCUMENTATION ADDITIONNELLE
+═══════════════════════════════════════════════════════════════════════
+
+Pour plus de détails, consulter:
+
+1. NOTIFICATIONS_SQLALCHEMY_GUIDE.txt
+   → Guide complet d'utilisation du nouveau système
+
+2. app/notifications_manager_sqlalchemy.py
+   → Code source avec docstrings
+
+3. app/database_unified.py (section Notifications)
+   → Définition des modèles SQLAlchemy
+
+4. test_notifications_sqlalchemy.py
+   → Exemples d'utilisation avec tests
+
+
+═══════════════════════════════════════════════════════════════════════
+Intégration complète! Votre système de notifications est prêt pour
+l'utilisation en production avec une base de données unifiée.
+═══════════════════════════════════════════════════════════════════════

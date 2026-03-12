@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login - EPI Detection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-login-wrap {
+        min-height: 78vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+    }
+
+    .admin-login-card {
+        width: 100%;
+        max-width: 460px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        padding: 2rem;
+    }
+
+    .admin-login-title {
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        margin-bottom: 0.4rem;
+    }
+
+    .admin-login-subtitle {
+        color: var(--text-secondary);
+        margin-bottom: 1.4rem;
+    }
+
+    .form-control {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: var(--text-primary);
+    }
+
+    .form-control:focus {
+        border-color: #2563EB;
+        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+        background: rgba(255, 255, 255, 0.12);
+        color: var(--text-primary);
+    }
+
+    .btn-login {
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #8B1538 0%, #2563EB 100%);
+        color: #fff;
+        font-weight: 600;
+        padding: 0.7rem 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="admin-login-wrap">
+    <div class="admin-login-card">
+        <h1 class="admin-login-title"><i class="fas fa-user-shield me-2"></i>Espace Administrateur</h1>
+        <p class="admin-login-subtitle">Connexion sécurisée</p>
+
+        <div id="loginError" class="alert alert-danger d-none"></div>
+
+        <form id="adminLoginForm">
+            <div class="mb-3">
+                <label class="form-label">Nom d'utilisateur</label>
+                <input class="form-control" type="text" name="username" required autocomplete="username">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Mot de passe</label>
+                <input class="form-control" type="password" name="password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-login w-100">
+                <i class="fas fa-lock me-2"></i>Se connecter
+            </button>
+        </form>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const form = document.getElementById('adminLoginForm');
+    const loginError = document.getElementById('loginError');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        loginError.classList.add('d-none');
+
+        const formData = new FormData(form);
+        const payload = {
+            username: formData.get('username'),
+            password: formData.get('password')
+        };
+
+        try {
+            const response = await fetch('/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Échec de connexion');
+            }
+            window.location.href = data.redirect || '/admin';
+        } catch (error) {
+            loginError.textContent = error.message;
+            loginError.classList.remove('d-none');
+        }
+    });
+</script>
+{% endblock %}

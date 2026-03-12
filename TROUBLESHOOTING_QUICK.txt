@@ -1,0 +1,344 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                   🤖 ARDUINO MEGA - DÉPANNAGE RAPIDE                       ║
+║                          Alertes Temps Réel EPI                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+Configuration:
+├─ Microcontrôleur: Arduino MEGA 2560
+├─ Buzzer: Port 9
+├─ LED Rouge: Port 30
+├─ LED Jaune: Port 26
+└─ LED Vert: Port 36
+
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ PROBLÈME: Arduino ne s'affiche pas dans Arduino IDE
+───────────────────────────────────────────────────────────────────────────────
+
+CAUSES POSSIBLES:
+  ▢ Le câble USB ne fonctionne pas
+  ▢ Drivers non installés
+  ▢ Arduino sur un port USB non reconnu
+  ▢ Arduino en mode bootloader
+
+SOLUTIONS À ESSAYER:
+  1) Tester avec un autre câble USB
+  2) Essayer un autre port USB sur l'ordinateur
+  3) Redémarrer l'Arduino (débrancher/rebrancher)
+  4) Télécharger les drivers CH340: https://bit.ly/CH340drivers
+  5) Tester sur un autre ordinateur
+
+VÉRIFICATION:
+  • Ouvrir: Gestionnaire de Périphériques
+  • Chercher: "Arduino" ou "USB Serial"
+  • Vérifier: Port COMX affiché
+
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ PROBLÈME: Arduino IDE dit "Upload failed"
+───────────────────────────────────────────────────────────────────────────────
+
+CAUSES:
+  ▢ Mauvais port COM sélectionné
+  ▢ Mauvaise carte Arduino sélectionnée
+  ▢ Câble USB intermittent
+  ▢ Arduino MEGA non en mode reset
+
+SOLUTIONS:
+  1) Vérifier: Tools → Board → "Arduino MEGA or MEGA 2560"
+  2) Vérifier: Tools → Port → COM3 (ou votre port)
+  3) Appuyer sur RESET sur Arduino en même temps que Upload
+  4) Attendre 2 secondes après avoir appuyé sur Upload
+  5) Fermer le Serial Monitor avant Upload
+
+VÉRIFICATION RAPIDE:
+  • Ouvrir Arduino IDE → Tools → Serial Monitor
+  • Doit voir: [STARTUP] EPI Detection Arduino MEGA Controller v2.1
+
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ PROBLÈME: LEDs ne s'allument pas
+───────────────────────────────────────────────────────────────────────────────
+
+PROBLÈME 1: AUCUNE LED ne s'allume
+──────────
+
+CAUSES:
+  ▢ LEDs inversées (polarité)
+  ▢ Mauvais port du Arduino
+  ▢ Arduino n'a pas la bonne version du code
+
+SOLUTIONS:
+  1) Vérifier polarité de chaque LED:
+     - Longue broche = POSITIVE (+)
+     - Courte broche = NÉGATIVE (-) vers GND
+  2) Tester isolément avec une batterie 5V
+  3) Vérifier branchement à Arduino:
+     - Pin 36 → LED Vert
+     - Pin 26 → LED Jaune
+     - Pin 30 → LED Rouge
+  4) Recharger le code Arduino
+  5) Tester avec: python arduino_mega_test.py → Option 4
+
+──────────────────────────────────────────────────────────────────────────────
+
+PROBLÈME 2: Certaines LEDs ne s'allument pas
+──────────
+
+CAUSES:
+  ▢ Résistance 220Ω manquante ou cassée
+  ▢ Broche Courte/Longue inversée
+  ▢ Pin Arduino défaillante
+
+SOLUTIONS:
+  1) Vérifier résistance 220Ω présente en série
+  2) Tester cette LED isolément avec batterie + résistance
+  3) Interchanger les LEDs pour identifier le défaut
+  4) Essayer un autre port Arduino
+
+──────────────────────────────────────────────────────────────────────────────
+
+PROBLÈME 3: LEDs s'allument toutes le temps
+──────────
+
+CAUSES:
+  ▢ Code bien chargé mais comportement erratique
+  ▢ Voltage instable
+  ▢ Interference électromagnétique
+
+SOLUTIONS:
+  1) Ajouter condensateur 100µF entre 5V et GND
+  2) Éloigner du routeur WiFi
+  3) Vérifier alimentation externe stable
+  4) Redémarrer Arduino
+
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ PROBLÈME: Buzzer ne sonne pas
+───────────────────────────────────────────────────────────────────────────────
+
+CAUSES:
+  ▢ Polarité inversée du buzzer
+  ▢ Buzzer défaillant ou endommagé
+  ▢ Mauvais type de buzzer (passif au lieu d'actif)
+  ▢ Port 9 non PWM actif
+
+SOLUTIONS:
+  1) Tester le buzzer isolément:
+     - Buzzer ⊕ (rouge) → Batterie 5V (+)
+     - Buzzer ⊖ (noir) → Batterie 5V (-)
+     ✓ Si sonne → Buzzer OK, problème de branchement/code
+     ✗ Si silencieux → Buzzer défaillant
+
+  2) Vérifier branchement:
+     - Pin 9 → Buzzer ⊕
+     - GND → Buzzer ⊖
+
+  3) Vérifier type de buzzer:
+     - Buzzer ACTIF: Deux broches uniquement
+     - Buzzer PASSIF: Souvent avec résonateur
+
+  4) Recharger le code Arduino
+  5) Tester avec: python arduino_mega_test.py → Option 2
+
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ PROBLÈME: Communication série instable
+───────────────────────────────────────────────────────────────────────────────
+
+SYMPTÔMES:
+  ✗ "Port not found" en Python
+  ✗ Connexion "Lost"
+  ✗ Données corrompues reçues
+  ✗ python arduino_mega_test.py ne voit rien
+
+CAUSES:
+  ▢ PySerial non installé
+  ▢ Port COM erroné
+  ▢ Baudrate = 9600 pas exact
+  ▢ Câble USB intermittent
+  ▢ Drivers manquants
+
+SOLUTIONS:
+  1) Installer PySerial:
+     pip install pyserial
+
+  2) Vérifier le port:
+     python -m serial.tools.list_ports
+
+  3) Vérifier baudrate dans code = 9600
+
+  4) Tester avec Serial Monitor Arduino:
+     ✓ Tools → Serial Monitor
+     ✓ Baudrate = 9600
+     ✓ Doit voir: [STARTUP] messages
+
+  5) Redémarrer Python/Terminal
+
+  6) Essayer port différent
+     (Peut être COM4 au lieu de COM3)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ PROBLÈME: "Permission denied" ou "Access denied"
+───────────────────────────────────────────────────────────────────────────────
+
+CAUSES:
+  ▢ Serial Monitor Arduino IDE ouvert (bloc le port)
+  ▢ Autre application utilise le port COM
+  ▢ Permissions Windows incorrectes
+
+SOLUTIONS:
+  1) FERMER Serial Monitor Arduino IDE si ouvert
+  2) FERMER autres applications Arduino
+  3) Redémarrer le terminal/IDE
+  4) Redémarrer Arduino
+  5) Relancer le script Python
+
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ PROBLÈME: Compliance Level n'affiche rien
+───────────────────────────────────────────────────────────────────────────────
+
+CAUSES:
+  ▢ Arduino n'a pas reçu la commande
+  ▢ Branchement LEDs cassé
+  ▢ Code Python n'envoie pas correctement
+
+SOLUTIONS:
+  1) Vérifier la commande envoyée:
+     Exemple OK: "C85" (85% compliance)
+     Exemple OK: "C45" (45% compliance)
+
+  2) Tester via Serial Monitor Arduino:
+     Tools → Serial Monitor (9600 baud)
+     Taper: C85
+     Appuyer sur ENTER
+     Doit voir: [STATUS] et [CMD] messages
+
+  3) Tester via Python:
+     python arduino_mega_test.py
+     Sélectionner Option 5 (contrôle interactif)
+     Envoyer un niveau
+
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ PROBLÈME: "FileNotFoundError" ou "Module not found"
+───────────────────────────────────────────────────────────────────────────────
+
+ERREUR: "No module named 'app.arduino_integration'"
+
+CAUSES:
+  ▢ Pas dans le répertoire du projet
+  ▢ Structure des dossiers incorrecte
+
+SOLUTIONS:
+  1) Changer vers le répertoire du projet:
+     cd d:\projet\EPI-DETECTION-PROJECT
+
+  2) Vérifier structure:
+     app/
+      └── arduino_integration.py (existence)
+
+  3) Tester:
+     python arduino_mega_test.py
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ TESTS DE VALIDATION RAPIDES
+───────────────────────────────────────────────────────────────────────────────
+
+TEST 1: Port Arduino Trouvé
+────────────────────────────
+  Command: python -m serial.tools.list_ports
+  Attendu: "Arduino MEGA" ou "USB Serial" visible
+
+
+TEST 2: Communication Série
+────────────────────────────
+  Command: python arduino_mega_test.py
+  Choix: 4 (Tous les tests)
+  Attendu: Aucune erreur, tous les tests passent
+
+
+TEST 3: Comportement LEDs en Direct
+────────────────────────────────────
+  Command: python arduino_mega_test.py
+  Choix: 5 (Mode interactif)
+  Action: Envoyer compliance=85
+  Attendu: LED VERT s'allume
+
+  Action: Envoyer compliance=70
+  Attendu: LED JAUNE s'allume
+
+  Action: Envoyer compliance=45
+  Attendu: LED ROUGE s'allume + BUZZER sonne
+
+
+TEST 4: Branchement Physique
+────────────────────────────
+  Avec batterie 5V:
+  ✓ Tester chaque LED isolément
+  ✓ Tester buzzer isolément
+  ✓ Tous les composants doivent répondre
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🆘 AIDE SUPPLÉMENTAIRE
+───────────────────────────────────────────────────────────────────────────────
+
+Fichiers de Documentation:
+  • ARDUINO_README.md ..................... Point d'entrée
+  • ARDUINO_MEGA_CONFIG.md ............... Configuration technique
+  • ARDUINO_WIRING_DIAGRAM.md ........... Schémas branchement
+  • DEPLOYMENT_GUIDE.py .................. Guide déploiement complet
+
+Fichiers de Test:
+  • arduino_mega_test.py ................. Tests interactifs
+  • test_arduino_integration.py ......... Tests unitaires
+
+Fichiers Source:
+  • scripts/tinkercad_arduino.ino .... Code Arduino MEGA
+  • app/arduino_integration.py ....... Contrôleur Python
+
+Commandes de Débugage:
+  python -m serial.tools.list_ports    # Voir les ports
+  python -c "import serial; print(serial.__version__)"  # PySerial OK?
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📞 AVANT DE CONTACTER LE SUPPORT
+───────────────────────────────────────────────────────────────────────────────
+
+Préparez les informations suivantes:
+  ✓ Exact du message d'erreur
+  ✓ Modèle exact de l'Arduino (MEGA? Uno? Other?)
+  ✓ Type de buzzer (actif? passif?)
+  ✓ Port COM exact
+  ✓ Système Windows/Mac/Linux
+  ✓ Version Python (python --version)
+  ✓ Résultat du: python -m serial.tools.list_ports
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ RÉSOLUTION RAPIDE - CHECKLIST
+───────────────────────────────────────────────────────────────────────────────
+
+Si Arduino ne fonctionne pas:
+
+  [ ] Câble USB fonctionne (tester prêt USB)
+  [ ] Drivers installed (voir Gestionnaire Périphériques)
+  [ ] Port COM identifié (python -m serial.tools.list_ports)
+  [ ] Code Arduino v2.1 chargé
+  [ ] PySerial installé (pip install pyserial)
+  [ ] Pas de Serial Monitor ouvert
+  [ ] arduino_mega_test.py peut lancer
+  [ ] LEDs réagissent aux commandes
+  [ ] Buzzer répond quand compliance < 60%
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Version: 2.1
+Date: Février 2026
+Status: Production Ready
+

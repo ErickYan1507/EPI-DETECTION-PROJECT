@@ -1,8 +1,10 @@
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image as RLImage
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.graphics.barcode import qr
+from reportlab.graphics.shapes import Drawing
 from datetime import datetime, timedelta, date
 import os
 import logging
@@ -97,9 +99,27 @@ class PDFExporter:
                 else:
                     avg_compliance = 0
                 
-                safe_count = sum(1 for d in detections if d.alert_type == 'safe')
-                warning_count = sum(1 for d in detections if d.alert_type == 'warning')
-                danger_count = sum(1 for d in detections if d.alert_type == 'danger')
+                def _normalize_alert_bucket(det):
+                    raw = (str(det.alert_type or '').strip().lower())
+                    # Legacy/new values coexist in DB (safe/warning/danger vs Aucune/Avertissement/Critique).
+                    if raw in {'safe', 'aucune', 'none', 'info', 'low'}:
+                        return 'safe'
+                    if raw in {'warning', 'avertissement', 'medium'}:
+                        return 'warning'
+                    if raw in {'danger', 'critique', 'critical', 'high'}:
+                        return 'danger'
+
+                    # Fallback on compliance if alert_type is missing or unknown.
+                    compliance = det.compliance_rate or 0
+                    if compliance >= 80:
+                        return 'safe'
+                    if compliance >= 50:
+                        return 'warning'
+                    return 'danger'
+
+                safe_count = sum(1 for d in detections if _normalize_alert_bucket(d) == 'safe')
+                warning_count = sum(1 for d in detections if _normalize_alert_bucket(d) == 'warning')
+                danger_count = sum(1 for d in detections if _normalize_alert_bucket(d) == 'danger')
                 
                 helmet_count = sum(d.with_helmet or 0 for d in detections)
                 vest_count = sum(d.with_vest or 0 for d in detections)
@@ -417,4 +437,197 @@ class PDFExporter:
 
         except Exception as e:
             logger.error(f"❌ Error generating presence report: {e}", exc_info=True)
+            raise
+
+    def generate_attendance_list_report(self, start_date=None, end_date=None, report_type="daily"):
+        """Generer une liste de presence PDF (impression liste) pour les rapports email."""
+        try:
+            from app.database_unified import AttendanceRecord, utc_to_local
+
+            if not start_date:
+                start_date = date.today() - timedelta(days=1)
+            if not end_date:
+                end_date = date.today()
+
+            rows = AttendanceRecord.query.filter(
+                AttendanceRecord.attendance_date >= start_date,
+                AttendanceRecord.attendance_date <= end_date
+            ).order_by(
+                AttendanceRecord.attendance_date.desc(),
+                AttendanceRecord.last_seen_at.desc()
+            ).limit(2000).all()
+
+            now_dt = datetime.now()
+            list_sheet_no = f"LST-{report_type.upper()}-{now_dt.strftime('%Y%m%d%H%M%S')}"
+            filename = (
+                f"attendance_list_{report_type}_"
+                f"{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+            )
+            filepath = os.path.join(self.export_dir, filename)
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+            doc = SimpleDocTemplate(filepath, pagesize=landscape(letter))
+            story = []
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                "AttendanceTitle",
+                parent=styles["Heading1"],
+                fontSize=20,
+                spaceAfter=18,
+                textColor=colors.HexColor("#111827"),
+            )
+
+            story.append(Paragraph("LISTE DE PRESENCE", title_style))
+            story.append(
+                Paragraph(
+                    (
+                        f"<b>Periode:</b> {start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}<br/>"
+                        f"<b>Date du jour:</b> {now_dt.strftime('%d/%m/%Y')}<br/>"
+                        f"<b>Numero de fiche:</b> {list_sheet_no}<br/>"
+                        f"<b>Total lignes:</b> {len(rows)}"
+                    ),
+                    styles["Normal"],
+                )
+            )
+            story.append(Spacer(1, 0.15 * inch))
+
+            headers = [
+                "Nom complet",
+                "ID (6)",
+                "Fonction",
+                "Adresse",
+                "Date",
+                "Heure d'entree",
+                "Presence",
+                "% equipement",
+                "Photo",
+            ]
+
+            table_data = [headers]
+            for row in rows:
+                person = row.person
+                rid6 = f"{((person.id if person else row.person_id) or 0):06d}"
+                is_present = bool(person and (person.manual_presence_today is None or person.manual_presence_today))
+                presence_label = "Present" if is_present else "Absent"
+                epi_count = (
+                    (1 if bool(row.helmet_detected) else 0)
+                    + (1 if bool(row.vest_detected) else 0)
+                    + (1 if bool(row.glasses_detected) else 0)
+                    + (1 if bool(row.boots_detected) else 0)
+                )
+                epi_percent = int(round((epi_count * 100.0) / 4.0))
+
+                photo_cell = "-"
+                photo_path = (person.identity_photo_path or "").strip() if person else ""
+                if photo_path:
+                    resolved = photo_path
+                    if not os.path.isabs(resolved):
+                        base_dir = os.path.dirname(__file__)
+                        resolved = os.path.abspath(os.path.join(base_dir, "..", photo_path))
+                    if os.path.exists(resolved):
+                        try:
+                            photo_cell = RLImage(resolved, width=0.38 * inch, height=0.5 * inch)
+                        except Exception:
+                            photo_cell = "-"
+
+                first_seen = utc_to_local(row.first_seen_at).strftime("%H:%M:%S") if row.first_seen_at else "-"
+                adate = row.attendance_date.strftime("%d/%m/%Y") if row.attendance_date else "-"
+
+                table_data.append(
+                    [
+                        person.full_name if person and person.full_name else "-",
+                        rid6,
+                        person.job_title if person and person.job_title else "-",
+                        person.address if person and person.address else "-",
+                        adate,
+                        first_seen,
+                        presence_label,
+                        f"{epi_percent}%",
+                        photo_cell,
+                    ]
+                )
+
+            if len(table_data) > 141:
+                table_data = table_data[:141]
+
+            table = Table(
+                table_data,
+                colWidths=[
+                    1.5 * inch,
+                    0.7 * inch,
+                    1.0 * inch,
+                    1.3 * inch,
+                    0.8 * inch,
+                    0.85 * inch,
+                    0.75 * inch,
+                    0.75 * inch,
+                    0.55 * inch,
+                ],
+                repeatRows=1,
+            )
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f2937")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, 0), 8),
+                        ("ALIGN", (1, 1), (1, -1), "CENTER"),
+                        ("ALIGN", (6, 1), (7, -1), "CENTER"),
+                        ("ALIGN", (8, 1), (8, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("FONTSIZE", (0, 1), (-1, -1), 7),
+                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9fafb")]),
+                        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#d1d5db")),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                        ("TOPPADDING", (0, 0), (-1, -1), 3),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ]
+                )
+            )
+            story.append(table)
+            story.append(Spacer(1, 0.2 * inch))
+
+            qr_payload = f"Date du jour: {now_dt.strftime('%d/%m/%Y')}\nNumero fiche: {list_sheet_no}"
+            qr_widget = qr.QrCodeWidget(qr_payload)
+            bounds = qr_widget.getBounds()
+            qr_size = 1.1 * inch
+            width = bounds[2] - bounds[0]
+            height = bounds[3] - bounds[1]
+            qr_drawing = Drawing(qr_size, qr_size, transform=[qr_size / width, 0, 0, qr_size / height, 0, 0])
+            qr_drawing.add(qr_widget)
+            story.append(Paragraph("<b>QR unique de la liste</b>", styles["Normal"]))
+            story.append(qr_drawing)
+            story.append(Spacer(1, 0.12 * inch))
+            story.append(
+                Paragraph(
+                    f"Date du jour: {now_dt.strftime('%d/%m/%Y')}<br/>Numero de fiche (reference liste): {list_sheet_no}",
+                    styles["Normal"],
+                )
+            )
+            story.append(Spacer(1, 0.22 * inch))
+
+            signature_table = Table(
+                [["Signature responsable", "Signature et cachet"]],
+                colWidths=[3.8 * inch, 3.8 * inch],
+            )
+            signature_table.setStyle(
+                TableStyle(
+                    [
+                        ("LINEABOVE", (0, 0), (0, 0), 1, colors.black),
+                        ("LINEABOVE", (1, 0), (1, 0), 1, colors.black),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("TOPPADDING", (0, 0), (-1, -1), 5),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ]
+                )
+            )
+            story.append(signature_table)
+
+            doc.build(story)
+            logger.info(f"✅ Attendance list report generated: {filepath}")
+            return filepath
+        except Exception as e:
+            logger.error(f"❌ Error generating attendance list report: {e}", exc_info=True)
             raise

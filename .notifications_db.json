@@ -1,0 +1,10 @@
+[
+  {
+    "timestamp": "17/02/2026 14:20:50",
+    "type": "manual",
+    "recipient": "20firmino09@gmail.com",
+    "subject": "\ud83e\uddea Test Notification EPI Detection",
+    "status": "error",
+    "details": "(535, b'5.7.8 Username and Password not accepted. For more information, go to\\n5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-43796a5ac87sm36519943f8f.3 - gsmtp')"
+  }
+]

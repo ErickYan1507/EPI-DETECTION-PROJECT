@@ -1,497 +1,852 @@
 {% extends "base.html" %}
 
-{% block title %}📧 Configuration Email - EPI Detection{% endblock %}
+{% block title %}Notifications - EPI Detection{% endblock %}
 
 {% block extra_css %}
 <style>
-    .email-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    .card-section { background: white; border-radius: 10px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .section-title { font-size: 1.3em; font-weight: bold; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: #333; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { font-weight: 600; margin-bottom: 5px; display: block; color: #555; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.95em; box-sizing: border-box; }
-    .form-group input:focus, .form-group select:focus { border-color: #8B1538; outline: none; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
-    .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
-    .btn-primary { background: #8B1538; color: white; }
-    .btn-primary:hover { background: #6d0e2a; }
-    .btn-secondary { background: #6c757d; color: white; }
-    .btn-secondary:hover { background: #5a6268; }
-    .btn-success { background: #28a745; color: white; }
-    .btn-success:hover { background: #218838; }
-    .btn-danger { background: #dc3545; color: white; }
-    .btn-danger:hover { background: #c82333; }
-    .btn-info { background: #17a2b8; color: white; }
-    .btn-info:hover { background: #138496; }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .status-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
-    .status-ok { background: #d4edda; color: #155724; }
-    .status-error { background: #f8d7da; color: #721c24; }
-    .alert { padding: 15px; border-radius: 5px; margin-bottom: 15px; }
-    .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
-    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
-    .divider { border-top: 2px solid #eee; margin: 20px 0; }
-    .recipient-list { list-style: none; padding: 0; margin: 10px 0; }
-    .recipient-item { background: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-    .recipient-item button { padding: 5px 10px; font-size: 0.85em; }
-    .schedule-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-    .schedule-table th, .schedule-table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-    .schedule-table th { background: #f8f9fa; font-weight: 600; }
-    .test-result { margin-top: 15px; padding: 15px; border-radius: 5px; }
-    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #f3f3f3; border-top: 2px solid #8B1538; border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
-    .action-buttons button { flex: 1; min-width: 150px; }
-    small { display: block; margin-top: 3px; }
+    .notifications-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 12px;
+    }
+
+    .n-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 18px;
+        backdrop-filter: blur(8px);
+    }
+
+    .n-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 14px;
+        color: var(--text-primary);
+    }
+
+    .n-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .n-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .n-field label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.92rem;
+        color: var(--text-secondary);
+    }
+
+    .n-field input,
+    .n-field select,
+    .n-field textarea {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-primary);
+        padding: 10px;
+    }
+
+    .n-field textarea {
+        min-height: 110px;
+        resize: vertical;
+    }
+
+    .n-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .n-btn {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-weight: 600;
+        color: #e6dbdb;
+        cursor: pointer;
+    }
+
+    .n-btn.primary { background: #8B1538; }
+    .n-btn.secondary { background: #2563EB; }
+    .n-btn.success { background: #16A34A; }
+    .n-btn.warn { background: #D97706; }
+    .n-btn.danger { background: #DC2626; }
+
+    .n-recipient-list {
+        list-style: none;
+        padding: 0;
+        margin: 12px 0 0 0;
+    }
+
+    .n-recipient-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .n-recipient-item span {
+        overflow-wrap: anywhere;
+        padding-right: 8px;
+    }
+
+    .n-kpi {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    .n-muted {
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+    }
+
+    .n-table-wrap {
+        overflow-x: auto;
+    }
+
+    .n-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .n-table th,
+    .n-table td {
+        border-bottom: 1px solid var(--border-color);
+        padding: 10px;
+        text-align: left;
+        color: var(--text-primary);
+        font-size: 0.92rem;
+    }
+
+    .n-badge {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 3px 9px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .n-badge.ok { background: #14532d; color: #bbf7d0; }
+    .n-badge.err { background: #7f1d1d; color: #fecaca; }
+
+    #statusBox {
+        margin-bottom: 14px;
+    }
+
+    .n-alert {
+        border-radius: 8px;
+        padding: 10px 12px;
+        border: 1px solid transparent;
+    }
+
+    .n-alert.ok { background: #052e16; border-color: #14532d; color: #bbf7d0; }
+    .n-alert.err { background: #450a0a; border-color: #7f1d1d; color: #fecaca; }
+    .n-alert.info { background: #0c4a6e; border-color: #1d4ed8; color: #bfdbfe; }
+
+    @media (max-width: 900px) {
+        .n-grid,
+        .n-grid-3 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .notifications-page {
+            padding: 0 6px;
+        }
+
+        .n-card {
+            padding: 14px;
+        }
+
+        .n-kpi {
+            font-size: 1.4rem;
+        }
+
+        .n-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .n-actions .n-btn {
+            width: 100%;
+        }
+
+        .n-recipient-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .n-recipient-item .n-btn {
+            align-self: stretch;
+        }
+
+        .n-table th,
+        .n-table td {
+            white-space: nowrap;
+            font-size: 0.82rem;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .notifications-page {
+            padding: 0 2px;
+        }
+
+        .n-card {
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .n-title {
+            font-size: 0.98rem;
+        }
+
+        .n-kpi {
+            font-size: 1.15rem;
+        }
+
+        .n-field input,
+        .n-field select,
+        .n-field textarea {
+            padding: 8px;
+            font-size: 0.88rem;
+        }
+
+        .n-btn {
+            padding: 9px 10px;
+            font-size: 0.84rem;
+            white-space: normal;
+            line-height: 1.2;
+        }
+
+        .n-table th,
+        .n-table td {
+            font-size: 0.74rem;
+            padding: 6px;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="email-container">
-    <!-- En-tête -->
-    <div class="card-section" style="background: linear-gradient(135deg, #8B1538 0%, #6d0e2a 100%); color: white;">
-        <h1><i class="fas fa-envelope"></i> Configuration Email - Rapports Automatiques</h1>
-        <p style="margin-top: 10px; opacity: 0.9;">Gérez vos notifications par email et vos rapports programmés</p>
-    </div>
-
-    <!-- Alerte de statut -->
-    <div id="statusAlert"></div>
-
-    <!-- ========== SECTION 1: Configuration SMTP ========== -->
-    <div class="card-section">
-        <div class="section-title">
-            <i class="fas fa-cog"></i> Configuration SMTP Gmail
-        </div>
-        
-        <div class="grid-2">
+<div class="notifications-page">
+    <div class="n-card">
+        <h2 class="n-title"><i class="fas fa-bell"></i> Centre de Notifications</h2>
+        <div id="statusBox"></div>
+        <div class="n-grid-3">
             <div>
-                <div class="form-group">
-                    <label>📧 Email d'expédition (Gmail)</label>
-                    <input type="email" id="senderEmail" placeholder="votre.email@gmail.com">
-                    <small style="color: #999;">Compte Gmail avec 2FA activée</small>
-                </div>
-                <div class="form-group">
-                    <label>🔑 Mot de passe d'application</label>
-                    <input type="password" id="senderPassword" placeholder="Mot de passe app (16 caractères)">
-                    <small style="color: #999;">Pas votre mot de passe Gmail normal!</small>
-                </div>
+                <div class="n-kpi" id="kpiSender">-</div>
+                <div class="n-muted">Expéditeur SMTP</div>
             </div>
             <div>
-                <div class="form-group">
-                    <label>🌐 Serveur SMTP</label>
-                    <input type="text" id="smtpServer" placeholder="smtp.gmail.com" value="smtp.gmail.com">
-                </div>
-                <div class="form-group">
-                    <label>⚙️ Port SMTP</label>
-                    <input type="number" id="smtpPort" placeholder="587" value="587">
-                </div>
+                <div class="n-kpi" id="kpiRecipients">0</div>
+                <div class="n-muted">Destinataires actifs</div>
             </div>
-        </div>
-
-        <div class="divider"></div>
-        
-        <div class="action-buttons">
-            <button class="btn btn-primary" onclick="saveEmailConfig()">
-                <i class="fas fa-save"></i> Sauvegarder Configuration
-            </button>
-            <button class="btn btn-info" onclick="testSmtpConnection()">
-                <i class="fas fa-wifi"></i> Tester Connexion SMTP
-            </button>
-            <button class="btn btn-secondary" onclick="sendTestEmail()">
-                <i class="fas fa-paper-plane"></i> Envoyer Email Test
-            </button>
-        </div>
-        
-        <div id="testResult" style="display: none;"></div>
-    </div>
-
-    <!-- ========== SECTION 2: Destinataires ========== -->
-    <div class="card-section">
-        <div class="section-title">
-            <i class="fas fa-users"></i> Destinataires des Rapports
-        </div>
-        
-        <div class="form-group">
-            <label>➕ Ajouter Email Destinataire</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="email" id="newRecipient" placeholder="admin@company.com" style="flex: 1;">
-                <button class="btn btn-primary" onclick="addRecipient()" style="flex: 0;">Ajouter</button>
+            <div>
+                <div class="n-kpi" id="kpiHistory">0</div>
+                <div class="n-muted">Historique (chargé)</div>
             </div>
-        </div>
-
-        <div>
-            <label style="font-weight: 600; margin-top: 15px; display: block;">📬 Emails Configurés:</label>
-            <ul class="recipient-list" id="recipientList">
-                <li class="recipient-item">
-                    <span><div class="spinner"></div> Chargement...</span>
-                </li>
-            </ul>
         </div>
     </div>
 
-    <!-- ========== SECTION 3: Horaires des Rapports ========== -->
-    <div class="card-section">
-        <div class="section-title">
-            <i class="fas fa-calendar"></i> Horaires des Rapports Programmés
-        </div>
-        
-        <div class="grid-2">
-            <div>
-                <h5 style="color: #8B1538; margin-bottom: 15px;">📊 Rapport Quotidien</h5>
-                <div class="form-group">
-                    <label>⏰ Heure d'envoi (0-23)</label>
-                    <input type="number" id="dailyHour" min="0" max="23" value="8">
-                    <small style="color: #999;">Tous les jours à cette heure</small>
-                </div>
+    <div class="n-card">
+        <h3 class="n-title">Configuration SMTP</h3>
+        <div class="n-grid" style="margin-bottom: 12px;">
+            <div class="n-field">
+                <label>Expéditeurs enregistrés</label>
+                <select id="savedSenders"></select>
             </div>
-
-            <div>
-                <h5 style="color: #8B1538; margin-bottom: 15px;">📅 Rapport Hebdomadaire</h5>
-                <div class="form-group">
-                    <label>📆 Jour de la semaine</label>
-                    <select id="weeklyDay">
-                        <option value="0">Lundi</option>
-                        <option value="1">Mardi</option>
-                        <option value="2">Mercredi</option>
-                        <option value="3">Jeudi</option>
-                        <option value="4">Vendredi</option>
-                        <option value="5">Samedi</option>
-                        <option value="6">Dimanche</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>⏰ Heure d'envoi (0-23)</label>
-                    <input type="number" id="weeklyHour" min="0" max="23" value="9">
-                </div>
-            </div>
-
-            <div>
-                <h5 style="color: #8B1538; margin-bottom: 15px;">📆 Rapport Mensuel</h5>
-                <div class="form-group">
-                    <label>📌 Jour du mois (1-31)</label>
-                    <input type="number" id="monthlyDay" min="1" max="31" value="1">
-                </div>
-                <div class="form-group">
-                    <label>⏰ Heure d'envoi (0-23)</label>
-                    <input type="number" id="monthlyHour" min="0" max="23" value="9">
-                </div>
-            </div>
-
-            <div>
-                <h5 style="color: #8B1538; margin-bottom: 15px;">🚨 Alertes de Conformité</h5>
-                <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 10px;">
-                        <input type="checkbox" id="alertsEnabled" checked>
-                        Alertes activées
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label>⚠️ Seuil d'alerte (en %)</label>
-                    <input type="number" id="alertThreshold" min="0" max="100" value="80">
-                    <small style="color: #999;">Alerte si conformité < seuil</small>
-                </div>
+            <div class="n-actions" style="align-items:end;">
+                <button class="n-btn secondary" id="btnUseSender">Utiliser la sélection</button>
+                <button class="n-btn danger" id="btnDeleteSender">Supprimer expéditeur</button>
             </div>
         </div>
-
-        <div class="divider"></div>
-        
-        <div class="action-buttons">
-            <button class="btn btn-primary" onclick="saveSchedules()">
-                <i class="fas fa-save"></i> Sauvegarder Horaires
-            </button>
-            <button class="btn btn-info" onclick="showSchedulerStatus()">
-                <i class="fas fa-info-circle"></i> Voir État Scheduler
-            </button>
+        <div class="n-grid">
+            <div class="n-field">
+                <label>Email expéditeur</label>
+                <input type="email" id="senderEmail" placeholder="votre.email@gmail.com">
+            </div>
+            <div class="n-field">
+                <label>Mot de passe / Clé app SMTP</label>
+                <input type="password" id="senderPassword" placeholder="Laisser vide pour conserver l'actuel">
+            </div>
+            <div class="n-field">
+                <label>Serveur SMTP</label>
+                <input type="text" id="smtpServer" value="smtp.gmail.com">
+            </div>
+            <div class="n-field">
+                <label>Port SMTP</label>
+                <input type="number" id="smtpPort" value="587" min="1" max="65535">
+            </div>
+        </div>
+        <div class="n-actions">
+            <button class="n-btn primary" id="btnSaveConfig">Sauvegarder</button>
+            <button class="n-btn secondary" id="btnTestConnection">Tester connexion SMTP</button>
+            <button class="n-btn success" id="btnSendTest">Envoyer email test</button>
         </div>
     </div>
 
-    <!-- ========== SECTION 4: Actions Rapides ========== -->
-    <div class="card-section">
-        <div class="section-title">
-            <i class="fas fa-bolt"></i> Actions Rapides
+    <div class="n-card">
+        <h3 class="n-title">Destinataires</h3>
+        <div class="n-grid">
+            <div class="n-field">
+                <label>Nouvelle adresse email</label>
+                <input type="email" id="newRecipient" placeholder="destinataire@entreprise.com">
+            </div>
+            <div class="n-actions" style="align-items:end;">
+                <button class="n-btn primary" id="btnAddRecipient">Ajouter</button>
+            </div>
         </div>
-        
-        <div class="action-buttons">
-            <button class="btn btn-success" onclick="sendDailyReport()">
-                <i class="fas fa-chart-bar"></i> Rapport Quotidien Maintenant
-            </button>
-            <button class="btn btn-success" onclick="sendWeeklyReport()">
-                <i class="fas fa-chart-line"></i> Rapport Hebdo Maintenant
-            </button>
-            <button class="btn btn-success" onclick="sendMonthlyReport()">
-                <i class="fas fa-chart-pie"></i> Rapport Mensuel Maintenant
-            </button>
-            <button class="btn btn-secondary" onclick="exportPresencePDF()">
-                <i class="fas fa-file-pdf"></i> Exporter PDF Présence
-            </button>
+        <ul class="n-recipient-list" id="recipientList"></ul>
+    </div>
+
+    <div class="n-card">
+        <h3 class="n-title">Notification manuelle</h3>
+        <div class="n-grid">
+            <div class="n-field">
+                <label>Destinataire</label>
+                <select id="manualRecipient"></select>
+            </div>
+            <div class="n-field">
+                <label>Sujet</label>
+                <input type="text" id="manualSubject" placeholder="Objet de la notification">
+            </div>
+        </div>
+        <div class="n-field" style="margin-top:10px;">
+            <label>Message</label>
+            <textarea id="manualMessage" placeholder="Votre message..."></textarea>
+        </div>
+        <div class="n-actions">
+            <button class="n-btn success" id="btnSendManual">Envoyer notification</button>
         </div>
     </div>
 
-    <!-- ========== SECTION 5: État du Système ========== -->
-    <div class="card-section">
-        <div class="section-title">
-            <i class="fas fa-heartbeat"></i> État du Système Email
+    <div class="n-card">
+        <h3 class="n-title">Rapports automatiques</h3>
+        <div class="n-grid-3">
+            <div class="n-field">
+                <label>Quotidien (heure)</label>
+                <input type="number" id="dailyHour" min="0" max="23" value="8">
+            </div>
+            <div class="n-field">
+                <label>Hebdomadaire (jour 0-6)</label>
+                <input type="number" id="weeklyDay" min="0" max="6" value="0">
+            </div>
+            <div class="n-field">
+                <label>Hebdomadaire (heure)</label>
+                <input type="number" id="weeklyHour" min="0" max="23" value="9">
+            </div>
+            <div class="n-field">
+                <label>Mensuel (jour 1-28)</label>
+                <input type="number" id="monthlyDay" min="1" max="28" value="1">
+            </div>
+            <div class="n-field">
+                <label>Mensuel (heure)</label>
+                <input type="number" id="monthlyHour" min="0" max="23" value="9">
+            </div>
+            <div class="n-field">
+                <label>Activation</label>
+                <div>
+                    <label><input type="checkbox" id="dailyEnabled" checked> Quotidien</label><br>
+                    <label><input type="checkbox" id="weeklyEnabled"> Hebdomadaire</label><br>
+                    <label><input type="checkbox" id="monthlyEnabled"> Mensuel</label>
+                </div>
+            </div>
         </div>
-        
-        <table class="schedule-table">
-            <thead>
-                <tr>
-                    <th>Composant</th>
-                    <th>État</th>
-                    <th>Détails</th>
-                </tr>
-            </thead>
-            <tbody id="statusTable">
-                <tr>
-                    <td colspan="3" style="text-align: center;">
-                        <div class="spinner"></div> Chargement...
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="n-actions">
+            <button class="n-btn primary" id="btnSaveSchedules">Sauvegarder planification</button>
+            <button class="n-btn warn" data-report="daily">Envoyer rapport quotidien</button>
+            <button class="n-btn warn" data-report="weekly">Envoyer rapport hebdomadaire</button>
+            <button class="n-btn warn" data-report="monthly">Envoyer rapport mensuel</button>
+            <button class="n-btn warn" data-report="annual">Envoyer rapport annuel</button>
+            <button class="n-btn secondary" data-report-pdf="daily">Telecharger PDF quotidien</button>
+            <button class="n-btn secondary" data-report-pdf="weekly">Telecharger PDF hebdomadaire</button>
+            <button class="n-btn secondary" data-report-pdf="monthly">Telecharger PDF mensuel</button>
+            <button class="n-btn secondary" data-report-pdf="annual">Telecharger PDF annuel</button>
+        </div>
     </div>
 
+    <div class="n-card">
+        <h3 class="n-title">Historique</h3>
+        <div class="n-table-wrap">
+            <table class="n-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Destinataire</th>
+                        <th>Sujet</th>
+                        <th>Statut</th>
+                        <th>Détails</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+    </div>
 </div>
-
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
 <script>
-let currentConfig = {};
-
-document.addEventListener('DOMContentLoaded', function() {
-    loadConfiguration();
-    loadRecipients();
-    loadSystemStatus();
-    setInterval(loadSystemStatus, 30000);
-});
-
-function apiCall(endpoint, method = 'GET', data = null) {
-    const options = {
-        method: method,
-        headers: { 'Content-Type': 'application/json' }
-    };
-    if (data) options.body = JSON.stringify(data);
-    return fetch(endpoint, options).then(r => r.json());
-}
-
-function showStatus(message, type = 'info') {
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.innerHTML = message;
-    const container = document.getElementById('statusAlert');
-    container.innerHTML = '';
-    container.appendChild(alert);
-    setTimeout(() => alert.style.display = 'none', 5000);
-}
-
-function loadConfiguration() {
-    apiCall('/api/email/config').then(data => {
-        if (data.success) {
-            currentConfig = data.config;
-            document.getElementById('senderEmail').value = data.config.SENDER_EMAIL || '';
-            document.getElementById('senderPassword').value = data.config.SENDER_PASSWORD || '';
-            document.getElementById('smtpServer').value = data.config.SMTP_SERVER || 'smtp.gmail.com';
-            document.getElementById('smtpPort').value = data.config.SMTP_PORT || '587';
-            document.getElementById('dailyHour').value = data.config.DAILY_REPORT_HOUR || '8';
-            document.getElementById('weeklyDay').value = data.config.WEEKLY_REPORT_DAY || '1';
-            document.getElementById('weeklyHour').value = data.config.WEEKLY_REPORT_HOUR || '9';
-            document.getElementById('monthlyDay').value = data.config.MONTHLY_REPORT_DAY || '1';
-            document.getElementById('monthlyHour').value = data.config.MONTHLY_REPORT_HOUR || '9';
-            document.getElementById('alertsEnabled').checked = data.config.SEND_ALERTS_ENABLED !== 'false';
-            document.getElementById('alertThreshold').value = data.config.ALERT_THRESHOLD || '80';
-        }
-    });
-}
-
-function saveEmailConfig() {
-    const config = {
-        SENDER_EMAIL: document.getElementById('senderEmail').value,
-        SENDER_PASSWORD: document.getElementById('senderPassword').value,
-        SMTP_SERVER: document.getElementById('smtpServer').value,
-        SMTP_PORT: document.getElementById('smtpPort').value,
-    };
-    
-    if (!config.SENDER_EMAIL) {
-        showStatus('⚠️ Email expéditeur requis!', 'error');
-        return;
+    function showPresencePopup(message, isNewPerson = false) {
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'fixed';
+        wrapper.style.top = '20px';
+        wrapper.style.left = '12px';
+        wrapper.style.right = '12px';
+        wrapper.style.maxWidth = '420px';
+        wrapper.style.margin = '0 auto';
+        wrapper.style.zIndex = '2000';
+        wrapper.innerHTML = `
+            <div class="toast align-items-center text-bg-${isNewPerson ? 'primary' : 'success'} border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(wrapper);
+        const btn = wrapper.querySelector('.btn-close');
+        if (btn) btn.addEventListener('click', () => wrapper.remove());
+        setTimeout(() => wrapper.remove(), 4500);
     }
-    
-    apiCall('/api/email/config', 'POST', config).then(data => {
-        if (data.success) {
-            showStatus('✅ Configuration SMTP sauvegardée!', 'success');
-        } else {
-            showStatus('❌ Erreur: ' + data.error, 'error');
-        }
-    });
-}
 
-function testSmtpConnection() {
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner"></div> Test...';
-    
-    apiCall('/api/email/test-connection').then(data => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-wifi"></i> Tester Connexion SMTP';
-        
-        const tester = document.getElementById('testResult');
-        tester.style.display = 'block';
-        
-        if (data.success) {
-            tester.innerHTML = `<div class="test-result alert-success">
-                <strong>✅ Connexion Réussie!</strong><br>
-                Serveur: ${data.server}:${data.port}
-            </div>`;
-            showStatus('✅ Connexion SMTP réussie!', 'success');
-        } else {
-            tester.innerHTML = `<div class="test-result alert-error">
-                <strong>❌ Erreur: ${data.error}</strong>
-            </div>`;
-        }
-    });
-}
-
-function sendTestEmail() {
-    const email = document.getElementById('senderEmail').value;
-    if (!email) {
-        showStatus('❌ Veuillez configurer un email d\'expédition!', 'error');
-        return;
+    function setStatus(message, type = "info") {
+        const box = document.getElementById("statusBox");
+        box.innerHTML = `<div class="n-alert ${type}">${message}</div>`;
+        setTimeout(() => {
+            if (box) box.innerHTML = "";
+        }, 4000);
     }
-    
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner"></div> Envoi...';
-    
-    apiCall('/api/email/send-test', 'POST', {recipient: email}).then(data => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Envoyer Email Test';
-        
-        if (data.success) {
-            showStatus('✅ Email test envoyé!', 'success');
-        } else {
-            showStatus('❌ Erreur: ' + data.error, 'error');
-        }
-    });
-}
 
-function loadRecipients() {
-    apiCall('/api/email/recipients').then(data => {
-        const list = document.getElementById('recipientList');
-        list.innerHTML = '';
-        if (data.recipients && data.recipients.length > 0) {
-            data.recipients.forEach(email => {
-                list.innerHTML += `<li class="recipient-item"><span>📧 ${email}</span><button class="btn btn-danger" onclick="removeRecipient('${email}')"><i class="fas fa-trash"></i></button></li>`;
-            });
-        } else {
-            list.innerHTML = '<li class="recipient-item"><em>Aucun destinataire</em></li>';
+    async function api(url, options = {}) {
+        const cfg = {
+            headers: { "Content-Type": "application/json" },
+            ...options
+        };
+        const res = await fetch(url, cfg);
+        let data = {};
+        try {
+            data = await res.json();
+        } catch {
+            data = { success: false, error: "Réponse API invalide" };
         }
-    });
-}
-
-function addRecipient() {
-    const email = document.getElementById('newRecipient').value.trim();
-    if (!email) {
-        showStatus('❌ Veuillez entrer un email!', 'error');
-        return;
+        if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
+        return data;
     }
-    
-    apiCall('/api/email/recipients', 'POST', {email: email}).then(data => {
-        if (data.success) {
-            document.getElementById('newRecipient').value = '';
-            loadRecipients();
-            showStatus('✅ Email ajouté!', 'success');
-        } else {
-            showStatus('❌ ' + data.error, 'error');
-        }
-    });
-}
 
-function removeRecipient(email) {
-    if (confirm(`Retirer ${email}?`)) {
-        apiCall('/api/email/recipients', 'DELETE', {email: email}).then(data => {
-            if (data.success) {
-                loadRecipients();
-                showStatus('✅ Email supprimé!', 'success');
+    function getFormConfigPayload() {
+        const payload = {
+            sender_email: document.getElementById("senderEmail").value.trim(),
+            smtp_server: document.getElementById("smtpServer").value.trim() || "smtp.gmail.com",
+            smtp_port: Number(document.getElementById("smtpPort").value || 587),
+            use_tls: true
+        };
+        const pwd = document.getElementById("senderPassword").value;
+        if (pwd) payload.sender_password = pwd;
+        return payload;
+    }
+
+    function renderRecipients(recipients) {
+        const list = document.getElementById("recipientList");
+        const select = document.getElementById("manualRecipient");
+
+        list.innerHTML = "";
+        select.innerHTML = '<option value="">Sélectionner...</option>';
+
+        if (!recipients || recipients.length === 0) {
+            list.innerHTML = '<li class="n-muted">Aucun destinataire.</li>';
+            return;
+        }
+
+        recipients.forEach((r) => {
+            const email = r.email;
+            const li = document.createElement("li");
+            li.className = "n-recipient-item";
+            li.innerHTML = `
+                <span>${email}</span>
+                <button class="n-btn danger" data-del="${email}">Supprimer</button>
+            `;
+            list.appendChild(li);
+
+            const opt = document.createElement("option");
+            opt.value = email;
+            opt.textContent = email;
+            select.appendChild(opt);
+        });
+    }
+
+    function renderSenders(senders, activeEmail) {
+        const select = document.getElementById("savedSenders");
+        select.innerHTML = '<option value="">Aucun expéditeur enregistré</option>';
+
+        if ((!senders || senders.length === 0) && activeEmail) {
+            const opt = document.createElement("option");
+            opt.value = activeEmail;
+            opt.textContent = `${activeEmail} (actif)`;
+            opt.selected = true;
+            select.appendChild(opt);
+            return;
+        }
+        if (!senders || senders.length === 0) return;
+
+        senders.forEach((s) => {
+            const opt = document.createElement("option");
+            opt.value = s.email;
+            const activeMark = s.is_active ?" (actif)" : "";
+            const pwdMark = s.has_password ?"" : " [mot de passe manquant]";
+            opt.textContent = `${s.email}${activeMark}${pwdMark}`;
+            if (activeEmail && s.email === activeEmail) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+
+    function renderHistory(history) {
+        const body = document.getElementById("historyBody");
+        body.innerHTML = "";
+        if (!history || history.length === 0) {
+            body.innerHTML = '<tr><td colspan="6" class="n-muted">Aucun historique.</td></tr>';
+            return;
+        }
+
+        history.forEach((h) => {
+            const statusClass = h.status === "success" ?"ok" : "err";
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${h.timestamp || "-"}</td>
+                <td>${h.type || "-"}</td>
+                <td>${h.recipient || "-"}</td>
+                <td>${h.subject || "-"}</td>
+                <td><span class="n-badge ${statusClass}">${h.status || "-"}</span></td>
+                <td>${h.details || "-"}</td>
+            `;
+            body.appendChild(tr);
+        });
+    }
+
+    function applyState(state) {
+        const cfg = state.config || {};
+        const senders = state.senders || [];
+        const recipients = state.recipients || [];
+        const schedules = state.schedules || [];
+        const history = state.history || [];
+
+        document.getElementById("senderEmail").value = cfg.sender_email || "";
+        document.getElementById("senderPassword").value = "";
+        document.getElementById("smtpServer").value = cfg.smtp_server || "smtp.gmail.com";
+        document.getElementById("smtpPort").value = cfg.smtp_port || 587;
+
+        document.getElementById("kpiSender").textContent = cfg.sender_email || "-";
+        document.getElementById("kpiRecipients").textContent = String(recipients.length);
+        document.getElementById("kpiHistory").textContent = String(history.length);
+
+        const map = {};
+        schedules.forEach((s) => { map[s.report_type] = s; });
+
+        document.getElementById("dailyEnabled").checked = map.daily ? !!map.daily.enabled : true;
+        document.getElementById("dailyHour").value = map.daily ? (map.daily.hour ?? 8) : 8;
+
+        document.getElementById("weeklyEnabled").checked = map.weekly ? !!map.weekly.enabled : false;
+        document.getElementById("weeklyDay").value = map.weekly ? (map.weekly.day ?? 0) : 0;
+        document.getElementById("weeklyHour").value = map.weekly ? (map.weekly.hour ?? 9) : 9;
+
+        document.getElementById("monthlyEnabled").checked = map.monthly ? !!map.monthly.enabled : false;
+        document.getElementById("monthlyDay").value = map.monthly ? (map.monthly.day ?? 1) : 1;
+        document.getElementById("monthlyHour").value = map.monthly ? (map.monthly.hour ?? 9) : 9;
+
+        renderSenders(senders, cfg.sender_email || "");
+        renderRecipients(recipients);
+        renderHistory(history);
+    }
+
+    async function loadState() {
+        const data = await api("/api/notifications/state");
+        if (!data.success) {
+            setStatus(`Erreur chargement: ${data.error || "inconnue"}`, "err");
+            return;
+        }
+
+        // Fallback robuste: si state ne contient pas les expéditeurs,
+        // on tente l'endpoint dédié.
+        if (!Array.isArray(data.senders) || data.senders.length === 0) {
+            const sendersData = await api("/api/notifications/senders");
+            if (sendersData.success && Array.isArray(sendersData.senders)) {
+                data.senders = sendersData.senders;
+            }
+        }
+
+        applyState(data);
+    }
+
+    async function saveConfig() {
+        const payload = getFormConfigPayload();
+        const data = await api("/api/notifications/config", {
+            method: "PUT",
+            body: JSON.stringify(payload)
+        });
+        if (!data.success) {
+            setStatus(`Erreur config: ${data.error || "inconnue"}`, "err");
+            return;
+        }
+        setStatus("C", "ok");
+        await loadState();
+    }
+
+    async function useSelectedSender() {
+        const email = document.getElementById("savedSenders").value;
+        if (!email) {
+            setStatus("Sélectionnez un expéditeur enregistré", "info");
+            return;
+        }
+
+        const data = await api("/api/notifications/senders/active", {
+            method: "PUT",
+            body: JSON.stringify({ email })
+        });
+        if (!data.success) {
+            setStatus(`Activation impossible: ${data.error || "inconnue"}`, "err");
+            return;
+        }
+        setStatus("Expéditeur actif mis à jour", "ok");
+        await loadState();
+    }
+
+    async function deleteSelectedSender() {
+        const email = document.getElementById("savedSenders").value;
+        if (!email) {
+            setStatus("Sélectionnez un expéditeur à supprimer", "info");
+            return;
+        }
+        if (!confirm(`Supprimer l'expéditeur ${email} ?`)) return;
+
+        const data = await api(`/api/notifications/senders/${encodeURIComponent(email)}`, {
+            method: "DELETE"
+        });
+        if (!data.success) {
+            setStatus(`Suppression impossible: ${data.error || "inconnue"}`, "err");
+            return;
+        }
+        setStatus("Expéditeur supprimé", "ok");
+        await loadState();
+    }
+
+    async function testConnection() {
+        const data = await api("/api/notifications/test-connection", { method: "POST" });
+        if (!data.success) {
+            setStatus(`Connexion échouée: ${data.error || "inconnue"}`, "err");
+            return;
+        }
+        setStatus("Connexion SMTP réussie", "ok");
+    }
+
+    async function sendTestEmail() {
+        const recipient = document.getElementById("manualRecipient").value.trim();
+        if (!recipient) {
+            setStatus("Sélectionnez un destinataire pour l'email test", "info");
+            return;
+        }
+        const data = await api("/api/notifications/send-test", {
+            method: "POST",
+            body: JSON.stringify({ recipient })
+        });
+        if (!data.success) {
+            setStatus(`Envoi test échoué: ${data.error || "inconnue"}`, "err");
+            return;
+        }
+        setStatus("Email test envoyé", "ok");
+        await loadState();
+    }
+
+    async function addRecipient() {
+        const email = document.getElementById("newRecipient").value.trim();
+        if (!email) {
+            setStatus("Adresse email requise", "info");
+            return;
+        }
+        const data = await api("/api/notifications/recipients", {
+            method: "POST",
+            body: JSON.stringify({ email })
+        });
+        if (!data.success) {
+            setStatus(`Ajout impossible: ${data.error || "inconnue"}`, "err");
+            return;
+        }
+        document.getElementById("newRecipient").value = "";
+        setStatus("Destinataire ajouté", "ok");
+        await loadState();
+    }
+
+    async function removeRecipient(email) {
+        const data = await api(`/api/notifications/recipients/${encodeURIComponent(email)}`, {
+            method: "DELETE"
+        });
+        if (!data.success) {
+            setStatus(`Suppression impossible: ${data.error || "inconnue"}`, "err");
+            return;
+        }
+        setStatus("Destinataire supprimé", "ok");
+        await loadState();
+    }
+
+    async function sendManual() {
+        const recipient = document.getElementById("manualRecipient").value.trim();
+        const subject = document.getElementById("manualSubject").value.trim();
+        const message = document.getElementById("manualMessage").value.trim();
+        if (!recipient || !subject || !message) {
+            setStatus("Destinataire, sujet et message sont requis", "info");
+            return;
+        }
+        const data = await api("/api/notifications/send-manual", {
+            method: "POST",
+            body: JSON.stringify({ recipient, subject, message })
+        });
+        if (!data.success) {
+            setStatus(`Envoi impossible: ${data.error || "inconnue"}`, "err");
+            return;
+        }
+        setStatus("Notification envoyée", "ok");
+        await loadState();
+    }
+
+    async function saveSchedules() {
+        const payload = {
+            daily: {
+                enabled: document.getElementById("dailyEnabled").checked,
+                hour: Number(document.getElementById("dailyHour").value || 8),
+                minute: 0
+            },
+            weekly: {
+                enabled: document.getElementById("weeklyEnabled").checked,
+                day: Number(document.getElementById("weeklyDay").value || 0),
+                hour: Number(document.getElementById("weeklyHour").value || 9),
+                minute: 0
+            },
+            monthly: {
+                enabled: document.getElementById("monthlyEnabled").checked,
+                day: Number(document.getElementById("monthlyDay").value || 1),
+                hour: Number(document.getElementById("monthlyHour").value || 9),
+                minute: 0
+            }
+        };
+        const data = await api("/api/notifications/schedules", {
+            method: "PUT",
+            body: JSON.stringify(payload)
+        });
+        if (!data.success) {
+            setStatus(`Erreur planification: ${data.error || "inconnue"}`, "err");
+            return;
+        }
+        setStatus("Planification sauvegardée", "ok");
+        await loadState();
+    }
+
+    async function sendReportNow(type) {
+        const data = await api("/api/notifications/send-report", {
+            method: "POST",
+            body: JSON.stringify({ type })
+        });
+        if (!data.success) {
+            setStatus(`Rapport ${type}: ${data.error || data.message || "échec"}`, "err");
+            return;
+        }
+        setStatus(data.message || `Rapport ${type} envoyé`, "ok");
+        await loadState();
+    }
+
+    function downloadReportPdf(type) {
+        const url = `/api/notifications/report-pdf?type=${encodeURIComponent(type)}`;
+        window.open(url, "_blank");
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        const bindClick = (id, handler) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener("click", handler);
+        };
+
+        bindClick("btnSaveConfig", saveConfig);
+        bindClick("btnUseSender", useSelectedSender);
+        bindClick("btnDeleteSender", deleteSelectedSender);
+        bindClick("btnTestConnection", testConnection);
+        bindClick("btnSendTest", sendTestEmail);
+        bindClick("btnAddRecipient", addRecipient);
+        bindClick("btnSendManual", sendManual);
+        bindClick("btnSaveSchedules", saveSchedules);
+
+        document.querySelectorAll("[data-report]").forEach((btn) => {
+            btn.addEventListener("click", () => sendReportNow(btn.dataset.report));
+        });
+        document.querySelectorAll("[data-report-pdf]").forEach((btn) => {
+            btn.addEventListener("click", () => downloadReportPdf(btn.dataset.reportPdf));
+        });
+
+        document.getElementById("recipientList").addEventListener("click", (e) => {
+            const btn = e.target.closest("button[data-del]");
+            if (!btn) return;
+            const email = btn.getAttribute("data-del");
+            if (!email) return;
+            if (!confirm(`Supprimer ${email} ?`)) return;
+            removeRecipient(email);
+        });
+
+        await loadState();
+    });
+
+    try {
+        const socket = io({
+            transports: ['polling'],
+            upgrade: false
+        });
+        socket.on('attendance_detected', (data) => {
+            try {
+                const name = (data.full_name || '').trim() || 'Personne';
+                const shortId = (data.short_id || '').trim() || (
+                    Number.isFinite(Number(data.person_id))
+                        ? String(Number(data.person_id)).padStart(6, '0')
+                        : ''
+                );
+                const message = data.is_new_person
+                    ? `${name} detecte(e): nouvelle presence enregistree aujourd'hui (ID ${shortId || '------'}).`
+                    : `${name} detecte(e) et deja present(e) aujourd'hui.`;
+                showPresencePopup(message, !!data.is_new_person);
+            } catch (err) {
+                console.warn('attendance popup notifications error:', err);
             }
         });
-    }
-}
-
-function saveSchedules() {
-    apiCall('/api/email/schedules', 'POST', {
-        DAILY_REPORT_HOUR: document.getElementById('dailyHour').value,
-        WEEKLY_REPORT_DAY: document.getElementById('weeklyDay').value,
-        WEEKLY_REPORT_HOUR: document.getElementById('weeklyHour').value,
-        MONTHLY_REPORT_DAY: document.getElementById('monthlyDay').value,
-        MONTHLY_REPORT_HOUR: document.getElementById('monthlyHour').value,
-        SEND_ALERTS_ENABLED: document.getElementById('alertsEnabled').checked,
-        ALERT_THRESHOLD: document.getElementById('alertThreshold').value,
-    }).then(data => {
-        if (data.success) {
-            showStatus('✅ Horaires sauvegardés! Redémarrez l\'app pour activer.', 'success');
-        } else {
-            showStatus('❌ Erreur: ' + data.error, 'error');
-        }
-    });
-}
-
-function sendDailyReport() {
-    sendReportNow('daily', event.target);
-}
-
-function sendWeeklyReport() {
-    sendReportNow('weekly', event.target);
-}
-
-function sendMonthlyReport() {
-    sendReportNow('monthly', event.target);
-}
-
-function sendReportNow(type, btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner"></div> Envoi...';
-    
-    apiCall('/api/email/send-report', 'POST', {type: type}).then(data => {
-        btn.disabled = false;
-        btn.innerHTML = btn.innerHTML.replace('<div class="spinner"></div> Envoi...', '<i class="fas fa-chart-bar"></i>');
-        if (data.success) {
-            showStatus(`✅ Rapport ${type} envoyé!`, 'success');
-        } else {
-            showStatus('❌ ' + data.error, 'error');
-        }
-    });
-}
-
-function loadSystemStatus() {
-    apiCall('/api/email/status').then(data => {
-        const table = document.getElementById('statusTable');
-        table.innerHTML = '';
-        const items = [
-            {name: 'Configuration SMTP', status: data.smtp_configured ? 'OK' : 'À configurer', icon: '⚙️'},
-            {name: 'Connexion SMTP', status: data.smtp_connected ? 'Connecté' : 'Erreur', icon: '🌐'},
-            {name: 'Destinataires', status: (data.recipients_count || 0) > 0 ? `${data.recipients_count} email(s)` : 'Aucun', icon: '📧'},
-            {name: 'Scheduler', status: data.scheduler_running ? 'Actif' : 'Arrêté', icon: '⏰'},
-        ];
-        
-        items.forEach(item => {
-            const isOk = item.status !== 'Erreur' && item.status !== 'À configurer' && item.status !== 'Arrêté' && item.status !== 'Aucun';
-            table.innerHTML += `<tr><td>${item.icon} ${item.name}</td><td><span class="status-badge ${isOk ? 'status-ok' : 'status-error'}">${item.status}</span></td><td>-</td></tr>`;
+        socket.on('attendance_embedding_missing', (data) => {
+            try {
+                const persons = Number(data?.present_persons || 0);
+                const streak = Number(data?.miss_streak || 0);
+                const threshold = Number(data?.fallback_after_frames || 0);
+                const message = persons > 0
+                    ? `Visage detecte sans embedding (${persons} personne(s)). Miss=${streak}/${threshold}.`
+                    : (data?.message || 'Embedding facial manquant.');
+                showPresencePopup(message, false);
+            } catch (err) {
+                console.warn('attendance embedding popup notifications error:', err);
+            }
         });
-    });
-}
-
-function showSchedulerStatus() {
-    showStatus('📊 Scheduler programmé selon vos horaires configurés. Redémarrez l\'app pour l\'activer.', 'info');
-}
-
-function exportPresencePDF() {
-    window.location.href = '/api/export/presence-pdf?start_date=2026-02-01&end_date=2026-02-13';
-}
+    } catch (err) {
+        console.warn('socket init notifications error:', err);
+    }
 </script>
-{% endblock %}</content>
-<parameter name="filePath">D:\projet\EPI-DETECTION-PROJECT\templates\notifications.html
+{% endblock %}

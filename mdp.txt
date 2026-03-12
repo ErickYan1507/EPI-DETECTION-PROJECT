@@ -1,0 +1,9 @@
+mqoc zsrh lrsh zhhn
+detection
+
+mobj vdtn iriu wqai
+
+modification des base ,,suppression ,,les notification
+
+$env:ARDUINO_ENABLED = "false"
+python run_app.py

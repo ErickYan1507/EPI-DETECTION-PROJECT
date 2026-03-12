@@ -1,0 +1,361 @@
+╔═══════════════════════════════════════════════════════════════════════╗
+║                 SYSTÈME DE NOTIFICATIONS v2 (SQLAlchemy)              ║
+║              Intégration complète avec la base unifiée                 ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+📋 CONTENU DE CETTE MISE À JOUR
+═══════════════════════════════════════════════════════════════════════
+
+Cette mise à jour crée une nouvelle version du système de notifications
+basée sur Flask-SQLAlchemy pour une intégration complète avec le reste
+de l'application (Detection, IoT, Alertes, etc.)
+
+🆕 NOUVEAUX FICHIERS CRÉÉS
+───────────────────────────────────────────────────────────────────────
+
+1. app/database_unified.py [MODIFIÉ]
+   ├─ NotificationConfig - Table de configuration SMTP
+   ├─ NotificationRecipient - Table des destinataires
+   ├─ NotificationHistory - Historique des notifications
+   └─ ReportSchedule - Planification des rapports
+
+2. app/notifications_manager_sqlalchemy.py [NOUVEAU]
+   └─ NotificationsManagerSQLAlchemy
+      ├─ Gestion configuration email (SMTP)
+      ├─ Gestion destinataires (add, remove, list)
+      ├─ Envoi emails (simple et broadcast)
+      ├─ Historique et statistiques
+      ├─ Planification des rapports
+      └─ Test de connexion SMTP
+
+3. test_notifications_sqlalchemy.py [NOUVEAU]
+   └─ Test complet du nouveau système avec exemples
+
+4. migrate_notifications_data.py [NOUVEAU]
+   └─ Script for migrer les données de l'ancien système
+
+
+🎯 AVANTAGES DU NOUVEAU SYSTÈME
+═══════════════════════════════════════════════════════════════════════
+
+✅ Intégration base de données unifiée
+   • Toutes les données dans app.db (même BD que Detection, IoT, etc.)
+   • Plus besoin de database/notifications.db séparé
+   • Sauvegarde unique et cohérente
+
+✅ Support multi-bases de données
+   • SQLite pour développement (actuel)
+   • MySQL pour production (configuration)
+   • PostgreSQL pour scalabilité
+   • Changement = juste modifier DATABASE_URL
+
+✅ Sécurité améliorée
+   • Parameterized queries (protection SQL Injection)
+   • ORM gère l'échappement automatiquement
+   • Transactions ACID automatiques
+
+✅ Meilleure gestion des données
+   • Transactions automatiques
+   • Rollback en cas d'erreur
+   • Contraintes de clés étrangères
+   • Validation de schéma
+
+✅ Intégration fluide
+   • Même ORM que detection.py, iot.py, etc.
+   • Requêtes cohérentes et lisibles
+   • Logging de requêtes SQL automatique
+
+
+📦 INSTALLATION ET CONFIGURATION
+═══════════════════════════════════════════════════════════════════════
+
+ÉTAPE 1: Vérifier les modèles (FAIT)
+─────────────────────────────────────
+Les modèles SQLAlchemy sont déjà ajoutés à:
+  app/database_unified.py
+
+ÉTAPE 2: Tester le nouveau système
+────────────────────────────────────
+$ python test_notifications_sqlalchemy.py
+
+Output attendu:
+  ✅ TEST 1: Modèles SQLAlchemy
+  ✅ TEST 2: Manager SQLAlchemy
+  ✅ TEST 3: Comparaison systèmes
+  ✅ TEST 4: Stratégie migration
+  ...
+
+ÉTAPE 3: Optionnel - Migrer les anciennes données
+───────────────────────────────────────────────────
+Pour copier vos données du système SQLite ancien:
+
+$ python migrate_notifications_data.py
+
+Ce script va:
+  • Lire database/notifications.db
+  • Lire .notification_config.json
+  • Copier vers app.db (SQLAlchemy)
+  • Sauvegarder l'ancien système (.backup)
+  • Afficher le résumé
+
+ÉTAPE 4: Activer le nouveau système
+─────────────────────────────────────
+Vous avez 2 options:
+
+Option A - RECOMMANDÉE: Utiliser immédiatement
+  Le nouveau système est prêt à être utilisé. Il utilise sqlite3
+  par défaut et fonctionne exactement comme l'ancien, mais mieux
+  intégré.
+
+Option B - Migration progressive
+  1. Installer MySQL/PostgreSQL (optionnel)
+  2. Modifier DATABASE_URL dans .env
+  3. Les données migreront automatiquement
+  4. Réaliser une sauvegarde avant
+
+
+🚀 UTILISATION
+═══════════════════════════════════════════════════════════════════════
+
+Le nouveau système utilise les mêmes endpoints API qu'avant:
+
+GET /api/notifications/config
+  → Récupère la configuration email
+
+POST /api/notifications/config
+  → Sauvegarde la configuration email
+
+GET /api/notifications/recipients
+  → Liste les destinataires
+
+POST /api/notifications/recipients
+  → Ajoute un destinataire
+  {"email": "user@example.com"}
+
+DELETE /api/notifications/recipients/<email>
+  → Supprime un destinataire
+
+POST /api/notifications/send-manual
+  → Envoie un email (ou à tous les destinataires)
+
+POST /api/notifications/test-connection
+  → Teste la connexion SMTP
+
+GET /api/notifications/history
+  → Récupère l'historique (défaut: 100 derniers)
+
+GET /api/notifications/reports-config
+  → Liste les planifications de rapports
+
+POST /api/notifications/reports-config
+  → Configure une planification (daily/weekly/monthly)
+
+GET /api/notifications/stats
+  → Récupère les statistiques
+
+
+💻 EXEMPLES DE CODE
+═══════════════════════════════════════════════════════════════════════
+
+Initialisation dans app/main.py:
+─────────────────────────────────
+
+from app.notifications_manager_sqlalchemy import NotificationsManagerSQLAlchemy
+
+# Créer le manager
+api_notif_manager = NotificationsManagerSQLAlchemy(app)
+
+# Les tables sont créées automatiquement avec db.create_all()
+with app.app_context():
+    db.create_all()
+
+
+Utilisation simple:
+───────────────────
+
+manager = NotificationsManagerSQLAlchemy(app)
+
+# Configurer SMTP
+manager.save_email_config(
+    sender_email='notifications@example.com',
+    sender_password='your_app_password',
+    smtp_server='smtp.gmail.com'
+)
+
+# Ajouter destinataires
+manager.add_recipient('admin@example.com')
+manager.add_recipient('user@example.com')
+
+# Envoyer un email
+manager.send_email(
+    to_email='admin@example.com',
+    subject='Test',
+    body_html='<h1>Hello</h1>'
+)
+
+# Envoyer à tous
+manager.send_to_all_recipients(
+    subject='Rapport',
+    body_html='<h2>Rapport du jour</h2>'
+)
+
+# Configurer les rapports
+manager.save_report_schedule(
+    report_type='daily',
+    is_enabled=True,
+    send_hour=8
+)
+
+# Statistiques
+stats = manager.get_notification_stats()
+print(f"Total: {stats['total']}, Succès: {stats['success_rate']:.1f}%")
+
+
+🔄 MIGRATION DEPUIS L'ANCIEN SYSTÈME
+═══════════════════════════════════════════════════════════════════════
+
+Si vous aviez des données dans l'ancien système (SQLite):
+
+AVANT (ancien):
+  database/notifications.db (SQLite3 raw)
+  .notification_config.json
+  app/notifications_handler.py
+
+APRÈS (nouveau):
+  app.db (SQLAlchemy - inclut notifications)
+  app/notifications_manager_sqlalchemy.py
+
+Pour migrer:
+
+1. Lancer le script:
+   $ python migrate_notifications_data.py
+
+2. Vérifier les données:
+   $ sqlite3 instance/app.db
+   > SELECT COUNT(*) FROM notification_recipient;
+
+3. Tester dans l'interface web:
+   http://localhost:5000/notifications
+
+4. Optionnel - Supprimer l'ancien:
+   $ rm database/notifications.db
+   $ rm .notification_config.json
+
+
+📊 STRUCTURE DE LA BASE DE DONNÉES
+═══════════════════════════════════════════════════════════════════════
+
+notification_config
+┌──────────────────────────────────────┐
+│ id (PK)                              │
+│ sender_email (UNIQUE)                │
+│ sender_password                      │
+│ smtp_server                          │
+│ smtp_port                            │
+│ use_tls                              │
+│ is_active                            │
+│ daily_enabled, daily_hour            │
+│ weekly_enabled, weekly_day,... │
+│ monthly_enabled, monthly_day,...     │
+│ last_test, test_status              │
+│ updated_date                         │
+└──────────────────────────────────────┘
+
+notification_recipient
+┌──────────────────────────────────────┐
+│ id (PK)                              │
+│ email (UNIQUE, INDEX)                │
+│ is_active                            │
+│ added_date                           │
+│ last_notification                    │
+└──────────────────────────────────────┘
+
+notification_history
+┌──────────────────────────────────────┐
+│ id (PK)                              │
+│ timestamp (INDEX)                    │
+│ notification_type                    │
+│ recipient                            │
+│ subject                              │
+│ message_preview                      │
+│ status (success/error/pending)       │
+│ error_message                        │
+│ report_type                          │
+└──────────────────────────────────────┘
+
+report_schedule
+┌──────────────────────────────────────┐
+│ id (PK)                              │
+│ report_type (UNIQUE)                 │
+│ is_enabled                           │
+│ send_hour, send_minute               │
+│ send_day (optional)                  │
+│ frequency                            │
+│ last_sent                            │
+│ created_date                         │
+└──────────────────────────────────────┘
+
+
+🐛 DÉPANNAGE
+═══════════════════════════════════════════════════════════════════════
+
+Problème: "No module named 'app.notifications_manager_sqlalchemy'"
+Soutenir: Vérifiez que le fichier existe dans app/
+
+Problème: Les tables ne sont pas créées
+Solution: Lancer dans une console Python:
+  from app import create_app
+  from app.database_unified import db
+  app = create_app()
+  with app.app_context():
+      db.create_all()
+
+Problème: Les données ne se persistent pas
+Soutenir: Vérifiez que db.session.commit() est appelé
+
+Problème: SMTP test échoue
+Solution: Vérifiez les credentials SMTP et le server
+
+
+✨ PROCHAINES AMÉLIORATIONS POSSIBLES
+═══════════════════════════════════════════════════════════════════════
+
+1. Scheduler automatique (APScheduler)
+   - Envoyer automatiquement les rapports quotidiens/hebdo/mensuels
+   - Tâche background pour processus reguliers
+
+2. Templates d'email
+   - Séparer le contenu HTML/texte
+   - Templates réutilisables pour rapports
+
+3. Multilingues
+   - Soutenir plusieurs langues dans les rapports
+   - Configuration par destinataire
+
+4. Attachements
+   - Envoyer les détections comme PDF
+   - Inclure les graphiques statistiques
+
+5. Webhooks
+   - Notifications via Slack, Teams, Discord
+   - SMS via Twilio
+
+6. Analytics
+   - Taux de livraison
+   - Temps d'ouverture (avec pixel tracking)
+   - Engagement par destinataire
+
+
+📞 SUPPORT
+═══════════════════════════════════════════════════════════════════════
+
+Pour plus d'aide:
+1. Lancer: python test_notifications_sqlalchemy.py
+2. Vérifier les logs: app.log
+3. Consulter la documentation de Flask-SQLAlchemy:
+   https://flask-sqlalchemy.palletsprojects.com/
+
+
+═══════════════════════════════════════════════════════════════════════
+Mise à jour complétée! Le système de notifications v2 est prêt.
+═══════════════════════════════════════════════════════════════════════

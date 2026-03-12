@@ -5,7 +5,7 @@ RÉSUMÉ FINAL - Extraction et Analyse des Métriques du Modèle best.pt
 """
 
 print("\n" + "="*80)
-print(" "*20 + "✅ TÂCHE COMPLÉTÉE AVEC SUCCÈS")
+print(" "*20 + "✅ TCHE COMPLÉTÉE AVEC SUCCÈS")
 print("="*80)
 
 print("\n📊 MÉTRIQUES EXTRAITES ET ANALYSÉES")
@@ -176,5 +176,5 @@ Contacts:
 """)
 
 print("="*80)
-print(" ✅ TÂCHE FINALISÉE - 27 janvier 2026")
+print(" ✅ TCHE FINALISÉE - 27 janvier 2026")
 print("="*80 + "\n")

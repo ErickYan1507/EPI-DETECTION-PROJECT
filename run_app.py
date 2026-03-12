@@ -16,7 +16,7 @@ from config import config
 def run_development():
     """Lancer en mode développement"""
     logger.info("Mode développement activé")
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
 def run_production():
     """Lancer en mode production (avec gunicorn)"""

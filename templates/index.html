@@ -2,16 +2,198 @@
 
 {% block title %}Accueil - Système de Détection EPI{% endblock %}
 
+{% block extra_css %}
+<style>
+    .home-page {
+        padding: 40px 20px;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    .hero-title {
+        font-size: clamp(1.8rem, 4.8vw, 3.5rem);
+        margin: 0 0 20px 0;
+        line-height: 1.2;
+    }
+
+    .hero-subtitle {
+        font-size: clamp(1rem, 2.2vw, 1.3rem);
+        color: #aaa;
+        margin: 20px auto;
+        max-width: 600px;
+    }
+
+    .dashboard-title {
+        font-size: clamp(1.6rem, 4vw, 2.5rem);
+        margin: 0;
+        background: linear-gradient(135deg, #8B1538 0%, #4169E1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .charts-grid-lg {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .charts-grid-md {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .home-page table th,
+    .home-page table td {
+        word-break: break-word;
+    }
+
+    #alertsList > div {
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 768px) {
+        .home-page {
+            padding: 24px 10px;
+        }
+
+        .dashboard-header {
+            margin-bottom: 24px !important;
+            gap: 12px !important;
+        }
+
+        .dashboard-actions {
+            width: 100%;
+        }
+
+        .dashboard-actions button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .glass-dark {
+            padding: 18px !important;
+        }
+
+        .charts-grid-lg,
+        .charts-grid-md {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .home-page {
+            padding: 16px 8px;
+        }
+
+        .hero-subtitle {
+            margin: 12px auto;
+            font-size: 0.95rem;
+        }
+
+        .dashboard-title {
+            font-size: 1.35rem;
+        }
+
+        .dashboard-actions {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            width: 100%;
+        }
+
+        .dashboard-actions button {
+            width: 100%;
+            min-width: 0;
+            padding: 10px 8px !important;
+            font-size: 0.9rem;
+        }
+
+        .kpi-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .glass-dark {
+            padding: 14px !important;
+            border-radius: 12px !important;
+        }
+
+        .home-page table th,
+        .home-page table td {
+            white-space: nowrap;
+            font-size: 0.82rem;
+            padding: 8px !important;
+        }
+
+        #pdfModal .glass-dark {
+            width: calc(100% - 16px) !important;
+            max-width: none !important;
+            padding: 16px !important;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .hero-title {
+            font-size: 1.45rem;
+        }
+
+        .hero-subtitle {
+            font-size: 0.86rem;
+        }
+
+        .dashboard-title {
+            font-size: 1.2rem;
+        }
+
+        .dashboard-actions {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+        }
+
+        .dashboard-actions button {
+            font-size: 0.84rem;
+            padding: 9px 7px !important;
+        }
+
+        .glass-dark h3 {
+            font-size: 0.98rem;
+            margin-bottom: 12px !important;
+        }
+
+        .home-page table th,
+        .home-page table td {
+            font-size: 0.76rem;
+            padding: 6px !important;
+        }
+
+        #pdfModal .glass-dark {
+            padding: 12px !important;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="padding: 40px 20px; max-width: 1600px; margin: 0 auto;">
+<div class="home-page">
     <!-- Hero Section -->
     <div style="text-align: center; margin-bottom: 40px; position: relative; z-index: 1;">
-        <h1 style="font-size: 3.5em; margin: 0 0 20px 0; line-height: 1.2;">
+        <h1 class="hero-title">
             <span style="background: linear-gradient(135deg, #8B1538 0%, #4169E1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
                 <i class="fas fa-hard-hat"></i> Détection Intelligente d'EPI
             </span>
         </h1>
-        <p style="font-size: 1.3em; color: #aaa; margin: 20px 0; max-width: 600px; margin-left: auto; margin-right: auto;">
+        <p class="hero-subtitle">
             Surveillance automatique des Équipements de Protection Individuelle par Intelligence Artificielle en temps réel
         </p>
     </div>
@@ -19,16 +201,16 @@
     <!-- Dashboard Content - Tableau de Bord -->
     <div class="dashboard-container" style="padding: 0; max-width: 1600px; margin: 0 auto;">
         <!-- En-tête Dashboard -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 20px;">
+        <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 20px;">
             <div>
-                <h2 style="font-size: 2.5em; margin: 0; background: linear-gradient(135deg, #8B1538 0%, #4169E1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                <h2 class="dashboard-title">
                     <i class="fas fa-tachometer-alt"></i> Tableau de Bord
                 </h2>
                 <div style="color: #aaa; font-size: 0.95em; margin-top: 8px;" id="dateTimeDisplay">
                     <i class="fas fa-clock"></i> <span id="currentDateTime">--</span>
                 </div>
             </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div class="dashboard-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <button onclick="openPDFModal()" class="glass" style="padding: 10px 20px; border: none; border-radius: 12px; color: #fff; cursor: pointer; backdrop-filter: blur(10px); background: rgba(139, 21, 56, 0.2);">
                     <i class="fas fa-file-pdf"></i> PDF
                 </button>
@@ -39,7 +221,7 @@
         </div>
 
         <!-- KPI Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 40px;">
+        <div class="kpi-grid">
             <div class="glass-dark" style="padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <div style="font-size: 40px; color: #8B1538;"><i class="fas fa-user-check"></i></div>
@@ -130,7 +312,7 @@
         </div>
 
         <!-- GRAPHIQUES - Première Rangée -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; margin-bottom: 40px;">
+        <div class="charts-grid-lg">
             <!-- Graphique Courbe - Conformité Jour -->
             <div class="glass-dark" style="padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); position: relative;">
                 <h3 style="color: #fff; margin-top: 0; margin-bottom: 20px;"><i class="fas fa-chart-line"></i> Conformité par Heure</h3>
@@ -145,7 +327,7 @@
         </div>
 
         <!-- GRAPHIQUES - Deuxième Rangée -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 40px;">
+        <div class="charts-grid-md">
             <!-- Graphique Camembert - Répartition EPI -->
             <div class="glass-dark" style="padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
                 <h3 style="color: #fff; margin-top: 0; margin-bottom: 20px;"><i class="fas fa-chart-pie"></i> EPI Détectés</h3>
@@ -159,10 +341,10 @@
             </div>
 
             <!-- Graphique Radar - Performance -->
-            <div class="glass-dark" style="padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+            <!-- <div class="glass-dark" style="padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
                 <h3 style="color: #fff; margin-top: 0; margin-bottom: 20px;"><i class="fas fa-chart-radar"></i> Performance Modèle</h3>
                 <canvas id="performanceChart" style="max-height: 280px;"></canvas>
-            </div>
+            </div> -->
 
             <!-- Graphique Surface - Cumul Détections -->
             <div class="glass-dark" style="padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
@@ -243,6 +425,18 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
 <script>
 let charts = {};
+const EMPTY_HOURLY_LABELS = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, '0')}h`);
+const EMPTY_HOURLY_VALUES = Array.from({ length: 24 }, () => 0);
+
+function toNumber(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function buildNoCacheUrl(url) {
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}_ts=${Date.now()}`;
+}
 
 // Fonction utilitaire pour formater les dates avec l'heure du PC
 function formatDate(dateString) {
@@ -259,7 +453,7 @@ function formatDate(dateString) {
     
     try {
         const date = new Date(dateString);
-        // Vérifier si la date est valide
+        // VÃ©rifier si la date est valide
         if (isNaN(date.getTime())) {
             return new Date().toLocaleString('fr-FR', {
                 year: 'numeric',
@@ -279,7 +473,7 @@ function formatDate(dateString) {
             second: '2-digit'
         });
     } catch (e) {
-        console.warn('⚠️ Date invalide:', dateString);
+        console.warn('âš ï¸ Date invalide:', dateString);
         return new Date().toLocaleString('fr-FR', {
             year: 'numeric',
             month: '2-digit',
@@ -308,7 +502,7 @@ function formatTime(dateString) {
     }
 }
 
-// Fonction pour afficher la date/heure réelle du système
+// Fonction pour afficher la date/heure rÃ©elle du systÃ¨me
 function updateDateTime() {
     const now = new Date();
     const options = {
@@ -324,67 +518,75 @@ function updateDateTime() {
     document.getElementById('currentDateTime').textContent = dateTimeString;
 }
 
-// Mettre à jour la date/heure toutes les secondes
+// Mettre Ã  jour la date/heure toutes les secondes
 setInterval(updateDateTime, 1000);
 updateDateTime();
 
-// Fonction de rafraîchissement des données
+// Fonction de rafraÃ®chissement des donnÃ©es
 function refreshData() {
-    fetch('/api/stats')
+    fetch(buildNoCacheUrl('/api/stats'), { cache: 'no-store' })
         .then(r => r.json())
         .then(data => {
-            if (data.status === 'success') {
-                // Mettre à jour les KPI avec les vraies valeurs de la base de données
-                document.getElementById('complianceRate').textContent = Math.round(data.compliance_rate) + '%';
-                document.getElementById('totalPersons').textContent = data.total_persons || 0;
-                document.getElementById('activeAlerts').textContent = data.alerts || 0;
-                document.getElementById('todayDetections').textContent = data.detections_today || 0;
-                document.getElementById('withHelmet').textContent = data.with_helmet || 0;
-                document.getElementById('withVest').textContent = data.with_vest || 0;
-                document.getElementById('withGlasses').textContent = data.with_glasses || 0;
-                document.getElementById('withBoots').textContent = data.with_boots || 0;
-                
-                console.log('✅ Données réelles de la base de données:', {
-                    compliance_rate: data.compliance_rate,
-                    total_persons: data.total_persons,
-                    with_helmet: data.with_helmet,
-                    with_vest: data.with_vest,
-                    with_glasses: data.with_glasses,
-                    with_boots: data.with_boots,
-                    alerts: data.alerts,
-                    detections_today: data.detections_today
-                });
-            }
-            initCharts(data);
+            const payload = (data && typeof data.stats === 'object')
+                ? {
+                    ...data,
+                    compliance_rate: data.compliance_rate ?? data.stats.avg_compliance,
+                    total_persons: data.total_persons ?? data.stats.total_detections,
+                    alerts: data.alerts ?? data.stats.active_alerts,
+                    detections_today: data.detections_today ?? data.stats.total_detections
+                }
+                : (data || {});
+
+            // Mettre Ã  jour les KPI avec les vraies valeurs de la base de donnÃ©es
+            document.getElementById('complianceRate').textContent = `${Math.round(toNumber(payload.compliance_rate))}%`;
+            document.getElementById('totalPersons').textContent = toNumber(payload.total_persons);
+            document.getElementById('activeAlerts').textContent = toNumber(payload.alerts);
+            document.getElementById('todayDetections').textContent = toNumber(payload.detections_today);
+            document.getElementById('withHelmet').textContent = toNumber(payload.with_helmet);
+            document.getElementById('withVest').textContent = toNumber(payload.with_vest);
+            document.getElementById('withGlasses').textContent = toNumber(payload.with_glasses);
+            document.getElementById('withBoots').textContent = toNumber(payload.with_boots);
+
+            console.log('âœ… DonnÃ©es rÃ©elles de la base de donnÃ©es:', payload);
+            initCharts(payload);
         })
         .catch(err => {
-            console.log('⚠️ Erreur API stats:', err);
-            console.log('Utilisation des données de démonstration');
-            initCharts();
+            console.log('âš ï¸ Erreur API stats:', err);
+            document.getElementById('complianceRate').textContent = '0%';
+            document.getElementById('totalPersons').textContent = '0';
+            document.getElementById('activeAlerts').textContent = '0';
+            document.getElementById('todayDetections').textContent = '0';
+            document.getElementById('withHelmet').textContent = '0';
+            document.getElementById('withVest').textContent = '0';
+            document.getElementById('withGlasses').textContent = '0';
+            document.getElementById('withBoots').textContent = '0';
+            initCharts({});
         });
 }
 
 function initCharts(data = null) {
     Promise.all([
-        fetch('/api/chart/hourly').then(r => r.json()).catch(() => ({})),
-        fetch('/api/chart/epi').then(r => r.json()).catch(() => ({})),
-        fetch('/api/chart/alerts').then(r => r.json()).catch(() => ({})),
-        fetch('/api/chart/cumulative').then(r => r.json()).catch(() => ({}))
+        fetch(buildNoCacheUrl('/api/chart/hourly'), { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
+        fetch(buildNoCacheUrl('/api/chart/epi'), { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
+        fetch(buildNoCacheUrl('/api/chart/alerts?days=30'), { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
+        fetch(buildNoCacheUrl('/api/chart/cumulative?days=30'), { cache: 'no-store' }).then(r => r.json()).catch(() => ({}))
     ]).then(([hourlyData, epiData, alertsData, cumulData]) => {
-        const demoData = data || {
+        const liveData = data || {
             compliance_rate: 0,
             total_persons: 0,
             alerts: 0,
             detections_today: 0
         };
 
-        console.log('📊 Données des graphiques reçues:');
-        console.log('  • Hourly:', hourlyData);
-        console.log('  • EPI:', epiData);
-        console.log('  • Alerts:', alertsData);
-        console.log('  • Cumulative:', cumulData);
+        console.log('ðŸ“Š DonnÃ©es des graphiques reÃ§ues:');
+        console.log('  â€¢ Hourly:', hourlyData);
+        console.log('  â€¢ EPI:', epiData);
+        console.log('  â€¢ Alerts:', alertsData);
+        console.log('  â€¢ Cumulative:', cumulData);
 
-        updateCharts(demoData, hourlyData, epiData, alertsData, cumulData);
+        updateCharts(liveData, hourlyData, epiData, alertsData, cumulData);
+    }).catch(err => {
+        console.error('âŒ Erreur refresh charts:', err);
     });
 }
 
@@ -399,17 +601,21 @@ function updateCharts(data, hourlyData, epiData, alertsData, cumulData) {
         dark: 'rgba(31, 41, 55, 0.8)'        // Dark
     };
 
-    // 1. Graphique Courbe - Conformité
+    // 1. Graphique Courbe - ConformitÃ©
     if (charts.compliance) charts.compliance.destroy();
-    const complianceLabels = hourlyData.hours || ['00h', '03h', '06h', '09h', '12h', '15h', '18h', '21h'];
-    const complianceValues = hourlyData.compliance || [78, 82, 85, 88, 87, 89, 86, 85];
+    const complianceLabels = Array.isArray(hourlyData.hours) && hourlyData.hours.length > 0
+        ? hourlyData.hours
+        : EMPTY_HOURLY_LABELS;
+    const complianceValues = Array.isArray(hourlyData.compliance) && hourlyData.compliance.length > 0
+        ? hourlyData.compliance.map(v => toNumber(v))
+        : EMPTY_HOURLY_VALUES;
     
     charts.compliance = new Chart(document.getElementById('complianceChart'), {
         type: 'line',
         data: {
             labels: complianceLabels,
             datasets: [{
-                label: 'Taux de Conformité (%)',
+                label: 'Taux de ConformitÃ© (%)',
                 data: complianceValues,
                 borderColor: colors.primary,
                 backgroundColor: 'rgba(139, 21, 56, 0.1)',
@@ -430,19 +636,23 @@ function updateCharts(data, hourlyData, epiData, alertsData, cumulData) {
         }
     });
 
-    // 2. Graphique Histogramme - Détections par Heure
+    // 2. Graphique Histogramme - DÃ©tections par Heure
     if (charts.hourly) charts.hourly.destroy();
-    const hourlyLabels = hourlyData.hours || ['00h', '03h', '06h', '09h', '12h', '15h', '18h', '21h'];
-    const hourlyDetections = hourlyData.detections || [12, 18, 15, 22, 28, 19, 25, 21];
+    const hourlyLabels = Array.isArray(hourlyData.hours) && hourlyData.hours.length > 0
+        ? hourlyData.hours
+        : EMPTY_HOURLY_LABELS;
+    const hourlyDetections = Array.isArray(hourlyData.detections) && hourlyData.detections.length > 0
+        ? hourlyData.detections.map(v => toNumber(v))
+        : EMPTY_HOURLY_VALUES;
     
     charts.hourly = new Chart(document.getElementById('hourlyChart'), {
         type: 'bar',
         data: {
             labels: hourlyLabels,
             datasets: [{
-                label: 'Détections',
+                label: 'DÃ©tections',
                 data: hourlyDetections,
-                backgroundColor: hourlyLabels.map((_, i) => i % 2 === 0 ? colors.primary : colors.secondary),
+                backgroundColor: hourlyLabels.map((_, i) => i % 2 === 0 ?colors.primary : colors.secondary),
                 borderColor: '#8B1538',
                 borderWidth: 1,
                 borderRadius: 8
@@ -469,7 +679,7 @@ function updateCharts(data, hourlyData, epiData, alertsData, cumulData) {
         epiData.boots || 0
     ];
     
-    console.log('🎯 Données EPI Détectés:', { helmets: epiValues[0], vests: epiValues[1], glasses: epiValues[2], boots: epiValues[3] });
+    console.log('ðŸŽ¯ DonnÃ©es EPI DÃ©tectÃ©s:', { helmets: epiValues[0], vests: epiValues[1], glasses: epiValues[2], boots: epiValues[3] });
     
     charts.epi = new Chart(document.getElementById('epiChart'), {
         type: 'doughnut',
@@ -494,21 +704,37 @@ function updateCharts(data, hourlyData, epiData, alertsData, cumulData) {
     // 4. Graphique Doughnut - Alertes
     if (charts.alerts) charts.alerts.destroy();
     const alertLabels = ['Critique', 'Moyen', 'Bas'];
+    const highAlerts = Number((alertsData.high ?? alertsData.critical ?? 0));
+    const mediumAlerts = Number((alertsData.medium ?? alertsData.warning ?? 0));
+    const lowAlerts = Number((alertsData.low ?? alertsData.info ?? 0));
     const alertValues = [
-        alertsData.high || 0,
-        alertsData.medium || 0,
-        alertsData.low || 0
+        highAlerts,
+        mediumAlerts,
+        lowAlerts
     ];
     
-    console.log('🚨 Données Alertes par Sévérité:', { high: alertValues[0], medium: alertValues[1], low: alertValues[2] });
+    const totalAlerts = alertValues.reduce((a, b) => a + b, 0);
+    console.log('ðŸš¨ DonnÃ©es Alertes par SÃ©vÃ©ritÃ©:', { 
+        high: alertValues[0], 
+        medium: alertValues[1], 
+        low: alertValues[2],
+        total: totalAlerts,
+        rawData: alertsData 
+    });
+    
+    // Si aucune alerte, afficher un message ou des donnÃ©es de dÃ©monstration
+    const displayValues = totalAlerts === 0 ?[1, 1, 1] : alertValues;
+    const isEmpty = totalAlerts === 0;
     
     charts.alerts = new Chart(document.getElementById('alertsChart'), {
         type: 'doughnut',
         data: {
-            labels: alertLabels,
+            labels: isEmpty ?['Pas de donnes'] : alertLabels,
             datasets: [{
-                data: alertValues,
-                backgroundColor: ['rgba(255, 107, 107, 0.8)', 'rgba(255, 165, 0, 0.8)', 'rgba(65, 105, 225, 0.8)'],
+                data: displayValues,
+                backgroundColor: isEmpty 
+                    ?['rgba(150, 150, 150, 0.3)']
+                    : ['rgba(255, 107, 107, 0.8)', 'rgba(255, 165, 0, 0.8)', 'rgba(65, 105, 225, 0.8)'],
                 borderColor: '#1F2937',
                 borderWidth: 2
             }]
@@ -517,69 +743,94 @@ function updateCharts(data, hourlyData, epiData, alertsData, cumulData) {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: { labels: { color: '#ddd' } }
-            }
-        }
-    });
-
-    // 5. Graphique Radar - Performance
-    if (charts.performance) charts.performance.destroy();
-    charts.performance = new Chart(document.getElementById('performanceChart'), {
-        type: 'radar',
-        data: {
-            labels: ['Précision', 'Rappel', 'F1-Score', 'Spécificité', 'Sensibilité'],
-            datasets: [{
-                label: 'Performance Modèle',
-                data: [92, 88, 90, 85, 91],
-                borderColor: colors.primary,
-                backgroundColor: 'rgba(139, 21, 56, 0.2)',
-                pointBackgroundColor: colors.primary,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            scales: {
-                r: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: { color: '#aaa' },
-                    grid: { color: 'rgba(255,255,255,0.05)' }
+                legend: { labels: { color: '#ddd' } },
+                tooltip: {
+                    enabled: !isEmpty,
+                    callbacks: isEmpty ?{} : undefined
                 }
-            },
-            plugins: {
-                legend: { labels: { color: '#ddd' } }
             }
         }
     });
-
-    // 6. Graphique Surface - Cumul Détections
+    // 5. Graphique Radar - Performance (optionnel selon presence canvas)
+    const performanceCanvas = document.getElementById('performanceChart');
+    if (performanceCanvas) {
+        if (charts.performance) charts.performance.destroy();
+        charts.performance = new Chart(performanceCanvas, {
+            type: 'radar',
+            data: {
+                labels: ['PrÃ©cision', 'Rappel', 'F1-Score', 'SpÃ©cificitÃ©', 'SensibilitÃ©'],
+                datasets: [{
+                    label: 'Performance ModÃ¨le',
+                    data: [92, 88, 90, 85, 91],
+                    borderColor: colors.primary,
+                    backgroundColor: 'rgba(139, 21, 56, 0.2)',
+                    pointBackgroundColor: colors.primary,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { color: '#aaa' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: '#ddd' } }
+                }
+            }
+        });
+    }
+    // 6. Graphique Surface - Cumul DÃ©tections
     if (charts.cumul) charts.cumul.destroy();
     const cumulLabels = cumulData.labels || cumulData.days || ['Jour 1', 'Jour 2', 'Jour 3', 'Jour 4', 'Jour 5', 'Jour 6', 'Jour 7'];
-    const cumulValues = cumulData.data || cumulData.cumulative || [50, 120, 180, 260, 350, 420, 485];
+    const cumulValues = cumulData.data || cumulData.cumulative || [0, 0, 0, 0, 0, 0, 0];
     
-    console.log('📈 Données Cumul Détections:', { labels: cumulLabels, values: cumulValues });
+    const totalCumul = Math.max(...cumulValues);
+    console.log('ðŸ“ˆ DonnÃ©es Cumul DÃ©tections:', { 
+        labels: cumulLabels, 
+        values: cumulValues,
+        total: totalCumul,
+        rawData: cumulData 
+    });
+    
+    // Si aucune donnÃ©e, afficher 0 explicitement
+    const displayCumulValues = totalCumul === 0 ?cumulLabels.map(() => 0) : cumulValues;
     
     charts.cumul = new Chart(document.getElementById('cumulChart'), {
         type: 'line',
         data: {
             labels: cumulLabels,
             datasets: [{
-                label: 'Cumul Détections',
-                data: cumulValues,
-                borderColor: colors.secondary,
-                backgroundColor: 'rgba(65, 105, 225, 0.2)',
+                label: 'Cumul DÃ©tections',
+                data: displayCumulValues,
+                borderColor: totalCumul === 0 ?'rgba(150, 150, 150, 0.5)' : colors.secondary,
+                backgroundColor: totalCumul === 0 ?'rgba(150, 150, 150, 0.1)' : 'rgba(65, 105, 225, 0.2)',
                 fill: true,
                 tension: 0.4,
                 pointRadius: 4,
-                pointBackgroundColor: colors.secondary
+                pointBackgroundColor: totalCumul === 0 ?'rgba(150, 150, 150, 0.5)' : colors.secondary
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            plugins: { legend: { display: false } },
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(context) {
+                            if (totalCumul === 0) {
+                                return 'Aucune dÃ©tection enregistrÃ©e';
+                            }
+                        }
+                    }
+                }
+            },
             scales: {
                 y: { beginAtZero: true, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
                 x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } }
@@ -593,7 +844,7 @@ function openPDFModal() {
     const today = new Date().toISOString().split('T')[0];
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
-    // Préremplir avec les valeurs par défaut (7 derniers jours)
+    // PrÃ©remplir avec les valeurs par dÃ©faut (7 derniers jours)
     document.getElementById('pdfStartDate').value = sevenDaysAgo;
     document.getElementById('pdfEndDate').value = today;
     
@@ -619,8 +870,8 @@ function exportPDF() {
     const startDate = document.getElementById('pdfStartDate')?.value;
     const endDate = document.getElementById('pdfEndDate')?.value;
     
-    // Créer l'URL avec les paramètres de date
-    // NOTE: route définie dans app/routes_stats.py est '/api/export/detection-pdf'
+    // CrÃ©er l'URL avec les paramÃ¨tres de date
+    // NOTE: route dÃ©finie dans app/routes_stats.py est '/api/export/detection-pdf'
     let url = '/api/export/detection-pdf';
     const params = [];
     
@@ -634,15 +885,15 @@ function exportPDF() {
     // Montrer un message de chargement
     const exportBtn = document.getElementById('exportPdfBtn');
     const originalText = exportBtn.innerHTML;
-    exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
+    exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generation en cours...';
     exportBtn.disabled = true;
     
-    console.log('📥 Requesting PDF from:', url);
+    console.log('ðŸ“¥ Requesting PDF from:', url);
     
-    // Télécharger le PDF (avec fallback)
+    // TÃ©lÃ©charger le PDF (avec fallback)
     fetch(url)
         .then(response => {
-            console.log('📊 Response status:', response.status);
+            console.log('ðŸ“Š Response status:', response.status);
             const contentType = response.headers.get('content-type');
 
             if (!response.ok) {
@@ -653,13 +904,13 @@ function exportPDF() {
             }
 
             if (!contentType || !contentType.includes('application/pdf')) {
-                return response.text().then(text => { throw new Error(`Format invalide. Attendu PDF, reçu: ${contentType}`); });
+                return response.text().then(text => { throw new Error(`Format invalide. Attendu PDF, recu: ${contentType}`); });
             }
 
             return response.blob();
         })
         .then(blob => {
-            console.log('✅ PDF received, size:', blob.size, 'bytes');
+            console.log('âœ… PDF received, size:', blob.size, 'bytes');
             if (blob.size < 1000) throw new Error('PDF seems too small');
             const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -669,18 +920,18 @@ function exportPDF() {
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(downloadUrl);
-            exportBtn.innerHTML = '<i class="fas fa-check"></i> Téléchargement réussi!';
+            exportBtn.innerHTML = '<i class="fas fa-check"></i> Telechargement reussi!';
             setTimeout(() => { closePDFModal(); }, 1200);
         })
         .catch(err => {
-            console.error('❌ Erreur export PDF (fetch):', err);
-            // Fallback: ouvrir l'URL dans un nouvel onglet pour laisser le navigateur gérer le téléchargement
+            console.error('âŒ Erreur export PDF (fetch):', err);
+            // Fallback: ouvrir l'URL dans un nouvel onglet pour laisser le navigateur gÃ©rer le tÃ©lÃ©chargement
             try {
                 console.warn('Tentative de fallback: ouverture directe de l\'URL dans un nouvel onglet');
                 window.open(url, '_blank');
             } catch (e) {
                 console.error('Fallback failed:', e);
-                alert(`❌ Erreur lors de l'export: ${err.message}`);
+                alert(`âŒ Erreur lors de l'export: ${err.message}`);
             }
         })
         .finally(() => {
@@ -693,29 +944,31 @@ function exportPDF() {
 }
 
 function loadDetections() {
-    fetch('/api/realtime?limit=10')
+    // Utiliser la meme reference d'heure que "Alertes Recentes":
+    // l'heure locale deja formatee par l'API via to_dict().
+    fetch(buildNoCacheUrl('/api/detections?limit=10'), { cache: 'no-store' })
         .then(r => r.json())
         .then(data => {
             const table = document.getElementById('detectionsTable');
             table.innerHTML = '';
             
-            console.log('📋 Données détections reçues:', data);
+            console.log('ðŸ“‹ DonnÃ©es dÃ©tections reÃ§ues:', data);
             
-            if (data.full_data && data.full_data.length > 0) {
-                for (let i = 0; i < data.full_data.length && i < 10; i++) {
-                    const det = data.full_data[i];
+            if (data.detections && data.detections.length > 0) {
+                for (let i = 0; i < data.detections.length && i < 10; i++) {
+                    const det = data.detections[i];
                     
-                    // Utiliser la fonction formatTime avec validation
-                    const time = formatTime(det.timestamp);
+                    // Reference identique a Alertes Recentes: timestamp deja formate cote API.
+                    const time = det.timestamp || '--:--:--';
                     
-                    // Calculer le taux de conformité pour cette détection
+                    // Calculer le taux de conformitÃ© pour cette dÃ©tection
                     const total = det.total_persons || 0;
-                    const compliant = total > 0 ? Math.min(det.with_helmet || 0, det.with_vest || 0, det.with_glasses || 0) : 0;
-                    const conformityRate = total > 0 ? Math.round((compliant / total) * 100) : 0;
+                    const compliant = total > 0 ?Math.min(det.with_helmet || 0, det.with_vest || 0, det.with_glasses || 0) : 0;
+                    const conformityRate = total > 0 ?Math.round((compliant / total) * 100) : 0;
                     
-                    // Déterminer le statut (couleur)
-                    const statusColor = conformityRate >= 80 ? '#4bc0a8' : conformityRate >= 50 ? '#ffa500' : '#ff6b6b';
-                    const statusText = conformityRate >= 80 ? '✓ Conforme' : conformityRate >= 50 ? '⚠ Partiel' : '✗ Non-conforme';
+                    // DÃ©terminer le statut (couleur)
+                    const statusColor = conformityRate >= 80 ?'#4bc0a8' : conformityRate >= 50 ?'#ffa500' : '#ff6b6b';
+                    const statusText = conformityRate >= 80 ?' Conforme' : conformityRate >= 50 ?' Partiel' : ' Non-conforme';
                     
                     const row = `
                         <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
@@ -731,18 +984,18 @@ function loadDetections() {
                     table.innerHTML += row;
                 }
             } else {
-                table.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #aaa;">Aucune détection enregistrée</td></tr>';
+                table.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #aaa;">Aucune detection enregistree</td></tr>';
             }
         })
         .catch(err => {
-            console.error('❌ Erreur loadDetections:', err);
+            console.error('âŒ Erreur loadDetections:', err);
             const table = document.getElementById('detectionsTable');
-            table.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #aaa;">Impossible de charger les données</td></tr>';
+            table.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #aaa;">Impossible de charger les donnees</td></tr>';
         });
 }
 
 function loadAlerts() {
-    fetch('/api/alerts')
+    fetch(buildNoCacheUrl('/api/alerts'), { cache: 'no-store' })
         .then(r => r.json())
         .then(data => {
             const alertsList = document.getElementById('alertsList');
@@ -751,7 +1004,12 @@ function loadAlerts() {
             if (data.alerts && data.alerts.length > 0) {
                 for (let i = 0; i < data.alerts.length && i < 5; i++) {
                     const alert = data.alerts[i];
-                    const severity = alert.severity || 'medium';
+                    const rawSeverity = (alert.severity || 'medium').toLowerCase();
+                    const severity = (rawSeverity === 'critical' || rawSeverity === 'high')
+                        ? 'high'
+                        : (rawSeverity === 'warning' || rawSeverity === 'medium' || rawSeverity === 'warn')
+                            ? 'medium'
+                            : 'low';
                     
                     const severityColors = {
                         'high': '#ff6b6b',
@@ -761,7 +1019,7 @@ function loadAlerts() {
                     
                     const color = severityColors[severity] || '#aaa';
                     
-                    // Utiliser directement le timestamp formaté par l'API
+                    // Utiliser directement le timestamp formatÃ© par l'API
                     const dateStr = alert.timestamp || new Date().toLocaleString('fr-FR', {
                         year: 'numeric',
                         month: '2-digit',
@@ -772,7 +1030,7 @@ function loadAlerts() {
                     });
                     
                     const alertEl = `
-                        <div style="padding: 12px; border-radius: 8px; background: rgba(${severity === 'high' ? '255,107,107' : severity === 'medium' ? '255,165,0' : '65,105,225'},0.1); border-left: 4px solid ${color}; color: ${color};">
+                        <div style="padding: 12px; border-radius: 8px; background: rgba(${severity === 'high' ?'255,107,107' : severity === 'medium' ?'255,165,0' : '65,105,225'},0.1); border-left: 4px solid ${color}; color: ${color};">
                             <div style="display: flex; justify-content: space-between; align-items: start;">
                                 <div style="flex: 1;">
                                     <div style="font-weight: bold; margin-bottom: 5px;">${alert.message || 'Alerte'}</div>
@@ -784,11 +1042,11 @@ function loadAlerts() {
                     alertsList.innerHTML += alertEl;
                 }
             } else {
-                alertsList.innerHTML = '<div style="padding: 12px; border-radius: 8px; color: #4bc0a8; text-align: center;">✓ Aucune alerte active</div>';
+                alertsList.innerHTML = '<div style="padding: 12px; border-radius: 8px; color: #4bc0a8; text-align: center;">Aucune alerte active</div>';
             }
         })
         .catch(err => {
-            console.error('❌ Erreur loadAlerts:', err);
+            console.error('âŒ Erreur loadAlerts:', err);
             const alertsList = document.getElementById('alertsList');
             alertsList.innerHTML = '<div style="padding: 12px; border-radius: 8px; color: #aaa; text-align: center;">Impossible de charger les alertes</div>';
         });
@@ -799,9 +1057,10 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshData();
     loadDetections();
     loadAlerts();
-    setInterval(refreshData, 5000); // Rafraîchir tous les 5s pour données plus en direct
-    setInterval(loadDetections, 3000); // Charger les détections tous les 3s pour temps quasi-réel
-    setInterval(loadAlerts, 3000); // Charger les alertes tous les 3s pour temps quasi-réel
+    setInterval(refreshData, 5000); // KPI + graphiques
+    setInterval(loadDetections, 3000); // Charger les dÃ©tections tous les 3s pour temps quasi-rÃ©el
+    setInterval(loadAlerts, 3000); // Charger les alertes tous les 3s pour temps quasi-rÃ©el
 });
 </script>
 {% endblock %}
+

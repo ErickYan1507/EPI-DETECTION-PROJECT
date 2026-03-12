@@ -3,6 +3,8 @@
 {% block title %}Dashboard Unifié - EPI Detection v2.0{% endblock %}
 
 {% block extra_css %}
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
     <style>
         /* Variables CSS personnalisées */
         .header {
@@ -75,7 +77,7 @@
 
         .main-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -137,6 +139,44 @@
             border: 2px solid yellow !important;
         }
 
+        .camera-debug-overlay {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            z-index: 20;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.7);
+            color: #e5e7eb;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 12px;
+            line-height: 1.4;
+            min-width: 210px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .camera-debug-overlay .debug-title {
+            font-weight: 700;
+            color: #93c5fd;
+            margin-bottom: 4px;
+        }
+
+        .camera-debug-overlay .debug-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .camera-debug-overlay .debug-key {
+            color: #94a3b8;
+        }
+
+        .camera-debug-overlay .debug-value {
+            color: #f8fafc;
+            font-weight: 600;
+        }
+
         .camera-feed.offline {
             background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
         }
@@ -162,7 +202,9 @@
             margin: 8px 0;
             border-radius: 6px;
             border-left: 4px solid;
-            background: #f0f9ff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
             animation: slideIn 0.3s ease;
         }
 
@@ -348,12 +390,13 @@
             width: 100%;
             height: 300px;
             margin-top: 15px;
-            background: #f9fafb;
+            background: var(--bg-secondary);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #999;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
         }
 
         .footer {
@@ -422,6 +465,95 @@
             margin-top: 15px;
         }
 
+        .attendance-toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .attendance-table-shell {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        #attendance-table {
+            margin: 0 !important;
+            color: var(--text-primary);
+        }
+
+        #attendance-table thead th {
+            background: rgba(102, 126, 234, 0.14);
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color) !important;
+            white-space: nowrap;
+            font-weight: 700;
+        }
+
+        #attendance-table tbody td {
+            border-color: var(--border-color);
+            vertical-align: middle;
+        }
+
+        #attendance-table tbody tr:hover {
+            background: rgba(102, 126, 234, 0.08);
+        }
+
+        .dataTables_wrapper .dataTables_filter input,
+        .dataTables_wrapper .dataTables_length select {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-height: 38px;
+        }
+
+        .dataTables_wrapper .dataTables_filter input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.8;
+        }
+
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_length label,
+        .dataTables_wrapper .dataTables_filter label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .dataTables_wrapper .pagination .page-link {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+        .dataTables_wrapper .pagination .page-item.active .page-link {
+            background: var(--color-secondary);
+            border-color: var(--color-secondary);
+            color: #fff;
+        }
+
+        .dataTables_wrapper .pagination .page-item.disabled .page-link {
+            opacity: 0.5;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+        }
+
+        .attendance-modal .modal-content {
+            border-radius: 12px;
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+
+        .attendance-modal .form-label {
+            font-weight: 600;
+        }
+
         .toggle-switch {
             position: relative;
             display: inline-block;
@@ -466,14 +598,70 @@
         input:checked + .slider:before {
             transform: translateX(26px);
         }
+
+        body.light-mode .status-item {
+            background: rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border-color);
+        }
+
+        body.light-mode .alert {
+            background: rgba(255, 255, 255, 0.75);
+        }
+
+        @media (max-width: 992px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .camera-feed {
+                height: 320px;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-item {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .card {
+                padding: 14px;
+            }
+
+            .camera-feed {
+                height: 260px;
+            }
+
+            .attendance-toolbar .btn,
+            .attendance-toolbar .form-control,
+            .attendance-toolbar .form-select {
+                width: 100%;
+                max-width: none !important;
+            }
+
+            .attendance-table-shell {
+                padding: 10px;
+            }
+        }
     </style>
 {% endblock %}
 
 {% block content %}
         <!-- Header -->
         <div class="header">
-            <h1>🎥 Système de Détection EPI - Dashboard Temps Réel v2.0</h1>
-            <p class="subtitle">Monitoring Unifié - Caméra + Détection IA + Arduino en Temps Réel</p>
+            <h1>Système de Détection EPI</h1>
+            <p class="subtitle"></p>
             
             <div class="status-bar">
                 <div class="status-item">
@@ -484,161 +672,49 @@
                     <div class="status-indicator online" id="detection-status"></div>
                     <span>Détection: <strong id="detection-status-text">En attente...</strong></span>
                 </div>
-                <div class="status-item">
-                    <span>🤖 Mode: 
-                        <select id="detection-mode-select" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 4px 8px; border-radius: 4px; color: white; font-weight: bold; cursor: pointer;">
-                            <option value="ensemble" style="background: #1A1F2E; color: white;">Ensemble (Multi-Modèles)</option>
-                            <option value="single" style="background: #1A1F2E; color: white;">Single (best.pt)</option>
-                        </select>
-                    </span>
-                </div>
+                
             </div>
         </div>
 
         <!-- SECTION 0: Configuration Périphériques Physiques (Optionnel) -->
-        <div class="card" style="margin-bottom: 30px; background: rgba(139, 92, 246, 0.05); border: 2px solid rgba(139, 92, 246, 0.3);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 class="card-title" style="margin: 0;">⚙️ Configuration Périphériques Physiques (Optionnel)</h2>
-                <button id="toggle-device-config" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.9em;">▼ Afficher</button>
+        
+
+            <!-- Arduino Quick Controls (added by integration script) -->
+            <div class="card" style="margin-bottom: 30px; border-left: 4px solid #3b82f6;">
+                <h3>🤖  Arduino</h3>
+            
+                <div class="arduino-controls" style="display: flex; flex-direction: column; gap: 15px;">
+                
+                    <!-- Status -->
+                    <div>
+                        <label>État:</label>
+                        <span id="arduino-status-indicator" 
+                              style="display: inline-block; width: 12px; height: 12px; 
+                                     border-radius: 50%; background: red; margin-left: 10px;"></span>
+                        <span id="arduino-status-text">Hors ligne</span>
+                    </div>
+                
+                    <!-- Compliance Slider -->
+                   
+                
+                    <!-- Send Alert Button -->
+                   
+                
+                    <!-- Response Message -->
+                    <div id="arduino-response" style="padding: 10px; border-radius: 5px; 
+                                                     display: none; text-align: center; font-weight: bold;">
+                    </div>
+                
+                </div>
             </div>
 
-            <div id="device-config-section" style="display: none;">
-                <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="color: #8b5cf6; margin-top: 0; margin-bottom: 15px;">📍 Activation des Périphériques</h3>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
-                        <!-- Arduino / TinkerCAD -->
-                        <div style="border: 1px solid rgba(139, 92, 246, 0.3); padding: 15px; border-radius: 8px; background: rgba(139, 92, 246, 0.08);">
-                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
-                                <input type="checkbox" id="device-arduino" checked style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
-                                <span style="font-weight: bold; color: #8b5cf6; font-size: 1.05em;">🔌 Arduino TinkerCAD</span>
-                            </label>
-                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
-                                • Détection de mouvement (PIR)<br>
-                                • Capteurs température/humidité<br>
-                                • LEDs d'état (vert/rouge)<br>
-                                • Buzzer d'alerte
-                            </div>
-                            <input type="text" id="arduino-port" placeholder="COM3 ou /dev/ttyUSB0" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="COM3">
-                        </div>
-
-                        <!-- Capteurs MQTT -->
-                        <div style="border: 1px solid rgba(59, 130, 246, 0.3); padding: 15px; border-radius: 8px; background: rgba(59, 130, 246, 0.08);">
-                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
-                                <input type="checkbox" id="device-mqtt" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
-                                <span style="font-weight: bold; color: #3b82f6; font-size: 1.05em;">🌐 Capteurs MQTT</span>
-                            </label>
-                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
-                                • Température ambiante<br>
-                                • Humidité relative<br>
-                                • Pression atmosphérique<br>
-                                • Qualité de l'air
-                            </div>
-                            <input type="text" id="mqtt-broker" placeholder="mqtt.example.com:1883" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="localhost:1883">
-                        </div>
-
-                        <!-- Capteurs Réseau (Network IoT) -->
-                        <div style="border: 1px solid rgba(249, 115, 22, 0.3); padding: 15px; border-radius: 8px; background: rgba(249, 115, 22, 0.08);">
-                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
-                                <input type="checkbox" id="device-network" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
-                                <span style="font-weight: bold; color: #f97316; font-size: 1.05em;">📡 Capteurs Réseau (HTTP)</span>
-                            </label>
-                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
-                                • Requêtes HTTP périodiques<br>
-                                • APIs REST personnalisées<br>
-                                • Webhooks IoT<br>
-                                • Intégration cloud
-                            </div>
-                            <input type="text" id="network-endpoint" placeholder="http://sensor-api.local/data" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="http://localhost:8000/api/sensors">
-                        </div>
-
-                        <!-- Capteurs Bluetooth -->
-                        <div style="border: 1px solid rgba(139, 92, 246, 0.3); padding: 15px; border-radius: 8px; background: rgba(139, 92, 246, 0.08);">
-                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
-                                <input type="checkbox" id="device-bluetooth" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
-                                <span style="font-weight: bold; color: #8b5cf6; font-size: 1.05em;">🔵 Appareils Bluetooth</span>
-                            </label>
-                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
-                                • Capteurs BLE wearables<br>
-                                • Traceurs de position<br>
-                                • Montres connectées<br>
-                                • Appareils médicaux
-                            </div>
-                            <input type="text" id="bluetooth-device" placeholder="Device UUID ou adresse MAC" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="">
-                        </div>
-
-                        <!-- Capteurs USB -->
-                        <div style="border: 1px solid rgba(6, 182, 212, 0.3); padding: 15px; border-radius: 8px; background: rgba(6, 182, 212, 0.08);">
-                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
-                                <input type="checkbox" id="device-usb" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
-                                <span style="font-weight: bold; color: #06b6d4; font-size: 1.05em;">🔌 Appareils USB</span>
-                            </label>
-                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
-                                • Capteurs USB directs<br>
-                                • Caméras thermiques<br>
-                                • Analyseurs de qualité<br>
-                                • Lecteurs de badge
-                            </div>
-                            <input type="text" id="usb-device-id" placeholder="Vendor ID:Product ID" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="">
-                        </div>
-
-                        <!-- Intégration Cloud / Edge -->
-                        <div style="border: 1px solid rgba(16, 185, 129, 0.3); padding: 15px; border-radius: 8px; background: rgba(16, 185, 129, 0.08);">
-                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
-                                <input type="checkbox" id="device-cloud" style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
-                                <span style="font-weight: bold; color: #10b981; font-size: 1.05em;">☁️ Cloud / Edge Computing</span>
-                            </label>
-                            <div style="font-size: 0.9em; color: #999; margin-left: 28px; line-height: 1.5;">
-                                • Azure IoT Hub<br>
-                                • AWS IoT Core<br>
-                                • Google Cloud IoT<br>
-                                • Edge Devices (Nvidia Jetson)
-                            </div>
-                            <input type="text" id="cloud-config" placeholder="API Key ou Connection String" style="width: 100%; margin-top: 10px; padding: 6px; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0; font-size: 0.9em;" value="">
-                        </div>
-                    </div>
-
-                    <!-- Paramètres Généraux -->
-                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(139, 92, 246, 0.2);">
-                        <h4 style="color: #8b5cf6; margin-top: 0; margin-bottom: 15px;">⚙️ Paramètres Généraux</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div>
-                                <label style="color: #e2e8f0; font-size: 0.9em; display: block; margin-bottom: 5px;">Intervalle de scan (ms)</label>
-                                <input type="number" id="scan-interval" value="5000" min="1000" max="60000" style="width: 100%; padding: 6px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0;">
-                            </div>
-                            <div>
-                                <label style="color: #e2e8f0; font-size: 0.9em; display: block; margin-bottom: 5px;">Timeout de connexion (s)</label>
-                                <input type="number" id="connection-timeout" value="10" min="1" max="120" style="width: 100%; padding: 6px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0;">
-                            </div>
-                            <div>
-                                <label style="color: #e2e8f0; font-size: 0.9em; display: block; margin-bottom: 5px;">Tentatives de reconnexion</label>
-                                <input type="number" id="reconnect-attempts" value="5" min="1" max="20" style="width: 100%; padding: 6px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; background: rgba(0,0,0,0.2); color: #e2e8f0;">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Boutons d'Action -->
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" id="apply-device-config" style="padding: 10px 20px; font-size: 1em; flex: 1; min-width: 150px;">✅ Appliquer Configuration</button>
-                    <button class="btn btn-secondary" id="test-devices" style="padding: 10px 20px; font-size: 1em; flex: 1; min-width: 150px;">🧪 Tester Périphériques</button>
-                    <button class="btn btn-secondary" id="reset-device-config" style="padding: 10px 20px; font-size: 1em; flex: 1; min-width: 150px;">🔄 Réinitialiser</button>
-                </div>
-
-                <!-- État de Connexion -->
-                <div id="device-status-log" style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 0.9em; color: #10b981; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid rgba(16, 185, 129, 0.3);">
-                    📍 État de connexion des périphériques...
-                </div>
-            </div>
-        </div>
-
-        <!-- SECTION 1: Arduino / IoT Dashboard -->
+            <!-- SECTION 1: Arduino / IoT Dashboard -->
         <div class="card" style="margin-bottom: 30px;">
-            <h2 class="card-title">⚙️ Arduino TinkerCad - Système EPI Detection</h2>
+            <h2 class="card-title">⚙️ Arduino  - Système EPI Detection</h2>
             
             <!-- Capteurs IoT -->
             <div style="margin-bottom: 25px;">
-                <h3 style="color: #667eea; font-size: 1.1em; margin-bottom: 15px;">📊 Capteurs IoT & Statistiques</h3>
+                <h3 style="color: #667eea; font-size: 1.1em; margin-bottom: 15px;">📊 Statistiques</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                     <div style="background: rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 15px; border-left: 4px solid #10b981;">
                         <div style="font-size: 0.9em; color: #999; margin-bottom: 5px;">👷 Travailleurs en zone</div>
@@ -665,7 +741,7 @@
 
             <!-- LED Status Display -->
             <div>
-                <h3 style="color: #667eea; font-size: 1.1em; margin-bottom: 15px;">💡 État des LEDs & Buzzer Arduino</h3>
+                <h3 style="color: #667eea; font-size: 1.1em; margin-bottom: 15px;">💡 État des LEDs & Buzzer </h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
                     <div style="background: rgba(16, 185, 129, 0.15); border-radius: 8px; padding: 20px; border: 2px solid #10b981; text-align: center;">
                         <div style="font-size: 3em; margin-bottom: 10px;" id="led-green-indicator">⚫</div>
@@ -693,14 +769,23 @@
         <div class="unified-layout">
             <!-- COLONNE 1: Caméra en Direct -->
             <div class="card">
-                <h2 class="card-title">📹 Flux Caméra en Direct</h2>
+                <h2 class="card-title">📹Caméra </h2>
                 <div class="camera-feed" id="camera-feed">
                     <video id="video-feed" width="100%" height="100%" autoplay playsinline></video>
                     <canvas id="overlay-canvas" style="position:absolute; left:0; top:0; pointer-events:none;"></canvas>
+                    <div class="camera-debug-overlay" id="camera-debug-overlay">
+                        <div class="debug-title">DEBUG RE-ID</div>
+                        <div class="debug-line"><span class="debug-key">miss_streak</span><span class="debug-value" id="dbg-miss-streak">0</span></div>
+                        <div class="debug-line"><span class="debug-key">fallback_threshold</span><span class="debug-value" id="dbg-fallback-threshold">-</span></div>
+                        <div class="debug-line"><span class="debug-key">person_id_created</span><span class="debug-value" id="dbg-person-created">-</span></div>
+                        <div class="debug-line"><span class="debug-key">last_person_id</span><span class="debug-value" id="dbg-last-person-id">-</span></div>
+                        <div class="debug-line"><span class="debug-key">attendance_update_ok</span><span class="debug-value" id="dbg-attendance-ok">-</span></div>
+                        <div class="debug-line"><span class="debug-key">attendance_error</span><span class="debug-value" id="dbg-attendance-error">-</span></div>
+                    </div>
                 </div>
                 <div class="controls">
-                    <button class="btn btn-primary" id="start-camera-btn">▶️ Démarrer Webcam</button>
-                    <button class="btn btn-secondary" id="stop-camera-btn" disabled>⏹️ Arrêter</button>
+                    <button class="btn btn-primary" id="start-camera-btn">Demarrer Webcam</button>
+                    <button class="btn btn-secondary" id="stop-camera-btn" disabled>Arreter</button>
                     <button class="btn btn-secondary" id="snapshot-btn">📸 Capture</button>
                 </div>
                 <div id="camera-alerts"></div>
@@ -708,7 +793,22 @@
 
             <!-- COLONNE 2: Détections en Temps Réel -->
             <div class="card">
-                <h2 class="card-title">🔍 Détections en Temps Réel</h2>
+                <h2 class="card-title">Detections en Temps Reel</h2>
+                <div style="margin-bottom: 15px;">
+                    <label for="detection-mode-select" style="display: block; margin-bottom: 8px; font-weight: 500; color: #667eea;">Mode de Detection:</label>
+                    <select id="detection-mode-select" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; font-size: 0.95em;">
+                        <option value="standard">Standard (Rapide)</option>
+                        <option value="ensemble">Ensemble (Précis)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="detection-interval-slider" style="display: block; margin-bottom: 8px; font-weight: 500; color: #667eea;">Intervalle de Detection:</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="range" id="detection-interval-slider" min="1" max="60" value="10" style="flex: 1; cursor: pointer;">
+                        <span id="detection-interval-value" style="padding: 6px 12px; background: #667eea; color: rgb(209, 27, 27); border-radius: 6px; font-weight: bold; min-width: 60px; text-align: center;">10s</span>
+                    </div>
+                    <div style="font-size: 0.85em; color: #999; margin-top: 6px;">Détections toutes les X secondes (1-60s)</div>
+                </div>
                 <div class="metrics-grid">
                     <div class="metric">
                         <div class="metric-value" id="person-count">0</div>
@@ -739,7 +839,7 @@
             <div>
                 <!-- Section Alertes -->
                 <div class="card">
-                    <h2 class="card-title">⚠️ Alertes Actives</h2>
+                    <h2 class="card-title">Alertes Actives</h2>
                     <div class="audio-controls">
                         <span>🔊 Audio:</span>
                         <label class="toggle-switch">
@@ -749,7 +849,7 @@
                         <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.9em;" id="test-alert-btn">Test 🔊</button>
                     </div>
                     <div id="alerts-list" class="detection-list"></div>
-                    <button class="btn btn-secondary" id="clear-alerts-btn" style="width: 100%; margin-top: 10px;">🗑️ Effacer Alertes</button>
+                    <button class="btn btn-secondary" id="clear-alerts-btn" style="width: 100%; margin-top: 10px;">Effacer Alertes</button>
                 </div>
 
                 <!-- Section Stats -->
@@ -768,264 +868,183 @@
                             <div class="metric-value" style="font-size: 1.5em;" id="confidence-avg">0%</div>
                             <div class="metric-label">Confiance</div>
                         </div>
-                        <div class="metric" style="font-size: 0.9em;">
-                            <div class="metric-value" style="font-size: 1.2em;" id="uptime">00:00:00</div>
-                            <div class="metric-label">Uptime</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- SECTION 3: Code Arduino & Monitoring (Collapsible) -->
-        <div class="card" style="margin-top: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 class="card-title" style="margin: 0;">📡 Code Arduino & Monitoring</h2>
-                <button id="toggle-code-section" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.9em;">▼ Afficher</button>
-            </div>
-            
-            <div id="code-section" style="display: none;">
-                <!-- Arduino Code -->
-                <div style="margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h3 style="margin: 0; font-size: 1.1em; color: #667eea;">📄 Code Arduino (TinkerCad)</h3>
-                        <button id="toggle-arduino-code" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.9em;">📖 Afficher Code</button>
-                    </div>
-                    <pre id="arduino-code-block" style="background: #1e293b; color: #e2e8f0; padding: 15px; border-radius: 6px; overflow-x: auto; max-height: 400px; overflow-y: auto; font-size: 0.85em; display: none; border: 1px solid #334155;">
-                    </pre>
-                </div>
-
-                <!-- Serial Monitor -->
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h3 style="margin: 0; font-size: 1.1em; color: #667eea;">📡 Moniteur Série (Simulation)</h3>
-                        <button id="clear-serial-btn" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.9em;">🗑️ Effacer</button>
-                    </div>
-                    <div id="serial-monitor" style="background: #0f172a; color: #10b981; font-family: 'Courier New', monospace; padding: 12px; border-radius: 6px; max-height: 250px; overflow-y: auto; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; border: 1px solid #334155;">
-                        🚀 Système de détection EPI - Arduino
-                        =====================================
-                        ✅ Système initialisé
-                        📡 En attente de détections...
-                    </div>
-                </div>
-            </div>
-        </div>
+	                        <div class="metric" style="font-size: 0.9em;">
+	                            <div class="metric-value" style="font-size: 1.2em;" id="uptime">00:00:00</div>
+	                            <div class="metric-label">Uptime</div>
+	                        </div>
+	                        <div class="metric" style="font-size: 0.9em;">
+	                            <div class="metric-value" style="font-size: 1.5em;" id="embeddings-count">0</div>
+	                            <div class="metric-label">Embeddings</div>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
 
         <!-- SECTION 4: Footer -->
-        <div class="footer" style="margin-top: 30px;">
-            <p>🎯 EPI Detection Dashboard v2.0 | Système temps réel de détection d'équipements de protection</p>
-            <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.8;">
-                Dernière mise à jour: <span id="last-update">--:--:--</span> | 
-                Statut: <span id="system-status">En attente de connexion...</span>
-            </p>
-        </div>
+     
     </div>
                 <!-- Section Alertes -->
-                <div class="card">
-                    <h2 class="card-title">⚠️ Alertes Actives</h2>
-                    <div class="audio-controls">
-                        <span>🔊 Audio:</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="audio-alerts" checked>
-                            <span class="slider"></span>
-                        </label>
-                        <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.9em;" id="test-alert-btn">Test 🔊</button>
-                    </div>
-                    <div id="alerts-list" class="detection-list"></div>
-                    <button class="btn btn-secondary" id="clear-alerts-btn" style="width: 100%; margin-top: 10px;">🗑️ Effacer Alertes</button>
-                </div>
+             
 
                 <!-- Section Stats -->
-                <div class="card" style="margin-top: 20px;">
-                    <h2 class="card-title">📊 Statistiques</h2>
-                    <div class="metrics-grid" style="grid-template-columns: repeat(2, 1fr);">
-                        <div class="metric" style="font-size: 0.9em;">
-                            <div class="metric-value" style="font-size: 1.5em;" id="fps-value">0</div>
-                            <div class="metric-label">FPS</div>
-                        </div>
-                        <div class="metric" style="font-size: 0.9em;">
-                            <div class="metric-value" style="font-size: 1.5em;" id="inference-time">0ms</div>
-                            <div class="metric-label">Inférence</div>
-                        </div>
-                        <div class="metric" style="font-size: 0.9em;">
-                            <div class="metric-value" style="font-size: 1.5em;" id="confidence-avg">0%</div>
-                            <div class="metric-label">Confiance</div>
-                        </div>
-                        <div class="metric" style="font-size: 0.9em;">
-                            <div class="metric-value" style="font-size: 1.2em;" id="uptime">00:00:00</div>
-                            <div class="metric-label">Uptime</div>
-                        </div>
+            
+            </div>
+        </div>
+
+    <!-- SECTION 5: Presence quotidienne (re-identification + CRUD manuel) -->
+    <div class="card" style="margin-top: 20px;">
+        <h2 class="card-title">📅 Présence Quotidienne </h2>
+        <div class="attendance-toolbar">
+            <input type="date" id="attendance-date-filter" class="form-control" style="max-width: 220px;">
+            <!-- <select id="attendance-person-filter" class="form-select" style="max-width: 260px;">
+                <option value="">Toutes les personnes</option>
+            </select> -->
+            <!-- <select id="attendance-source-filter" class="form-select" style="max-width: 180px;">
+                <option value="">Toutes sources</option>
+                <option value="AUTO">AUTO</option>
+                <option value="MANUAL">MANUAL</option>
+            </select> -->
+            <!-- <button class="btn btn-primary" id="attendance-refresh-btn">Actualiser</button> -->
+            <button class="btn btn-secondary" id="attendance-add-person-btn">+ Personne</button>
+            <button class="btn btn-secondary" id="attendance-add-btn">+ Présence manuelle</button>
+            <button class="btn btn-secondary" id="attendance-print-list-btn">Imprimer liste</button>
+            <!-- <button class="btn btn-secondary" id="attendance-export-csv-btn">Export CSV</button> -->
+        </div>
+        <div class="attendance-table-shell">
+            <table id="attendance-table" class="table table-striped table-hover align-middle w-100"></table>
+        </div>
+    </div>
+
+    <div class="modal fade attendance-modal" id="attendance-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="attendance-modal-title">Presence</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="attendance-id">
+                    <div class="mb-2">
+                        <label class="form-label">Personne</label>
+                        <select id="attendance-person-id" class="form-select"></select>
                     </div>
+                    <div class="mb-2">
+                        <label class="form-label">Date</label>
+                        <input id="attendance-date" type="date" class="form-control">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Heure entrée</label>
+                        <input id="attendance-first" type="datetime-local" class="form-control">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Heure sortie</label>
+                        <input id="attendance-last" type="datetime-local" class="form-control">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Source</label>
+                        <select id="attendance-source" class="form-select">
+                            <option value="MANUAL">MANUAL</option>
+                            <option value="AUTO">AUTO</option>
+                        </select>
+                    </div>
+                    <hr>
+                    <h6 class="mb-2">Edition personne (mode Edit)</h6>
+                    <div class="mb-2">
+                        <label class="form-label">Nom complet</label>
+                        <input id="attendance-edit-full-name" type="text" class="form-control" placeholder="Nom complet">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Presence du jour</label>
+                        <select id="attendance-edit-manual-presence" class="form-select">
+                            <option value="">AUTO</option>
+                            <option value="present">Present</option>
+                            <option value="absent">Absent</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Poste</label>
+                        <input id="attendance-edit-job-title" type="text" class="form-control" placeholder="Poste">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Adresse</label>
+                        <input id="attendance-edit-address" type="text" class="form-control" placeholder="Adresse">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Ancienne photo</label>
+                        <div id="attendance-current-photo-empty" class="small text-muted">Aucune photo</div>
+                        <a id="attendance-current-photo-link" href="#" target="_blank" rel="noopener" class="d-none">
+                            <img id="attendance-current-photo-img" src="" alt="Ancienne photo" class="img-thumbnail mt-1" style="max-width: 140px;">
+                        </a>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Nouvelle photo (optionnel)</label>
+                        <input type="file" id="attendance-edit-photo-file" class="form-control" accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button class="btn btn-primary" id="attendance-save-btn">Enregistrer</button>
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="modal fade attendance-modal" id="person-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nouvelle personne</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Nom complet</label>
+                    <input type="text" id="person-full-name" class="form-control" placeholder="Nom (optionnel)">
+                    <label class="form-label mt-2">Fonction</label>
+                    <input type="text" id="person-job-title" class="form-control" placeholder="Fonction (optionnel)">
+                    <label class="form-label mt-2">Adresse</label>
+                    <input type="text" id="person-address" class="form-control" placeholder="Adresse (optionnel)">
+                    <label class="form-label mt-2">Presence manuelle du jour</label>
+                    <select id="person-manual-presence" class="form-select">
+                        <option value="">AUTO</option>
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                    </select>
+                    <label class="form-label mt-2">Photo identite capturee (optionnel)</label>
+                    <input type="file" id="person-photo-file" class="form-control" accept="image/*">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button class="btn btn-primary" id="person-save-btn">Créer</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Hidden audio element for alerts -->
     <audio id="alert-sound" class="notification-sound" preload="auto">
         <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
     </audio>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Load Arduino Code -->
-    <script>
-        // Charger le code Arduino depuis le serveur
-        async function loadArduinoCode() {
-            try {
-                const response = await fetch('/arduino_code/epi_detection_tinkercad.ino');
-                const code = await response.text();
-                const codeBlock = document.getElementById('arduino-code-block');
-                if (codeBlock) {
-                    codeBlock.textContent = code;
-                }
-            } catch (err) {
-                console.log('Erreur chargement code Arduino:', err);
-                const codeBlock = document.getElementById('arduino-code-block');
-                if (codeBlock) {
-                    codeBlock.textContent = '// Code Arduino non disponible';
-                }
-            }
-        }
-        
-        // Afficher/Masquer le code Arduino
-        const toggleBtn = document.getElementById('toggle-arduino-code');
-        const codeBlock = document.getElementById('arduino-code-block');
-        if (toggleBtn && codeBlock) {
-            toggleBtn.addEventListener('click', () => {
-                codeBlock.style.display = codeBlock.style.display === 'none' ? 'block' : 'none';
-            });
-        }
-        
-        // Charger le code au chargement de la page
-        loadArduinoCode();
-        
-        // Effacer le moniteur série
-        const clearSerialBtn = document.getElementById('clear-serial-btn');
-        if (clearSerialBtn) {
-            clearSerialBtn.addEventListener('click', () => {
-                const monitor = document.getElementById('serial-monitor');
-                if (monitor) {
-                    monitor.textContent = '📡 Moniteur série réinitialisé\n';
-                }
-            });
-        }
-        
-        // Ajouter une ligne au moniteur série
-        function addSerialLine(line) {
-            const monitor = document.getElementById('serial-monitor');
-            if (monitor) {
-                const timestamp = new Date().toLocaleTimeString('fr-FR');
-                monitor.textContent += `[${timestamp}] ${line}\n`;
-                monitor.scrollTop = monitor.scrollHeight;
-            }
-        }
-    </script>
-
-    <script>
-        // Charger le code Arduino depuis le serveur
-        async function loadArduinoCode() {
-            try {
-                const response = await fetch('/arduino_code/epi_detection_tinkercad.ino');
-                const code = await response.text();
-                const codeBlock = document.getElementById('arduino-code-block');
-                if (codeBlock) {
-                    codeBlock.textContent = code;
-                }
-            } catch (err) {
-                console.log('Erreur chargement code Arduino:', err);
-                const codeBlock = document.getElementById('arduino-code-block');
-                if (codeBlock) {
-                    codeBlock.textContent = '// Code Arduino non disponible';
-                }
-            }
-        }
-        
-        // Toggle section code Arduino
-        const toggleCodeSectionBtn = document.getElementById('toggle-code-section');
-        const codeSection = document.getElementById('code-section');
-        if (toggleCodeSectionBtn && codeSection) {
-            toggleCodeSectionBtn.addEventListener('click', () => {
-                const isVisible = codeSection.style.display === 'block';
-                codeSection.style.display = isVisible ? 'none' : 'block';
-                toggleCodeSectionBtn.textContent = isVisible ? '▼ Afficher' : '▲ Masquer';
-            });
-        }
-        
-        // Afficher/Masquer le code Arduino
-        const toggleBtn = document.getElementById('toggle-arduino-code');
-        const codeBlock = document.getElementById('arduino-code-block');
-        if (toggleBtn && codeBlock) {
-            toggleBtn.addEventListener('click', () => {
-                codeBlock.style.display = codeBlock.style.display === 'none' ? 'block' : 'none';
-                toggleBtn.textContent = codeBlock.style.display === 'none' ? '📖 Afficher Code' : '📖 Masquer Code';
-            });
-        }
-        
-        // Charger le code au chargement de la page
-        loadArduinoCode();
-        
-        // Effacer le moniteur série
-        const clearSerialBtn = document.getElementById('clear-serial-btn');
-        if (clearSerialBtn) {
-            clearSerialBtn.addEventListener('click', () => {
-                const monitor = document.getElementById('serial-monitor');
-                if (monitor) {
-                    monitor.textContent = '📡 Moniteur série réinitialisé\n';
-                }
-            });
-        }
-        
-        // Ajouter une ligne au moniteur série
-        function addSerialLine(line) {
-            const monitor = document.getElementById('serial-monitor');
-            if (monitor) {
-                const timestamp = new Date().toLocaleTimeString('fr-FR');
-                monitor.textContent += `[${timestamp}] ${line}\n`;
-                monitor.scrollTop = monitor.scrollHeight;
-            }
-        }
-    </script>
-
-    <script>
-        const themeToggleBtn = document.getElementById('theme-toggle-btn');
-        const htmlElement = document.documentElement;
-        const body = document.body;
-
-        // Charger le thème sauvegardé
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        if (savedTheme === 'light') {
-            body.classList.add('light-mode');
-            themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
-        }
-
-        themeToggleBtn.addEventListener('click', function() {
-            body.classList.toggle('light-mode');
-            const isLight = body.classList.contains('light-mode');
-            localStorage.setItem('theme', isLight ? 'light' : 'dark');
-            themeToggleBtn.innerHTML = isLight ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-        });
-
-        // ===== Charger les Vraies Données d'Entraînement =====
+<script>
+// ===== Charger les Vraies Données d'Entraînement =====
         function loadTrainingData() {
             fetch('/api/training-results')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.results.length > 0) {
-                        const latestResult = data.results[0];
+                    // API renvoie 'training_results' (array) et non 'results'
+                    if (data.success && data.training_results && data.training_results.length > 0) {
+                        const latestResult = data.training_results[0];
                         console.log('Données d\'entraînement chargées:', latestResult);
-                        
-                        // Afficher les métriques d'entraînement
-                        if (latestResult.val_accuracy) {
-                            document.getElementById('confidence-avg').textContent = 
-                                Math.round(latestResult.val_accuracy * 100) + '%';
+
+                        // Afficher les métriques d'entraînement (adaptation aux clés renvoyées)
+                        if (latestResult.validation && latestResult.validation.accuracy !== undefined && latestResult.validation.accuracy !== null) {
+                            safeSetText('confidence-avg', Math.round(latestResult.validation.accuracy * 100) + '%');
                         }
-                        if (latestResult.fps) {
-                            document.getElementById('fps-value').textContent = latestResult.fps.toFixed(1);
+                        if (latestResult.fps !== undefined && latestResult.fps !== null) {
+                            safeSetText('fps-value', Number(latestResult.fps).toFixed(1));
                         }
-                        if (latestResult.inference_time_ms) {
-                            document.getElementById('inference-time').textContent = 
-                                Math.round(latestResult.inference_time_ms) + 'ms';
+                        if (latestResult.inference_time_ms !== undefined && latestResult.inference_time_ms !== null) {
+                            safeSetText('inference-time', Math.round(latestResult.inference_time_ms) + 'ms');
                         }
                     }
                 })
@@ -1043,6 +1062,102 @@
         let stream = null;
         let detectionInterval = null;
         let isDetecting = false; // Flag pour éviter les requêtes API concurrentes
+        let detectionIntervalMs = 10000; // Intervalle de détection par défaut: 10 secondes
+        
+        // ===== Fonctions Utilitaires pour Null-Safety =====
+        function safeSetText(elementId, text) {
+            const el = document.getElementById(elementId);
+            if (el) el.textContent = text;
+        }
+        
+        function safeAddClass(elementId, className) {
+            const el = document.getElementById(elementId);
+            if (el) el.classList.add(className);
+        }
+        
+        function safeRemoveClass(elementId, className) {
+            const el = document.getElementById(elementId);
+            if (el) el.classList.remove(className);
+        }
+        
+        function safeSetStyle(elementId, property, value) {
+            const el = document.getElementById(elementId);
+            if (el) el.style[property] = value;
+        }
+
+        const debugOverlayState = {
+            missStreak: 0,
+            fallbackThreshold: null,
+            personIdCreated: null,
+            lastPersonId: null,
+            attendanceUpdateOk: null,
+            attendanceError: null,
+        };
+
+        function updateDebugOverlay(payload) {
+            if (!payload) return;
+            if (payload.miss_streak !== undefined && payload.miss_streak !== null) {
+                debugOverlayState.missStreak = Number(payload.miss_streak) || 0;
+            }
+            if (payload.fallback_after_frames !== undefined && payload.fallback_after_frames !== null) {
+                debugOverlayState.fallbackThreshold = Number(payload.fallback_after_frames) || 0;
+            }
+            if (payload.person_id_created !== undefined) {
+                debugOverlayState.personIdCreated = payload.person_id_created;
+            }
+            if (payload.last_person_id !== undefined) {
+                debugOverlayState.lastPersonId = payload.last_person_id;
+            }
+            if (payload.attendance_update_ok !== undefined) {
+                debugOverlayState.attendanceUpdateOk = payload.attendance_update_ok;
+            }
+            if (payload.attendance_error !== undefined) {
+                debugOverlayState.attendanceError = payload.attendance_error;
+            }
+
+            safeSetText('dbg-miss-streak', debugOverlayState.missStreak);
+            safeSetText(
+                'dbg-fallback-threshold',
+                debugOverlayState.fallbackThreshold === null ? '-' : debugOverlayState.fallbackThreshold
+            );
+            safeSetText(
+                'dbg-person-created',
+                debugOverlayState.personIdCreated === null ? '-' : debugOverlayState.personIdCreated
+            );
+            safeSetText(
+                'dbg-last-person-id',
+                debugOverlayState.lastPersonId === null ? '-' : debugOverlayState.lastPersonId
+            );
+            safeSetText(
+                'dbg-attendance-ok',
+                debugOverlayState.attendanceUpdateOk === null ? '-' : String(!!debugOverlayState.attendanceUpdateOk)
+            );
+            safeSetText(
+                'dbg-attendance-error',
+                debugOverlayState.attendanceError ? String(debugOverlayState.attendanceError).slice(0, 48) : '-'
+            );
+        }
+
+        function showPresencePopup(message, isNewPerson) {
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'fixed';
+            wrapper.style.top = '20px';
+            wrapper.style.right = '20px';
+            wrapper.style.zIndex = '2000';
+            wrapper.innerHTML = `
+                <div class="toast align-items-center text-bg-${isNewPerson ? 'primary' : 'success'} border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(wrapper);
+            const btn = wrapper.querySelector('.btn-close');
+            if (btn) btn.addEventListener('click', () => wrapper.remove());
+            setTimeout(() => wrapper.remove(), 4500);
+        }
+        window.showPresencePopup = showPresencePopup;
 
         // ===== Gestion de la Webcam =====
         async function startCamera() {
@@ -1056,22 +1171,26 @@
                 videoElement.srcObject = stream;
                 
                 cameraActive = true;
-                document.getElementById('start-camera-btn').disabled = true;
-                document.getElementById('stop-camera-btn').disabled = false;
-                document.getElementById('camera-feed').classList.remove('offline');
-                document.getElementById('camera-status').className = 'status-indicator online';
-                document.getElementById('camera-status-text').textContent = 'En ligne';
+                const startBtn = document.getElementById('start-camera-btn');
+                const stopBtn = document.getElementById('stop-camera-btn');
+                if (startBtn) startBtn.disabled = true;
+                if (stopBtn) stopBtn.disabled = false;
+                safeRemoveClass('camera-feed', 'offline');
+                const cameraStatus = document.getElementById('camera-status');
+                if (cameraStatus) cameraStatus.className = 'status-indicator online';
+                safeSetText('camera-status-text', 'En ligne');
                 
                 addAlert('Webcam démarrée avec succès ✅', 'success');
                 console.log('Webcam started');
+                try { sessionStorage.setItem('um_camera_autostart', '1'); } catch (_) {}
                 
-                // Démarrer la boucle de détection (1500ms pour éviter saturation)
+                // Démarrer la boucle de détection avec l'intervalle configuré
                 if (detectionInterval) clearInterval(detectionInterval);
                 detectionInterval = setInterval(() => {
                     if (cameraActive && !isDetecting) {
                         simulateDetections().catch(err => console.error('Erreur détection:', err));
                     }
-                }, 1500);
+                }, detectionIntervalMs);
             } catch (err) {
                 console.error('Erreur webcam:', err);
                 addAlert(`Erreur webcam: ${err.message}`, 'danger');
@@ -1085,12 +1204,16 @@
                 stream = null;
                 cameraActive = false;
                 isDetecting = false;
-                document.getElementById('start-camera-btn').disabled = false;
-                document.getElementById('stop-camera-btn').disabled = true;
-                document.getElementById('camera-feed').classList.add('offline');
-                document.getElementById('camera-status').className = 'status-indicator offline';
-                document.getElementById('camera-status-text').textContent = 'Déconnectée';
+                const startBtn2 = document.getElementById('start-camera-btn');
+                const stopBtn2 = document.getElementById('stop-camera-btn');
+                if (startBtn2) startBtn2.disabled = false;
+                if (stopBtn2) stopBtn2.disabled = true;
+                safeAddClass('camera-feed', 'offline');
+                const cameraStatus2 = document.getElementById('camera-status');
+                if (cameraStatus2) cameraStatus2.className = 'status-indicator offline';
+                safeSetText('camera-status-text', 'Déconnectée');
                 addAlert('Webcam arrêtée', 'danger');
+                try { sessionStorage.removeItem('um_camera_autostart'); } catch (_) {}
                 
                 // Arrêter la boucle de détection
                 if (detectionInterval) {
@@ -1099,47 +1222,73 @@
                 }
             }
         }
-        
-        // Nettoyage quand on quitte la page ou change de page
-        window.addEventListener('beforeunload', function() {
-            stopCamera();
-            if (detectionInterval) clearInterval(detectionInterval);
-            cameraActive = false;
-        });
-        
-        // Nettoyage aussi quand la page se cache (onglet/fenêtre fermée)
-        document.addEventListener('visibilitychange', function() {
-            if (document.hidden) {
-                stopCamera();
-            }
-        });
 
-        document.getElementById('start-camera-btn').addEventListener('click', startCamera);
-        document.getElementById('stop-camera-btn').addEventListener('click', stopCamera);
+        const startCameraBtn = document.getElementById('start-camera-btn');
+        const stopCameraBtn = document.getElementById('stop-camera-btn');
+        const snapshotBtn = document.getElementById('snapshot-btn');
+        const audioAlertsCheckbox = document.getElementById('audio-alerts');
+        const testAlertBtn = document.getElementById('test-alert-btn');
+        
+        if (startCameraBtn) startCameraBtn.addEventListener('click', startCamera);
+        if (stopCameraBtn) stopCameraBtn.addEventListener('click', stopCamera);
+        
+        if (snapshotBtn) {
+            snapshotBtn.addEventListener('click', function() {
+                const video = document.getElementById('video-feed');
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/jpeg');
+                link.download = `capture_${new Date().getTime()}.jpg`;
+                link.click();
+                
+                addAlert('Capture d\'écran sauvegardée 📸', 'success');
+            });
+        }
 
-        // Capturer une image
-        document.getElementById('snapshot-btn').addEventListener('click', function() {
-            const video = document.getElementById('video-feed');
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
-            
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL('image/jpeg');
-            link.download = `capture_${new Date().getTime()}.jpg`;
-            link.click();
-            
-            addAlert('Capture d\'écran sauvegardée 📸', 'success');
-        });
+        if (audioAlertsCheckbox) {
+            audioAlertsCheckbox.addEventListener('change', function() {
+                audioAlertsEnabled = this.checked;
+                console.log('Alertes audio:', audioAlertsEnabled ?'Activées' : 'Désactivées');
+            });
+        }
+
+        if (testAlertBtn) {
+            testAlertBtn.addEventListener('click', function() {
+                playAlertSound();
+                addAlert('Test Alerte Audio 🔊', 'warning');
+            });
+        }
+
+        // ===== Contrôle de l'Intervalle de Détection =====
+        const detectionIntervalSlider = document.getElementById('detection-interval-slider');
+        const detectionIntervalValue = document.getElementById('detection-interval-value');
+        
+        if (detectionIntervalSlider) {
+            detectionIntervalSlider.addEventListener('input', function() {
+                detectionIntervalMs = parseInt(this.value) * 1000; // Convertir secondes en ms
+                if (detectionIntervalValue) {
+                    detectionIntervalValue.textContent = this.value + 's';
+                }
+                
+                // Redémarrer le timer de détection avec le nouvel intervalle
+                if (detectionInterval && cameraActive) {
+                    clearInterval(detectionInterval);
+                    detectionInterval = setInterval(() => {
+                        if (cameraActive && !isDetecting) {
+                            simulateDetections().catch(err => console.error('Erreur détection:', err));
+                        }
+                    }, detectionIntervalMs);
+                    console.log(`🔄 Intervalle de détection changé ? ${this.value}s`);
+                }
+            });
+        }
 
         // ===== Gestion Audio =====
-        document.getElementById('audio-alerts').addEventListener('change', function() {
-            audioAlertsEnabled = this.checked;
-            console.log('Alertes audio:', audioAlertsEnabled ? 'Activées' : 'Désactivées');
-        });
-
         function playAlertSound() {
             if (audioAlertsEnabled) {
                 generateBeepSound(800, 200);
@@ -1169,15 +1318,11 @@
             }
         }
 
-        // ===== Test Alerte =====
-        document.getElementById('test-alert-btn').addEventListener('click', function() {
-            playAlertSound();
-            addAlert('Test Alerte Audio 🔊', 'warning');
-        });
-
         // ===== Gestion des Alertes =====
         function addAlert(message, type = 'danger') {
             const alertsDiv = document.getElementById('alerts-list');
+            if (!alertsDiv) return; // Sortir silencieusement si element n'existe pas
+            
             const alertEl = document.createElement('div');
             alertEl.className = `detection-item ${type}`;
             const timestamp = new Date().toLocaleTimeString('fr-FR');
@@ -1187,7 +1332,7 @@
             `;
             alertsDiv.insertBefore(alertEl, alertsDiv.firstChild);
             
-            // Limiter à 5 alertes pour réduire la RAM
+            // Limiter ? 5 alertes pour réduire la RAM
             while (alertsDiv.children.length > 5) {
                 alertsDiv.removeChild(alertsDiv.lastChild);
             }
@@ -1199,22 +1344,27 @@
             }
         }
 
-        document.getElementById('clear-alerts-btn').addEventListener('click', function() {
-            document.getElementById('alerts-list').innerHTML = '';
-        });
+        const clearAlertsBtn = document.getElementById('clear-alerts-btn');
+        if (clearAlertsBtn) {
+            clearAlertsBtn.addEventListener('click', function() {
+                const alertsList = document.getElementById('alerts-list');
+                if (alertsList) alertsList.innerHTML = '';
+            });
+        }
 
 
-        // ===== Mise à Jour du Temps =====
+        // ===== Mise ? Jour du Temps =====
         setInterval(() => {
             const now = new Date();
-            document.getElementById('last-update').textContent = now.toLocaleTimeString('fr-FR');
-            
+            const lastUpdateEl = document.getElementById('last-update');
+            if (lastUpdateEl) lastUpdateEl.textContent = now.toLocaleTimeString('fr-FR');
+
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             const hours = Math.floor(elapsed / 3600);
             const minutes = Math.floor((elapsed % 3600) / 60);
             const seconds = elapsed % 60;
-            document.getElementById('uptime').textContent = 
-                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            const uptimeEl = document.getElementById('uptime');
+            if (uptimeEl) uptimeEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }, 1000);
 
         // ===== Simulation Détections =====
@@ -1232,7 +1382,7 @@
             const video = document.getElementById('video-feed');
             const canvas = document.getElementById('overlay-canvas');
             if (!canvas || !video) {
-                console.error('❌ Canvas ou Video non trouvés!', { canvas: !!canvas, video: !!video });
+                console.error('? Canvas ou Video non trouvés!', { canvas: !!canvas, video: !!video });
                 return;
             }
 
@@ -1244,9 +1394,9 @@
             canvas.width = Math.round(rect.width);
             canvas.height = Math.round(rect.height);
             
-            console.log('📏 Canvas dimensions:', canvas.width, '×', canvas.height);
+            console.log('[DEBUG] Canvas dimensions:', canvas.width, '?', canvas.height);
             
-            // Ne pas réappliquer le style à chaque fois (fait une fois au démarrage)
+            // Ne pas réappliquer le style ? chaque fois (fait une fois au démarrage)
             if (!canvas.style.position || canvas.style.position !== 'absolute') {
                 canvas.style.position = 'absolute';
                 canvas.style.left = '0px';
@@ -1262,7 +1412,7 @@
 
             // Si aucune détection, afficher message discret
             if (!detections || detections.length === 0) {
-                console.log('ℹ️ Aucune détection à afficher');
+                console.log('[INFO] Aucune detection a afficher');
                 ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
                 ctx.font = '14px Arial';
                 ctx.fillText('✓ En attente de détections...', 15, 35);
@@ -1322,19 +1472,19 @@
                     }
                     
                     if (!bbox) {
-                        console.warn(`⚠️ Détection ${idx} n'a pas de bbox!`, det);
+                        console.warn(`[WARN] Detection ${idx} n'a pas de bbox!`, det);
                         return;
                     }
 
                     // Vérifier que bbox est un array ou convertible
                     if (!Array.isArray(bbox)) {
-                        console.warn(`⚠️ Détection ${idx} bbox n'est pas un array!`, bbox);
+                        console.warn(`[WARN] Detection ${idx} bbox n'est pas un array!`, bbox);
                         return;
                     }
 
                     // Vérifier les valeurs
                     if (bbox.length < 4 || bbox.some(v => isNaN(v))) {
-                        console.warn(`⚠️ Détection ${idx} bbox invalide!`, bbox);
+                        console.warn(`[WARN] Detection ${idx} bbox invalide!`, bbox);
                         return;
                     }
 
@@ -1358,9 +1508,9 @@
                     // Largeur du trait - RÉDUIT pour un look plus fin
                     const lineWidth = Math.max(1, Math.round(Math.min(w, h) / 80));
                     
-                    // ═══════════════════════════════════════════════════════
+                    // =======================================================
                     // 🎨 DESSINER LA BOÎTE ENGLOBANTE - Style Professional
-                    // ═══════════════════════════════════════════════════════
+                    // =======================================================
 
                     // ÉTAPE 1: Ombre extérieure - RÉDUITE
                     ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
@@ -1465,7 +1615,7 @@
 
                     console.log(`🎨 Boîte dessinée pour détection #${idx+1}`);
                 } catch (err) {
-                    console.error(`❌ Erreur dessin détection ${idx}:`, err);
+                    console.error(`? Erreur dessin détection ${idx}:`, err);
                 }
             });
 
@@ -1515,12 +1665,13 @@
                 // Convertir le canvas en base64 JPEG avec qualité réduite (0.7 pour moins de données)
                 const imageBase64 = canvas.toDataURL('image/jpeg', 0.7);
                 
-                // Récupérer le mode de détection sélectionné
-                const detectionMode = document.getElementById('detection-mode-select').value;
+                // Récupérer le mode de détection sélectionné (avec vérification null-safe)
+                const modeSelect = document.getElementById('detection-mode-select');
+                const detectionMode = modeSelect ?modeSelect.value : 'standard';
                 const useEnsemble = detectionMode === 'ensemble';
                 
-                // Envoyer à l'API pour la vraie détection
-                const response = await fetch(`/api/detect?use_ensemble=${useEnsemble}`, {
+                // Envoyer ? l'API pour la vraie détection
+                const response = await fetch(`/api/detect-realtime?use_ensemble=${useEnsemble}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1534,7 +1685,7 @@
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('Erreur API détection:', response.status, errorText);
-                    addAlert(`⚠️ Erreur API: ${response.status}`, 'danger');
+                    addAlert(`? Erreur API: ${response.status}`, 'danger');
                     isDetecting = false;
                     return;
                 }
@@ -1544,39 +1695,40 @@
                 
                 if (!result.success) {
                     console.error('Erreur détection:', result.error);
-                    addAlert(`⚠️ Erreur: ${result.error}`, 'danger');
+                    addAlert(`? Erreur: ${result.error}`, 'danger');
                     isDetecting = false;
                     return;
                 }
                 
-                // Mettre à jour l'interface avec les VRAIES détections
+                // Mettre ? jour l'interface avec les VRAIES détections
                 const detections = result.detections || [];
                 const stats = result.statistics || {};
+                updateDebugOverlay({
+                    miss_streak: stats.embedding_miss_streak,
+                    fallback_after_frames: (result.debug && result.debug.fallback_after_frames !== undefined)
+                        ? result.debug.fallback_after_frames
+                        : stats.fallback_after_frames,
+                    person_id_created: result.debug ? result.debug.person_id_created : null,
+                    last_person_id: result.debug ? result.debug.last_person_id : null,
+                    attendance_update_ok: result.debug ? result.debug.attendance_update_ok : null,
+                    attendance_error: result.debug ? result.debug.attendance_error : null
+                });
                 
-                // Mettre à jour les compteurs de classes
-                // Mettre à jour les compteurs (avec vérification d'existence pour éviter les erreurs JS)
-                const helmetEl = document.getElementById('helmet-count');
-                if (helmetEl) helmetEl.textContent = stats.with_helmet || 0;
-                const vestEl = document.getElementById('vest-count');
-                if (vestEl) vestEl.textContent = stats.with_vest || 0;
-                const glassesEl = document.getElementById('glasses-count');
-                if (glassesEl) glassesEl.textContent = stats.with_glasses || 0;
-                const personEl = document.getElementById('person-count');
-                if (personEl) personEl.textContent = stats.total_persons || 0;
-                const bootsEl = document.getElementById('boots-count');
-                if (bootsEl) bootsEl.textContent = stats.with_boots || 0;
+                // Mettre ? jour les compteurs (avec vérification null-safe)
+                safeSetText('helmet-count', stats.with_helmet || 0);
+                safeSetText('vest-count', stats.with_vest || 0);
+                safeSetText('glasses-count', stats.with_glasses || 0);
+                safeSetText('person-count', stats.total_persons || 0);
+                safeSetText('boots-count', stats.with_boots || 0);
+                safeSetText('workers-count', stats.total_persons || 0);
                 
-                // Mettre à jour les compteurs Arduino
-                const helmetsArduinoEl = document.getElementById('helmets-arduino');
-                if (helmetsArduinoEl) helmetsArduinoEl.textContent = stats.with_helmet || 0;
-                const vestsArduinoEl = document.getElementById('vests-arduino');
-                if (vestsArduinoEl) vestsArduinoEl.textContent = stats.with_vest || 0;
-                const glassesArduinoEl = document.getElementById('glasses-arduino');
-                if (glassesArduinoEl) glassesArduinoEl.textContent = stats.with_glasses || 0;
-                const complianceArduinoEl = document.getElementById('compliance-rate-arduino');
-                if (complianceArduinoEl) complianceArduinoEl.textContent = (stats.compliance_rate || 0).toFixed(0) + '%';
+                // Mettre ? jour les compteurs Arduino
+                safeSetText('helmets-arduino', stats.with_helmet || 0);
+                safeSetText('vests-arduino', stats.with_vest || 0);
+                safeSetText('glasses-arduino', stats.with_glasses || 0);
+                safeSetText('compliance-rate-arduino', (stats.compliance_rate || 0).toFixed(0) + '%');
                 
-                // Mettre à jour les LEDs Arduino en fonction du taux de conformité
+                // Mettre ? jour les LEDs Arduino en fonction du taux de conformité
                 const complianceRate = stats.compliance_rate || 0;
                 const ledGreenEl = document.getElementById('led-green-indicator');
                 const ledRedEl = document.getElementById('led-red-indicator');
@@ -1599,10 +1751,11 @@
                     if (buzzerEl) buzzerEl.textContent = '🔊';
                 }
                 
-                // Mettre à jour les statistiques
-                document.getElementById('fps-value').textContent = (1000 / (stats.total_ms || 33)).toFixed(1);
-                document.getElementById('inference-time').textContent = (stats.inference_ms || 0).toFixed(0) + 'ms';
-                document.getElementById('confidence-avg').textContent = (stats.compliance_rate || 0).toFixed(0) + '%';
+                // Mettre ? jour les statistiques
+	                safeSetText('fps-value', (1000 / (stats.total_ms || 33)).toFixed(1));
+	                safeSetText('inference-time', (stats.inference_ms || 0).toFixed(0) + 'ms');
+	                safeSetText('confidence-avg', (stats.compliance_rate || 0).toFixed(0) + '%');
+	                safeSetText('embeddings-count', stats.face_embeddings_count || 0);
                 
                 // Afficher les détections dans la liste
                 const detectionsList = document.getElementById('detections-list');
@@ -1619,11 +1772,11 @@
                 if (detections.length === 0) {
                     const noDetItem = document.createElement('div');
                     noDetItem.className = 'detection-item-empty';
-                    noDetItem.innerHTML = '<span>ℹ️ Aucune détection</span>';
+                    noDetItem.innerHTML = '<span>Aucune detection</span>';
                     detectionsList.appendChild(noDetItem);
                 } else {
                     // 🔥 AFFICHER TOUTES LES DÉTECTIONS (pas de limite!)
-                    // Afficher jusqu'à 20 dans la liste pour ne pas surcharger, mais TOUTES sur le canvas
+                    // Afficher jusqu'? 20 dans la liste pour ne pas surcharger, mais TOUTES sur le canvas
                     const maxListDetections = Math.min(detections.length, 20);
                     
                     for (let i = 0; i < maxListDetections; i++) {
@@ -1674,24 +1827,23 @@
                 // 🎯 DESSINER TOUTES LES DÉTECTIONS SUR LE CANVAS (sans limite!)
                 drawDetections(detections);
                 
-                // Envoyer les données réelles à l'Arduino
-                if (stats.total_persons > 0) {
-                    const complianceLevel = Math.round(stats.compliance_rate || 0);
-                    sendComplianceToArduino(complianceLevel);
-                    
-                    // Envoyer la détection principale
-                    if (detections.length > 0) {
-                        const topDetection = detections[0];
-                        const className = topDetection.class_name || topDetection.class || 'unknown';
-                        const confidence = (topDetection.confidence || 0) * 100;
-                        sendDetectionToArduino(className, confidence);
-                    }
-                }
+                // Envoyer les données réelles ? l'Arduino
+                // Règle stricte: si personne = 0, forcer conformité = 0%
+                const totalPersons = stats.total_persons || 0;
+                const complianceLevel = totalPersons > 0 ? Math.round(stats.compliance_rate || 0) : 0;
+                sendComplianceToArduino(complianceLevel);
+                sendDetectionToArduino({
+                    total_persons: totalPersons,
+                    with_helmet: stats.with_helmet || 0,
+                    with_vest: stats.with_vest || 0,
+                    with_glasses: stats.with_glasses || 0,
+                    with_boots: stats.with_boots || 0
+                });
                 
                 // Alerte si conformité basse
                 if (stats.alert_type && stats.alert_type !== 'none' && stats.alert_type !== 'safe') {
                     playAlertSound();
-                    addAlert(`⚠️ Non-conformité détectée! (${stats.compliance_level || 'critique'})`, 'danger');
+                    addAlert(`Non-conformite detectee! (${stats.compliance_level || 'critique'})`, 'danger');
                 }
                 
                 // Log pour debug
@@ -1710,31 +1862,16 @@
         }
 
         // ===== Communication Arduino =====
-        function sendDetectionToArduino(className, confidence) {
-            const detectionMap = {
-                'helmet': { helmet: true, vest: false, glasses: false },
-                'vest': { helmet: false, vest: true, glasses: false },
-                'glasses': { helmet: false, vest: false, glasses: true },
-                'person': { helmet: false, vest: false, glasses: false },
-                'boots': { helmet: false, vest: false, glasses: false }
-            };
-            
-            const detection = detectionMap[className] || { helmet: false, vest: false, glasses: false };
-            
+        function sendDetectionToArduino(stats) {
             fetch('/api/arduino/send-detection', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    helmet: detection.helmet,
-                    vest: detection.vest,
-                    glasses: detection.glasses,
-                    confidence: parseInt(confidence)
-                })
+                body: JSON.stringify(stats)
             })
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    console.log('✓ Arduino notifié:', data.command);
+                    console.log('✓ Arduino détection envoyée');
                 }
             })
             .catch(err => console.log('Erreur Arduino:', err));
@@ -1754,15 +1891,357 @@
             })
             .catch(err => console.log('Erreur conformité:', err));
         }
+        // ===== Attendance (DataTables + Modals) =====
+        let attendanceTable = null;
+        let attendanceRows = [];
+        let attendancePersons = [];
 
+        function toInputDateTime(isoValue) {
+            if (!isoValue) return '';
+            const d = new Date(isoValue);
+            if (Number.isNaN(d.getTime())) return '';
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            return d.toISOString().slice(0, 16);
+        }
+
+        function fromInputDateTime(localValue) {
+            if (!localValue) return null;
+            return new Date(localValue).toISOString();
+        }
+
+        function formatAttendanceDate(value, type) {
+            if (!value) return type === 'sort' ? '' : '-';
+            if (type === 'sort' || type === 'type') return value;
+            const d = new Date(`${value}T00:00:00`);
+            if (Number.isNaN(d.getTime())) return value;
+            return d.toLocaleDateString('fr-FR');
+        }
+
+        function formatAttendanceDateTime(value, type) {
+            if (!value) return type === 'sort' ? '' : '-';
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return value;
+            if (type === 'sort' || type === 'type') return d.getTime();
+            return d.toLocaleString('fr-FR');
+        }
+
+        async function attendanceFetchJson(url, options = {}) {
+            const response = await fetch(url, {
+                headers: { 'Content-Type': 'application/json' },
+                ...options
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || `Erreur API (${response.status})`);
+            }
+            return data;
+        }
+
+        function attendanceRenderActions(row) {
+            return `
+                <button class="btn btn-secondary btn-sm me-1" onclick="attendanceEdit(${row.id})">Edit</button>
+                <button class="btn btn-secondary btn-sm me-1" onclick="attendancePrint(${row.id})">Print</button>
+                <button class="btn btn-secondary btn-sm" onclick="attendanceDelete(${row.id})">Delete</button>
+            `;
+        }
+
+        async function attendanceLoadPersons() {
+            const data = await attendanceFetchJson('/api/attendance/persons');
+            attendancePersons = data.rows || [];
+            const options = attendancePersons.map(p => {
+                const base = p.full_name ? `${p.full_name} (${p.uuid})` : p.uuid;
+                const label = p.job_title ? `${base} - ${p.job_title}` : base;
+                return `<option value="${p.id}">${label}</option>`;
+            }).join('');
+
+            const select = document.getElementById('attendance-person-id');
+            if (select) select.innerHTML = options;
+
+            const filterSelect = document.getElementById('attendance-person-filter');
+            if (filterSelect) filterSelect.innerHTML = `<option value="">Toutes les personnes</option>${options}`;
+        }
+
+        function attendanceFindPersonById(personId) {
+            return attendancePersons.find((p) => Number(p.id) === Number(personId)) || null;
+        }
+
+        function attendanceSetCurrentPhoto(photoPath) {
+            const link = document.getElementById('attendance-current-photo-link');
+            const img = document.getElementById('attendance-current-photo-img');
+            const empty = document.getElementById('attendance-current-photo-empty');
+            if (!link || !img || !empty) return;
+            if (photoPath) {
+                const normalizedPath = String(photoPath).replace(/^\/+/, '');
+                const url = `/${normalizedPath}`;
+                link.href = url;
+                img.src = url;
+                link.classList.remove('d-none');
+                empty.classList.add('d-none');
+            } else {
+                link.href = '#';
+                img.src = '';
+                link.classList.add('d-none');
+                empty.classList.remove('d-none');
+            }
+        }
+
+        function attendanceFillPersonEditFields(person, fallbackRow = null) {
+            const src = person || fallbackRow || {};
+            const fullName = src.full_name || '';
+            const jobTitle = src.job_title || '';
+            const address = src.address || '';
+            const manualPresence = src.manual_presence_today;
+            document.getElementById('attendance-edit-full-name').value = fullName;
+            document.getElementById('attendance-edit-job-title').value = jobTitle;
+            document.getElementById('attendance-edit-address').value = address;
+            document.getElementById('attendance-edit-manual-presence').value =
+                manualPresence === true ? 'present' : (manualPresence === false ? 'absent' : '');
+            attendanceSetCurrentPhoto(src.identity_photo_path || '');
+            const photoInput = document.getElementById('attendance-edit-photo-file');
+            if (photoInput) photoInput.value = '';
+        }
+
+        function attendanceBuildQuery() {
+            const params = new URLSearchParams();
+            const filterDate = document.getElementById('attendance-date-filter')?.value;
+            const personId = document.getElementById('attendance-person-filter')?.value;
+            const source = document.getElementById('attendance-source-filter')?.value;
+            if (filterDate) params.set('attendance_date', filterDate);
+            if (personId) params.set('person_id', personId);
+            if (source) params.set('source', source);
+            const queryString = params.toString();
+            return queryString ? `?${queryString}` : '';
+        }
+
+        function attendanceInitTable() {
+            if (!window.jQuery || !$('#attendance-table').length) return;
+            if (attendanceTable) {
+                attendanceTable.destroy();
+                document.getElementById('attendance-table').innerHTML = '';
+            }
+            attendanceTable = $('#attendance-table').DataTable({
+                data: attendanceRows,
+                language: {
+                    search: 'Rechercher:',
+                    searchPlaceholder: 'Nom, UUID, source...',
+                    lengthMenu: 'Afficher _MENU_ lignes',
+                    info: '_START_ à _END_ sur _TOTAL_ entrées',
+                    infoEmpty: '0 à 0 sur 0 entrées',
+                    emptyTable: 'Aucune présence disponible',
+                    zeroRecords: 'Aucun résultat',
+                    paginate: {
+                        first: 'Premier',
+                        previous: 'Précédent',
+                        next: 'Suivant',
+                        last: 'Dernier'
+                    }
+                },
+                columns: [
+                    { title: 'ID', data: 'id', className: 'all', responsivePriority: 2 },
+                    { title: 'Nom', data: null, className: 'all', responsivePriority: 1, render: (v, t, row) => row.full_name || row.person_uuid || '-' },
+                    { title: 'Date', data: 'attendance_date', className: 'min-tablet', responsivePriority: 3, render: (v, t) => formatAttendanceDate(v, t) },
+                    { title: 'Presence', data: null, responsivePriority: 4, render: (v, t, row) => row.manual_presence_today === null || row.manual_presence_today === undefined ? 'AUTO' : (row.manual_presence_today ? 'Present' : 'Absent') },
+                    { title: 'Photos', data: 'identity_photo_path', responsivePriority: 5, render: (v) => v ? `<a href="/${String(v).replace(/^\/+/, '')}" target="_blank" rel="noopener">Voir</a>` : '-' },
+                    { title: 'Action', data: null, className: 'all', responsivePriority: 1, orderable: false, searchable: false, render: (v, t, row) => attendanceRenderActions(row) }
+                ],
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                responsive: {
+                    details: {
+                        type: 'inline',
+                        target: 'tr'
+                    }
+                },
+                scrollX: false,
+                autoWidth: false,
+                deferRender: true
+            });
+        }
+
+        async function attendanceLoadRows() {
+            const query = attendanceBuildQuery();
+            const data = await attendanceFetchJson(`/api/attendance/records${query}`);
+            attendanceRows = data.rows || [];
+            attendanceInitTable();
+        }
+        window.attendanceLoadRows = attendanceLoadRows;
+
+        function attendanceOpenCreateModal() {
+            document.getElementById('attendance-id').value = '';
+            document.getElementById('attendance-modal-title').textContent = 'Ajouter presence manuelle';
+            const now = new Date();
+            const dateInput = document.getElementById('attendance-date');
+            if (dateInput) dateInput.value = now.toISOString().slice(0, 10);
+            document.getElementById('attendance-first').value = toInputDateTime(now.toISOString());
+            document.getElementById('attendance-last').value = toInputDateTime(now.toISOString());
+            document.getElementById('attendance-source').value = 'MANUAL';
+            const currentPersonId = document.getElementById('attendance-person-id')?.value;
+            attendanceFillPersonEditFields(attendanceFindPersonById(currentPersonId));
+            new bootstrap.Modal(document.getElementById('attendance-modal')).show();
+        }
+
+        window.attendanceEdit = function (id) {
+            const row = attendanceRows.find(r => r.id === id);
+            if (!row) return;
+            document.getElementById('attendance-id').value = row.id;
+            document.getElementById('attendance-modal-title').textContent = `Modifier presence #${row.id}`;
+            document.getElementById('attendance-person-id').value = row.person_id;
+            document.getElementById('attendance-date').value = row.attendance_date || '';
+            document.getElementById('attendance-first').value = toInputDateTime(row.first_seen_at);
+            document.getElementById('attendance-last').value = toInputDateTime(row.last_seen_at);
+            document.getElementById('attendance-source').value = row.source || 'MANUAL';
+            attendanceFillPersonEditFields(attendanceFindPersonById(row.person_id), row);
+            new bootstrap.Modal(document.getElementById('attendance-modal')).show();
+        };
+
+        window.attendanceDelete = async function (id) {
+            if (!confirm('Supprimer cette presence ?')) return;
+            await attendanceFetchJson(`/api/attendance/records/${id}`, { method: 'DELETE' });
+            await attendanceLoadRows();
+        };
+
+        window.attendancePrint = function (id) {
+            window.open(`/api/attendance/records/${id}/print`, '_blank');
+        };
+
+        function attendancePrintList() {
+            const query = attendanceBuildQuery();
+            window.open(`/api/attendance/records/print${query}`, '_blank');
+        }
+
+        function attendanceExportCsv() {
+            const query = attendanceBuildQuery();
+            window.open(`/api/attendance/records/export/csv${query}`, '_blank');
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                if (!file) {
+                    resolve(null);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result || null);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function attendanceSave() {
+            const id = document.getElementById('attendance-id').value;
+            const personId = Number(document.getElementById('attendance-person-id').value);
+            if (!personId) {
+                throw new Error('Personne invalide');
+            }
+            const payload = {
+                person_id: personId,
+                attendance_date: document.getElementById('attendance-date').value,
+                first_seen_at: fromInputDateTime(document.getElementById('attendance-first').value),
+                last_seen_at: fromInputDateTime(document.getElementById('attendance-last').value),
+                source: document.getElementById('attendance-source').value || 'MANUAL'
+            };
+            const manualRaw = document.getElementById('attendance-edit-manual-presence').value;
+            let manualPresenceToday = null;
+            if (manualRaw === 'present') manualPresenceToday = true;
+            if (manualRaw === 'absent') manualPresenceToday = false;
+            const personPhotoFile = document.getElementById('attendance-edit-photo-file')?.files?.[0];
+            const personPhotoBase64 = await fileToBase64(personPhotoFile);
+            if (id) {
+                const personPayload = {
+                    full_name: document.getElementById('attendance-edit-full-name').value || '',
+                    job_title: document.getElementById('attendance-edit-job-title').value || '',
+                    address: document.getElementById('attendance-edit-address').value || '',
+                    manual_presence_today: manualPresenceToday
+                };
+                if (personPhotoBase64) {
+                    personPayload.identity_photo_base64 = personPhotoBase64;
+                }
+                await attendanceFetchJson(`/api/attendance/persons/${personId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(personPayload)
+                });
+            }
+            const method = id ? 'PATCH' : 'POST';
+            const url = id ? `/api/attendance/records/${id}` : '/api/attendance/records';
+            await attendanceFetchJson(url, { method, body: JSON.stringify(payload) });
+            bootstrap.Modal.getInstance(document.getElementById('attendance-modal'))?.hide();
+            await attendanceLoadPersons();
+            await attendanceLoadRows();
+        }
+
+        async function attendanceCreatePerson() {
+            const fullName = document.getElementById('person-full-name').value || '';
+            const jobTitle = document.getElementById('person-job-title').value || '';
+            const address = document.getElementById('person-address').value || '';
+            const manualRaw = document.getElementById('person-manual-presence').value;
+            const photoFile = document.getElementById('person-photo-file')?.files?.[0];
+            const photoBase64 = await fileToBase64(photoFile);
+            let manualPresenceToday = null;
+            if (manualRaw === 'present') manualPresenceToday = true;
+            if (manualRaw === 'absent') manualPresenceToday = false;
+            await attendanceFetchJson('/api/attendance/persons', {
+                method: 'POST',
+                body: JSON.stringify({
+                    full_name: fullName,
+                    job_title: jobTitle,
+                    address,
+                    manual_presence_today: manualPresenceToday,
+                    identity_photo_base64: photoBase64
+                })
+            });
+            document.getElementById('person-full-name').value = '';
+            document.getElementById('person-job-title').value = '';
+            document.getElementById('person-address').value = '';
+            document.getElementById('person-manual-presence').value = '';
+            const photoInput = document.getElementById('person-photo-file');
+            if (photoInput) photoInput.value = '';
+            bootstrap.Modal.getInstance(document.getElementById('person-modal'))?.hide();
+            await attendanceLoadPersons();
+            await attendanceLoadRows();
+        }
+
+        async function attendanceInit() {
+            const dateFilter = document.getElementById('attendance-date-filter');
+            if (dateFilter && !dateFilter.value) {
+                dateFilter.value = new Date().toISOString().slice(0, 10);
+            }
+            await attendanceLoadPersons();
+            await attendanceLoadRows();
+
+            document.getElementById('attendance-refresh-btn')?.addEventListener('click', attendanceLoadRows);
+            document.getElementById('attendance-date-filter')?.addEventListener('change', attendanceLoadRows);
+            document.getElementById('attendance-person-filter')?.addEventListener('change', attendanceLoadRows);
+            document.getElementById('attendance-source-filter')?.addEventListener('change', attendanceLoadRows);
+            document.getElementById('attendance-add-btn')?.addEventListener('click', attendanceOpenCreateModal);
+            document.getElementById('attendance-save-btn')?.addEventListener('click', attendanceSave);
+            document.getElementById('attendance-person-id')?.addEventListener('change', (e) => {
+                attendanceFillPersonEditFields(attendanceFindPersonById(e.target.value));
+            });
+            document.getElementById('attendance-print-list-btn')?.addEventListener('click', attendancePrintList);
+            document.getElementById('attendance-export-csv-btn')?.addEventListener('click', attendanceExportCsv);
+            document.getElementById('attendance-add-person-btn')?.addEventListener('click', () => {
+                new bootstrap.Modal(document.getElementById('person-modal')).show();
+            });
+            document.getElementById('person-save-btn')?.addEventListener('click', attendanceCreatePerson);
+        }
         // ===== Initialisation =====
-        document.getElementById('detection-status').className = 'status-indicator online';
-        document.getElementById('detection-status-text').textContent = 'Prête';
+        const detectionStatus = document.getElementById('detection-status');
+        if (detectionStatus) detectionStatus.className = 'status-indicator online';
+        safeSetText('detection-status-text', 'Prête');
 
         // Caméra démarrée manuellement (pas d'autostart)
         window.addEventListener('load', function() {
             console.log('Page chargée, en attente de démarrage manuel de la webcam...');
             loadTrainingData();
+            attendanceInit().catch(err => {
+                console.error('Attendance init error:', err);
+                addAlert(`Erreur presence: ${err.message}`, 'warning');
+            });
+            try {
+                if (sessionStorage.getItem('um_camera_autostart') === '1') {
+                    startCamera().catch(err => console.error('Erreur reprise camera:', err));
+                }
+            } catch (_) {}
         });
 
         console.log('Dashboard unifié chargé avec succès! - Caméra prête pour démarrage manuel');
@@ -1770,6 +2249,11 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 <script>
     // ===== CLASSE ARDUINOMANAGER - GESTION AVANCÉE ARDUINO =====
     class ArduinoManager {
@@ -1891,17 +2375,17 @@
             // LEDs
             const greenIndicator = document.getElementById('led-green-indicator');
             if (greenIndicator) {
-                greenIndicator.textContent = compliance >= 80 ? '🟢' : '⚫';
+                greenIndicator.textContent = compliance >= 80 ?'🟢' : '⚫';
             }
             
             const redIndicator = document.getElementById('led-red-indicator');
             if (redIndicator) {
-                redIndicator.textContent = compliance < 80 ? '🔴' : '⚫';
+                redIndicator.textContent = compliance < 80 ?'🔴' : '⚫';
             }
             
             const buzzerIndicator = document.getElementById('buzzer-indicator');
             if (buzzerIndicator) {
-                buzzerIndicator.textContent = compliance < 60 ? '🔊' : '🔇';
+                buzzerIndicator.textContent = compliance < 60 ?'🔊' : '🔇';
             }
         }
     }
@@ -1918,7 +2402,7 @@
 
         loadConfig() {
             const saved = localStorage.getItem('physicalDevicesConfig');
-            return saved ? JSON.parse(saved) : {
+            return saved ?JSON.parse(saved) : {
                 devices: {
                     arduino: true,
                     mqtt: false,
@@ -1949,8 +2433,8 @@
             // Toggle device config section
             document.getElementById('toggle-device-config')?.addEventListener('click', (e) => {
                 const section = document.getElementById('device-config-section');
-                section.style.display = section.style.display === 'none' ? 'block' : 'none';
-                e.target.textContent = section.style.display === 'none' ? '▶ Afficher' : '▼ Afficher';
+                section.style.display = section.style.display === 'none' ?'block' : 'none';
+                e.target.textContent = section.style.display === 'none' ?'▶ Afficher' : '▼ Afficher';
             });
 
             // Apply configuration
@@ -2036,11 +2520,11 @@
                 if (result.status === 'fulfilled') {
                     this.logStatus(result.value);
                 } else {
-                    this.logStatus(`❌ Erreur test ${idx}: ${result.reason}`);
+                    this.logStatus(`? Erreur test ${idx}: ${result.reason}`);
                 }
             });
 
-            this.logStatus('\n✔️ Test terminé');
+            this.logStatus('\nTest termine');
         }
 
         async testArduino() {
@@ -2052,9 +2536,9 @@
                     body: JSON.stringify({ port })
                 });
                 const data = await response.json();
-                return `🔌 Arduino (${port}): ${data.status === 'ok' ? '✅ Connecté' : '❌ Erreur'} - ${data.message || ''}`;
+                return `🔌 Arduino (${port}): ${data.status === 'ok' ?'✅ Connecté' : '? Erreur'} - ${data.message || ''}`;
             } catch (err) {
-                return `🔌 Arduino: ❌ Erreur - ${err.message}`;
+                return `🔌 Arduino: ? Erreur - ${err.message}`;
             }
         }
 
@@ -2067,9 +2551,9 @@
                     body: JSON.stringify({ broker })
                 });
                 const data = await response.json();
-                return `🌐 MQTT (${broker}): ${data.status === 'ok' ? '✅ Connecté' : '❌ Erreur'} - ${data.message || ''}`;
+                return `MQTT (${broker}): ${data.status === 'ok' ?'Connecte' : 'Erreur'} - ${data.message || ''}`;
             } catch (err) {
-                return `🌐 MQTT: ❌ Erreur - ${err.message}`;
+                return `MQTT: Erreur - ${err.message}`;
             }
         }
 
@@ -2082,9 +2566,9 @@
                     body: JSON.stringify({ endpoint })
                 });
                 const data = await response.json();
-                return `📡 Réseau (${endpoint}): ${data.status === 'ok' ? '✅ Connecté' : '❌ Erreur'} - ${data.message || ''}`;
+                return `📡 Réseau (${endpoint}): ${data.status === 'ok' ?'✅ Connecté' : '? Erreur'} - ${data.message || ''}`;
             } catch (err) {
-                return `📡 Réseau: ❌ Erreur - ${err.message}`;
+                return `📡 Réseau: ? Erreur - ${err.message}`;
             }
         }
 
@@ -2101,7 +2585,7 @@
         }
 
         resetConfiguration() {
-            if (confirm('Êtes-vous sûr? Cette action réinitialisera tous les paramètres.')) {
+            if (confirm('Êtes-vous sûr?Cette action réinitialisera tous les paramètres.')) {
                 localStorage.removeItem('physicalDevicesConfig');
                 this.config = this.loadConfig();
                 this.loadUIValues();
@@ -2117,7 +2601,7 @@
                     body: JSON.stringify(this.config)
                 });
                 const data = await response.json();
-                this.logStatus(`\n📤 Synchronisation backend: ${data.status === 'ok' ? '✅' : '❌'}`);
+                this.logStatus(`\n📤 Synchronisation backend: ${data.status === 'ok' ?'✅' : '?'}`);
             } catch (err) {
                 console.warn('Sync error:', err);
             }
@@ -2142,7 +2626,10 @@
 
     // ===== SOCKET.IO CLIENT FOR IoT / SIMULATOR UPDATES =====
     try {
-        const socket = io();
+        const socket = io({
+            transports: ['polling'],
+            upgrade: false
+        });
 
         socket.on('connect', () => {
             console.log('Socket.IO connected');
@@ -2150,6 +2637,58 @@
 
         socket.on('disconnect', () => {
             console.log('Socket.IO disconnected');
+        });
+
+        socket.on('attendance_detected', (data) => {
+            try {
+                const name = (data.full_name || '').trim() || 'Personne';
+                const shortId = (data.short_id || '').trim() || (
+                    Number.isFinite(Number(data.person_id))
+                        ? String(Number(data.person_id)).padStart(6, '0')
+                        : ''
+                );
+                const message = data.is_new_person
+                    ? `${name} detecte(e): nouvelle personne ajoutee pour aujourd'hui (ID ${shortId || '------'}).`
+                    : `${name} detecte(e) et deja present(e) aujourd'hui.`;
+                if (window.showPresencePopup) {
+                    window.showPresencePopup(message, !!data.is_new_person);
+                }
+                if (window.attendanceLoadRows) {
+                    window.attendanceLoadRows();
+                }
+                updateDebugOverlay({
+                    miss_streak: data?.miss_streak,
+                    fallback_after_frames: data?.fallback_after_frames,
+                    person_id_created: data?.person_id_created,
+                    last_person_id: data?.person_id,
+                    attendance_update_ok: data?.attendance_update_ok,
+                    attendance_error: data?.attendance_error
+                });
+            } catch (err) {
+                console.warn('attendance_detected handling error:', err);
+            }
+        });
+
+        socket.on('attendance_embedding_missing', (data) => {
+            try {
+                const persons = Number(data?.present_persons || 0);
+                const streak = Number(data?.miss_streak || 0);
+                const threshold = Number(data?.fallback_after_frames || 0);
+                const message = persons > 0
+                    ? `Visage detecte sans embedding (${persons} personne(s)). Miss=${streak}/${threshold}.`
+                    : (data?.message || 'Embedding facial manquant.');
+                if (window.showPresencePopup) {
+                    window.showPresencePopup(message, false);
+                }
+                updateDebugOverlay({
+                    miss_streak: streak,
+                    fallback_after_frames: threshold,
+                    attendance_update_ok: data?.attendance_update_ok,
+                    attendance_error: data?.attendance_error
+                });
+            } catch (err) {
+                console.warn('attendance_embedding_missing handling error:', err);
+            }
         });
 
         socket.on('iot_update', (data) => {
@@ -2246,11 +2785,89 @@
         socket.on('led_status', (data) => {
             console.log('led_status', data);
             // optional: update UI led indicators
-            const status = data.state ? 'allumée' : 'éteinte';
+            const status = data.state ?'allumée' : 'éteinte';
             addSerialLine(`💡 LED ${data.led || '?'} ${status}`);
         });
     } catch (err) {
         console.warn('Socket.IO client init failed:', err);
     }
+</script>
+<script>
+// Arduino UI quick controls (status check + send alert)
+let arduinoConnected = false;
+
+function checkArduinoStatus() {
+    fetch('/api/arduino/status')
+        .then(r => r.json())
+        .then(data => {
+            const indicator = document.getElementById('arduino-status-indicator');
+            const statusText = document.getElementById('arduino-status-text');
+            const btn = document.getElementById('send-alert-btn');
+
+            if (data.connected) {
+                if (indicator) indicator.style.background = '#22c55e';
+                if (statusText) statusText.textContent = '✅ En ligne';
+                if (btn) btn.disabled = false;
+                arduinoConnected = true;
+            } else {
+                if (indicator) indicator.style.background = '#ef4444';
+                if (statusText) statusText.textContent = '? Hors ligne';
+                if (btn) btn.disabled = true;
+                arduinoConnected = false;
+            }
+        })
+        .catch(e => {
+            console.error('Erreur status Arduino:', e);
+            const btn = document.getElementById('send-alert-btn');
+            if (btn) btn.disabled = true;
+        });
+}
+
+// Slider display
+const slider = document.getElementById('compliance-slider');
+if (slider) {
+    slider.addEventListener('input', (e) => {
+        const display = document.getElementById('compliance-display');
+        if (display) display.textContent = e.target.value + '%';
+    });
+}
+
+function sendArduinoAlert() {
+    if (!arduinoConnected) {
+        alert('Arduino non connecté');
+        return;
+    }
+
+    const level = document.getElementById('compliance-slider')?.value || 50;
+
+    fetch(`/api/arduino/alert/${level}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            const responseEl = document.getElementById('arduino-response');
+            if (!responseEl) return;
+            if (data.status === 'success') {
+                responseEl.innerHTML = `✅ ${data.alert_type}: ${level}% - LED ${data.led}`;
+                responseEl.style.background = '#d1fae5';
+                responseEl.style.color = '#065f46';
+            } else {
+                responseEl.innerHTML = `? Erreur: ${data.message || 'unknown'}`;
+                responseEl.style.background = '#fee2e2';
+                responseEl.style.color = '#7f1d1d';
+            }
+            responseEl.style.display = 'block';
+            setTimeout(() => { responseEl.style.display = 'none'; }, 3000);
+        })
+        .catch(e => {
+            console.error('Erreur envoi alerte Arduino:', e);
+            const responseEl = document.getElementById('arduino-response');
+            if (responseEl) {
+                responseEl.innerHTML = '? Erreur de connexion';
+                responseEl.style.display = 'block';
+            }
+        });
+}
+
+setInterval(checkArduinoStatus, 5000);
+checkArduinoStatus();
 </script>
 {% endblock %}

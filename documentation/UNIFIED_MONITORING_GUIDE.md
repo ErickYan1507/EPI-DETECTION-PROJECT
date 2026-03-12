@@ -1,309 +1,173 @@
-# 🎯 Unified Monitoring - Complete Integration Guide
+# 🎯 GUIDE COMPLET - UNIFIED MONITORING DETECTION
 
-## Overview
+## Problème Identifié et Corrigé ✅
 
-The **Unified Monitoring** page combines three essential components into a single, synchronized interface:
-1. **Live Camera Feed** - Real-time video stream from camera
-2. **EPI Detection Statistics** - Detection results with compliance metrics
-3. **IoT Simulation (TinkerCad)** - Physical device indicators (LEDs, Buzzer, Sensors)
+**Problème**: La détection ne fonctionnait pas sur le dashboard **unified_monitoring** même avec la caméra activée.
 
-## Access
+**Cause Root**: Les variables globales `multi_detector` et `detector` n'étaient pas accessibles dans le thread de la caméra (`_run()`) faute de déclaration `global`.
 
-- **URL**: `http://localhost:5000/unified` (after starting the application)
-- **Navigation**: Use the navbar → "Unified Monitoring" link
-- **Direct Link**: Located in the main navigation between "Caméra" and "Realtime"
+**Solution Appliquée**: Ajout de `global multi_detector, detector` au début de la fonction `_run()` dans `app/main.py` (ligne 125).
 
 ---
 
-## 📺 Live Camera Feed (Left Panel)
+## Lancer le Système
 
-### Features
-- Real-time video stream from selected camera
-- FPS counter and performance metrics
-- Frame capture functionality
-- Camera selection and control
+### 1️⃣ **Démarrer Flask**
 
-### Controls
-| Button | Function |
-|--------|----------|
-| **Start** | Activate camera and detection stream |
-| **Stop** | Stop camera feed |
-| **Capture** | Download current frame as JPEG |
+```bash
+# Option 1: Lancer normalement
+python app/main.py
 
-### Technical Details
-- **Endpoint**: `/api/camera/start`, `/api/camera/stop`, `/api/camera/frame`
-- **Detection Rate**: ~1 detection per second
-- **Frame Format**: MJPEG stream or Canvas fallback
-- **Resolution**: Depends on camera capabilities
+# Option 2: Avec le fichier run_app.py
+python run_app.py
 
----
-
-## 📊 Detection Statistics (Center Panel)
-
-### Real-Time Metrics
-
-#### Statistics Grid (4 boxes)
-```
-┌──────────────────┬──────────────────┐
-│ Total Persons    │ With Helmet      │
-│       5          │       4          │
-├──────────────────┼──────────────────┤
-│ With Vest        │ With Glasses     │
-│       4          │       3          │
-└──────────────────┴──────────────────┘
+# Option 3: Mode développement (-dev)
+python run_app.py dev
 ```
 
-#### Compliance Rate Section
-- **Visual Circle Progress**: Animated conic gradient (0-100%)
-- **Progress Bar**: Color-coded (red → yellow → green)
-- **Status Text**: 
-  - ✓ Full Compliance (≥80%)
-  - ⚠ Partial Compliance (50-80%)
-  - ✗ Non-Compliant (<50%)
-
-#### Latest Detections List
-- Shows last 5 detections
-- Displays: Class, Confidence %, Timestamp
-- Auto-updates every 1 second
-
-### API Endpoints Used
-- `/api/camera/detect` - Gets detection data
-- `/api/performance` - Gets FPS and timing metrics
-
----
-
-## 🤖 IoT Simulation (Right Panel)
-
-### System Indicators (4 Visual Lights)
-
-#### 1. Motion Detector
-- **Status**: ON/OFF
-- **Color**: Green when active
-- **Icon**: Arrow/movement symbol
-
-#### 2. Worker Presence
-- **Status**: Present/Not Present
-- **Color**: Blue when active
-- **Icon**: User check mark
-
-#### 3. Green LED
-- **Status**: ON/OFF
-- **Color**: Green when active
-- **Associated with**: Full compliance
-
-#### 4. Red LED
-- **Status**: ON/OFF
-- **Color**: Red when active
-- **Associated with**: Non-compliance alert
-
-### Compliance Slider Control
+Attendez que vous voyiez ce message:
 ```
-[======================================]  50%
-            Apply Compliance Button
-```
-- **Range**: 0-100%
-- **Function**: Force simulation compliance level
-- **Effect**: Triggers LED and buzzer states
-
-### Control Buttons
-| Button | Function |
-|--------|----------|
-| **Start** | Begin IoT simulation |
-| **Stop** | Stop IoT simulation |
-| **Apply Compliance** | Force new compliance level |
-
-### System Status Display
-- Current simulation status (Active/Inactive)
-- Last update timestamp
-- Alert count from sensors
-
-### API Endpoints Used
-- `/api/iot/simulation/start` - Start simulation
-- `/api/iot/simulation/stop` - Stop simulation
-- `/api/iot/simulation/state` - Get current state
-- `/api/iot/simulation/force-compliance` - Force compliance level
-
----
-
-## 📈 Performance Metrics (Bottom Left)
-
-Displays:
-- **FPS**: Frames per second (target: 30)
-- **Inference Time**: Model inference duration (ms)
-- **Latency**: Total processing time (ms)
-
----
-
-## 📝 System Logs (Bottom Center)
-
-- Real-time system events
-- Color-coded by severity:
-  - Blue: Info
-  - Yellow: Warning
-  - Red: Error
-
----
-
-## 🚨 Alert History (Bottom Right)
-
-Tracks all alerts:
-- **Critical Alerts** (Low compliance): Red
-- **Warning Alerts** (Medium compliance): Yellow
-- **Info Alerts**: Blue
-
-### Alert Triggers
-- Compliance < 50% → **Critical**
-- Compliance 50-80% → **Warning**
-- Red LED activation → **Critical**
-- Manual events → **Info**
-
----
-
-## 🔄 Synchronization Flow
-
-```
-Camera Stream
-    ↓
-Detection API (/api/camera/detect)
-    ↓
-┌─────────────────────────────────┐
-│  Statistics Update (1s)         │
-│  - Compliance Rate              │
-│  - Equipment Counts             │
-└─────────────────────────────────┘
-    ↓
-┌─────────────────────────────────┐
-│  IoT Simulation Sync (2s)       │
-│  - LED States                   │
-│  - Buzzer Trigger               │
-│  - Sensor Data                  │
-└─────────────────────────────────┘
-    ↓
-┌─────────────────────────────────┐
-│  Alert Generation               │
-│  - Compliance-based             │
-│  - Threshold-based              │
-└─────────────────────────────────┘
+[2026-02-20 XX:XX:XX] epi_detection - INFO - ✅ MultiModelDetector initialisé: 1 modèles disponibles
+[2026-02-20 XX:XX:XX] epi_detection - INFO - 🌐 Accédez à l'application via le navigateur:
+   → http://127.0.0.1:5000
 ```
 
+### 2️⃣ **Accéder à Unified Monitoring**
+
+Naviguer vers:
+```
+http://localhost:5000/unified_monitoring.html
+```
+
+### 3️⃣ **Activer la Caméra**
+
+1. Sur le dashboard, cliquer sur **"Démarrer Caméra"** (bouton rouge)
+2. Attendre 3-5 secondes pour que le flux vidéo s'affiche
+3. Les détections devraient apparaître automatiquement avec:
+   - **Boîtes de détection** autour des personnes
+   - **Statistiques en temps réel** (casque, gilet, lunettes)
+   - **Conformité %** 
+   - **Au ors d'alerte** si nécessaire
+
 ---
 
-## ⚙️ Configuration
+## 🔍 Dépannage
 
-### In `config.py`:
+### La caméra n'apparaît pas
+
 ```python
-CAMERA_FPS = 30              # Target FPS
-CONFIDENCE_THRESHOLD = 0.5   # Detection threshold
-IOU_THRESHOLD = 0.5          # NMS IOU threshold
+# Test de connectivité caméra
+python -c "import cv2; cap = cv2.VideoCapture(0); print('OK' if cap.isOpened() else 'FAIL')"
 ```
 
-### In `app/main.py`:
+Essayer un index différent:
 ```python
-# Detection interval: 1000ms
-# Simulation interval: 2000ms
-# Alert update: Real-time
+python -c "
+import cv2
+for i in range(5):
+    cap = cv2.VideoCapture(i)
+    if cap.isOpened():
+        print(f'Caméra trouvée à index {i}')
+        cap.release()
+"
+```
+
+### Aucune détection visible
+
+1. Vérifier les logs Flask pour les erreurs
+2. Vérifier que `models/best.pt` existe
+3. Tester la détection sur image:
+   ```
+   http://localhost:5000/upload
+   ```
+
+### Erreur "MultiModelDetector not initialized"
+
+Assurez-vous que le détecteur est initialisé au démarrage:
+1. Vérifier que `python app/main.py` lance sans erreur
+2. Attendre le message "✅ MultiModelDetector initialisé"
+3. Redémarrer Flask si nécessaire
+
+---
+
+## 📊 Structure du Système
+
+```
+app/main.py
+├── Initialise MultiModelDetector (ligne 413-420)
+├── CameraManager (_run thread) 
+│   ├── Démarre caméra via /api/camera/start
+│   ├── Lit frames en temps réel
+│   └── Applique détection avec global multi_detector
+├── Routes API
+│   ├── /api/camera/start - Démarre caméra
+│   ├── /api/camera/stream - Flux vidéo
+│   ├── /api/camera/detect - Résultats détection
+│   └── /api/camera/frame - Frame actuel
+└── WebSocket
+    └── Envoie mises à jour temps réel
+
+templates/unified_monitoring.html
+└── Affiche:
+    - Flux caméra en direct
+    - Détections temps réel
+    - Statistiques
+    - Alertes
 ```
 
 ---
 
-## 🔐 Security Considerations
+## ✅ Vérification Complète
 
-1. **Frame Capture**: Frames stored in `/uploads/images/`
-2. **Detection Data**: Stored in unified database
-3. **Alert History**: Persistent database records
-4. **API Authentication**: Inherit from Flask app auth
+```bash
+# 1. Vérifier les modèles
+ls models/      # Doit voir: best.pt
 
----
+# 2. Vérifier la configuration
+python -c "from config import config; print(f'MODELS_FOLDER={config.MODELS_FOLDER}')"
 
-## 📱 Responsive Design
+# 3. Tester les détecteurs
+python test_detector_init.py
 
-| Device | Layout |
-|--------|--------|
-| Desktop (>1400px) | 3 columns (video, stats, iot) |
-| Tablet (768-1400px) | 2 columns + stacked sections |
-| Mobile (<768px) | Single column, stacked |
+# 4. Lancer Flask
+python app/main.py
 
----
-
-## 🐛 Troubleshooting
-
-### Camera Not Starting
-1. Check camera index (`/api/camera/list`)
-2. Ensure camera is not used by another application
-3. Check camera permissions
-
-### No Detections
-1. Verify model is loaded: Check console logs
-2. Ensure sufficient lighting
-3. Check confidence threshold in config
-
-### Simulation Not Updating
-1. Click "Start Simulation" button
-2. Check IoT routes are registered
-3. Verify database connection
-
-### Alerts Not Appearing
-1. Check compliance calculation
-2. Ensure alert thresholds are configured
-3. Review system logs for errors
-
----
-
-## 📊 Database Schema
-
-### Detection Table
-```sql
-CREATE TABLE detection (
-    id INTEGER PRIMARY KEY,
-    total_persons INTEGER,
-    with_helmet INTEGER,
-    with_vest INTEGER,
-    with_glasses INTEGER,
-    compliance_rate FLOAT,
-    compliance_level VARCHAR,
-    alert_type VARCHAR,
-    timestamp DATETIME
-);
-```
-
-### IoT Sensor Table
-```sql
-CREATE TABLE iot_sensor (
-    sensor_id VARCHAR PRIMARY KEY,
-    sensor_name VARCHAR,
-    sensor_type VARCHAR,
-    led_red BOOLEAN,
-    led_green BOOLEAN,
-    buzzer_active BOOLEAN,
-    motion_detected BOOLEAN,
-    worker_present BOOLEAN,
-    last_update DATETIME
-);
+# 5. Ouvrir le navigateur
+# http://localhost:5000/unified_monitoring.html
 ```
 
 ---
 
-## 🚀 Performance Tips
+## 📝 Notes Importantes
 
-1. **Reduce Detection Frequency**: Adjust update intervals if needed
-2. **Lower Camera Resolution**: For faster processing
-3. **Enable GPU**: Uncomment CUDA settings in config
-4. **Close Other Tabs**: Reduce browser resource usage
-
----
-
-## 📞 Support
-
-For issues or feature requests:
-1. Check system logs in the unified monitoring page
-2. Review console errors (F12 → Console)
-3. Check Flask server output for API errors
+- La détection utilise **CPU** (visible "YOLOv5 ... CPU" dans les logs)
+- Chaque frame prend ~500-1000ms (1-2 FPS en temps réel)
+- Pour GPU: installer `torch[cuda]` et modifier config
+- MultiModelDetector supporte plusieurs modèles (actuellement: 1)
 
 ---
 
-## 📝 Version Info
+## 🚀 Prochaines Étapes
 
-- **Created**: 2025-12-30
-- **Framework**: Flask + Vanilla JavaScript
-- **Styling**: CSS3 Glassmorphism
-- **Components**: Camera, Detection, IoT Simulation
+Pour **améliorer les performances**:
+
+1. **Plus de modèles** → Placer `.pt` dans `models/`
+2. **Mode ensemble** → Modifier config ou utiliser l'API `?use_ensemble=true`
+3. **GPU** → Installer CUDA et pytorch avec GPU
+4. **Frame Skip** → Augmenter `config.FRAME_SKIP` (sauter frames)
+
+---
+
+## 💬 Questions Fréquentes
+
+**P: Pourquoi "Aucun détecteur disponible"?**
+R: Le détecteur n'a pas pu se charger au démarrage. Vérifier les logs Flask pour les erreurs.
+
+**P: Comment ajouter plusieurs modèles?**
+R: Placer les `.pt` dans le dossier `models/` et redémarrer Flask.
+
+**P: Peut-on detecter en offline?**
+R: Oui! YOLOv5 local est utilisé (dossier `yolov5/`).
+
+**P: Comment tester sans caméra?**
+R: Utiliser `/upload` pour tester sur images.

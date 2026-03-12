@@ -1,0 +1,193 @@
+⚡ QUICK START - Arduino MEGA dans Unified Monitoring
+════════════════════════════════════════════════════════════════════════════
+
+3 étapes pour intégrer l'Arduino à votre système de monitoring:
+
+
+🔧 ÉTAPE 1: Initialiser Arduino (run_app.py)
+────────────────────────────────────────────────────────────────────────────
+
+Ajouter au début du fichier:
+
+```python
+from app.arduino_integration import ArduinoController
+import threading
+
+# À la création de l'app Flask:
+def init_arduino(app):
+    def connect():
+        arduino = ArduinoController(port='COM3', baudrate=9600)
+        if arduino.connect():
+            app.arduino = arduino
+            print("✅ Arduino connecté")
+        else:
+            app.arduino = None
+            print("⚠️ Arduino non trouvé")
+    
+    thread = threading.Thread(target=connect, daemon=True)
+    thread.start()
+
+# Dans votre main:
+app = create_app()
+init_arduino(app)
+app.run()
+```
+
+
+📡 ÉTAPE 2: Ajouter les routes API (app/dashboard.py)
+────────────────────────────────────────────────────────────────────────────
+
+Ajouter ces fonctions:
+
+```python
+from flask import current_app
+
+# Route 1: Vérifier l'état Arduino
+@dashboard_bp.route('/api/arduino/status')
+def arduino_status():
+    arduino = current_app.arduino
+    return jsonify({
+        'connected': arduino.connected if arduino else False,
+        'port': getattr(arduino, 'port', 'N/A')
+    })
+
+# Route 2: Envoyer une alerte
+@dashboard_bp.route('/api/arduino/alert/<int:level>', methods=['POST'])
+def arduino_alert(level):
+    arduino = current_app.arduino
+    if arduino and arduino.connected:
+        arduino.send_compliance_level(level)
+        return jsonify({'status': 'success'})
+    return jsonify({'status': 'error'}), 503
+
+# Route 3: Envoyer détection EPI
+@dashboard_bp.route('/api/arduino/detection', methods=['POST'])
+def arduino_detection():
+    data = request.json
+    arduino = current_app.arduino
+    if arduino and arduino.connected:
+        arduino.send_detection_data(
+            data.get('helmet'),
+            data.get('vest'),
+            data.get('glasses'),
+            data.get('confidence')
+        )
+        return jsonify({'status': 'success'})
+    return jsonify({'status': 'error'}), 503
+```
+
+
+🎨 ÉTAPE 3: Ajouter au Dashboard (templates/unified_monitoring.html)
+────────────────────────────────────────────────────────────────────────────
+
+Ajouter cette section au template:
+
+```html
+<div class="card" style="border-left: 4px solid #3b82f6;">
+    <h3>🤖 Arduino MEGA</h3>
+    
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        
+        <!-- Status -->
+        <div>
+            <label>État:</label>
+            <span id="ard-status">🔴 Hors ligne</span>
+        </div>
+        
+        <!-- Slider Conformité -->
+        <div>
+            <label>Conformité:</label>
+            <input type="range" id="compliance" min="0" max="100" value="50" 
+                   oninput="document.getElementById('comp-val').textContent=this.value+'%'">
+            <span id="comp-val">50%</span>
+        </div>
+        
+        <!-- Bouton -->
+        <button onclick="sendAlert()" style="padding: 10px; background: #3b82f6; 
+                color: white; border: none; border-radius: 5px;">
+            📤 Envoyer
+        </button>
+    </div>
+</div>
+
+<script>
+// Fonction pour envoyer l'alerte
+function sendAlert() {
+    const level = document.getElementById('compliance').value;
+    fetch(`/api/arduino/alert/${level}`, {method: 'POST'})
+        .then(r => r.json())
+        .then(d => alert(d.status === 'success' ? '✅ Envoyé!' : '❌ Erreur'));
+}
+
+// Vérifier status Arduino
+function checkArduino() {
+    fetch('/api/arduino/status')
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('ard-status').textContent = 
+                d.connected ? '🟢 En ligne' : '🔴 Hors ligne';
+        });
+}
+
+// Vérifier tous les 5s
+setInterval(checkArduino, 5000);
+checkArduino();
+</script>
+```
+
+
+🧪 TESTEZ
+────────────────────────────────────────────────────────────────────────────
+
+1. Démarrer l'app: python run_app.py
+
+2. Ouvrir le dashboard: http://localhost:5000
+
+3. Vous devriez voir une section "🤖 Arduino MEGA" avec:
+   - État de connexion
+   - Slider conformité
+   - Bouton "Envoyer"
+
+4. Tester:
+   - Bouger le slider
+   - Cliquer "Envoyer"
+   - Regarder les LEDs Arduino réagir!
+
+
+📝 EXEMPLE COMPLET
+────────────────────────────────────────────────────────────────────────────
+
+Voir le fichier: arduino_monitoring_example.py
+
+Il contient:
+  ✓ Fonction complète init_arduino()
+  ✓ Routes API complètes
+  ✓ HTML component prêt
+  ✓ Tests avec curl
+
+
+📚 DOCUMENTATION COMPLÈTE
+────────────────────────────────────────────────────────────────────────────
+
+Fichier: ARDUINO_MONITORING_INTEGRATION.md
+
+Contient:
+  ✓ Architecture système
+  ✓ 10 points d'intégration détaillés
+  ✓ Exemples de code
+  ✓ WebSocket optionnel
+  ✓ Dépannage
+
+
+⚡ C'EST FINI!
+────────────────────────────────────────────────────────────────────────────
+
+Vous avez maintenant:
+  ✅ Arduino MEGA intégré au Monitoring
+  ✅ Dashboard affichant l'état Arduino
+  ✅ Contrôle des LEDs/Buzzer en temps réel
+  ✅ Alertes envoyées au hardware
+  ✅ Détection EPI envoyée à Arduino
+
+🚀 Lancez et profitez!
+

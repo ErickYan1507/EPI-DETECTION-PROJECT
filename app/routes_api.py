@@ -4,23 +4,23 @@ Routes API pour la détection
 from flask import Blueprint, request, jsonify
 import cv2
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, time
 import base64
 import re
 import numpy as np
-from app.database_unified import db, Detection, Alert, TrainingResult
+from app.database_unified import db, Detection, Alert, TrainingResult, AttendanceRecord, TIMEZONE_OFFSET
 from app.detection import EPIDetector
 from app.multi_model_detector import MultiModelDetector
 from app.logger import logger
 from app.utils import save_uploaded_file, validate_image_file
-from app.constants import calculate_compliance_score
+from app.constants import (
+    calculate_compliance_score,
+    HIGH_COMPLIANCE_THRESHOLD,
+    MEDIUM_COMPLIANCE_THRESHOLD,
+)
 from config import config
 
 api_routes = Blueprint('api', __name__, url_prefix='/api')
-
-# ============== UTILITAIRES POUR FUSEAU HORAIRE ==============
-# Décalage horaire pour Madagascar (UTC+3 toute l'année)
-TIMEZONE_OFFSET = timedelta(hours=3)  # À ajuster selon votre fuseau horaire
 
 def utc_to_local(utc_datetime):
     """Convertir un datetime UTC en heure locale"""
@@ -37,6 +37,20 @@ def format_detection_timestamp(detection):
         return local_time.strftime('%H:%M:%S')
     return '--:--:--'
 # ============================================================
+
+
+def compliance_rate_to_alert_severity(compliance_rate):
+    """Map compliance rate to normalized alert severity: high/medium/low."""
+    try:
+        rate = float(compliance_rate)
+    except (TypeError, ValueError):
+        return 'low'
+
+    if rate < MEDIUM_COMPLIANCE_THRESHOLD:
+        return 'high'
+    if rate < HIGH_COMPLIANCE_THRESHOLD:
+        return 'medium'
+    return 'low'
 
 # Détecteurs initialisés à la demande
 _detector = None
@@ -151,18 +165,32 @@ def detect():
             aggregation_method=stats.get('aggregation_method')
         )
         db.session.add(detection_record)
-        
-        # Créer une alerte si nécessaire
-        if stats['compliance_rate'] < 80:
+        db.session.flush()
+        # Cr?er une alerte si n?cessaire
+        compliance_rate = stats['compliance_rate']
+        alert_severity = compliance_rate_to_alert_severity(compliance_rate)
+        should_create_alert = (
+            compliance_rate < HIGH_COMPLIANCE_THRESHOLD
+            or config.CREATE_LOW_INFO_ALERTS
+        )
+        if should_create_alert:
+            alert_type = 'compliance' if compliance_rate < HIGH_COMPLIANCE_THRESHOLD else 'info'
+            alert_message = (
+                f"Conformite faible: {compliance_rate}%"
+                if compliance_rate < HIGH_COMPLIANCE_THRESHOLD
+                else f"Conformite acceptable: {compliance_rate}%"
+            )
             alert = Alert(
-                detection_id=None,
-                type='compliance',
-                message=f"Conformité faible: {stats['compliance_rate']}%",
-                severity='warning'
+                detection_id=detection_record.id,
+                type=alert_type,
+                message=alert_message,
+                severity=alert_severity
             )
             db.session.add(alert)
-            logger.warning(f"Alerte conformité: {stats['compliance_rate']}%")
-        
+            logger.warning(
+                f"Alerte conformite: {compliance_rate}% (severity={alert_severity}, type={alert_type})"
+            )
+
         db.session.commit()
         
         # Formater les détections pour le frontend (compatibilité avec le format x1, y1, x2, y2)
@@ -274,48 +302,36 @@ def get_alerts():
 def get_stats():
     """Obtenir les statistiques globales pour le dashboard"""
     try:
-        from datetime import timedelta, time, timezone
-        
-        # Utiliser l'heure locale au lieu d'UTC
-        now = datetime.now()
-        
-        # 1. Taux de conformité (dernière détection ou moyenne dernières 24h)
-        recent_detections = Detection.query.order_by(Detection.timestamp.desc()).limit(10).all()
-        if recent_detections:
-            avg_compliance = sum(d.compliance_rate for d in recent_detections) / len(recent_detections)
-        else:
-            avg_compliance = 0
-        
-        # 2. Total de personnes détectées (dernières 24h)
-        last_24h = now - timedelta(hours=24)
-        detections_24h = Detection.query.filter(
-            Detection.timestamp >= last_24h
+        now_local = datetime.utcnow() + TIMEZONE_OFFSET
+        local_day_start = datetime.combine(now_local.date(), time(0, 0, 0))
+        utc_day_start = local_day_start - TIMEZONE_OFFSET
+        utc_day_end = utc_day_start + timedelta(days=1)
+
+        rows = AttendanceRecord.query.filter(
+            AttendanceRecord.first_seen_at >= utc_day_start,
+            AttendanceRecord.first_seen_at < utc_day_end,
         ).all()
-        total_persons = sum(d.total_persons for d in detections_24h) if detections_24h else 0
-        
-        # 3. Alertes actives (non résolues)
-        from app.database_unified import Alert
+
+        total_persons = len(rows)
+        detections_today = total_persons
+        with_helmet = sum(1 for r in rows if bool(r.helmet_detected))
+        with_vest = sum(1 for r in rows if bool(r.vest_detected))
+        with_glasses = sum(1 for r in rows if bool(r.glasses_detected))
+        with_boots = sum(1 for r in rows if bool(r.boots_detected))
+
+        if total_persons > 0:
+            avg_compliance = (
+                (with_helmet + with_vest + with_glasses + with_boots)
+                / float(total_persons * 4)
+            ) * 100.0
+        else:
+            avg_compliance = 0.0
+
         active_alerts = Alert.query.filter(
-            Alert.resolved == False
+            Alert.resolved == False,
+            Alert.timestamp >= utc_day_start,
+            Alert.timestamp < utc_day_end,
         ).count()
-        
-        # 4. Détections aujourd'hui (depuis 00:00:00 d'aujourd'hui)
-        today_start = datetime.combine(now.date(), time(0, 0, 0))
-        detections_today = Detection.query.filter(
-            Detection.timestamp >= today_start
-        ).count()
-        
-        # 5. Compter les EPI par type détectés dans les 24 dernières heures
-        with_helmet = 0
-        with_vest = 0
-        with_glasses = 0
-        with_boots = 0
-        
-        for detection in detections_24h:
-            with_helmet += detection.with_helmet or 0
-            with_vest += detection.with_vest or 0
-            with_glasses += detection.with_glasses or 0
-            with_boots += detection.with_boots or 0
         
         return jsonify({
             'status': 'success',
@@ -472,71 +488,116 @@ def get_training_summary():
 
 @api_routes.route('/chart/alerts', methods=['GET'])
 def chart_alerts():
-    """Obtenir les données des alertes pour un graphique"""
+    """Obtenir les donnees des alertes par severite pour un graphique."""
     try:
-        days = request.args.get('days', 7, type=int)
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
-        
-        alerts = Alert.query.filter(
-            Alert.timestamp >= cutoff_date
-        ).order_by(Alert.timestamp.asc()).all()
-        
-        # Grouper par jour et par sévérité
+        days = request.args.get('days', 30, type=int)
+        days = max(1, min(days, 365))
+        source = (request.args.get('source', 'attendance') or 'attendance').strip().lower()
+        now_local = datetime.utcnow() + TIMEZONE_OFFSET
+        cutoff_local = now_local - timedelta(days=days)
+        cutoff_date = cutoff_local - TIMEZONE_OFFSET
+
+        def normalize_severity(value):
+            sev = (value or 'low').strip().lower()
+            if sev in ('critical', 'critique', 'high'):
+                return 'high'
+            if sev in ('warning', 'warn', 'medium', 'moyen'):
+                return 'medium'
+            return 'low'
+
         data_by_day = {}
-        for alert in alerts:
-            day = alert.timestamp.strftime('%Y-%m-%d')
-            if day not in data_by_day:
-                data_by_day[day] = {
-                    'low': 0,
-                    'medium': 0,
-                    'high': 0,
-                    'critical': 0,
-                    'total': 0
-                }
-            
-            severity = alert.severity or 'low'
-            if severity in data_by_day[day]:
+        totals = {'low': 0, 'medium': 0, 'high': 0}
+
+        if source == 'alerts':
+            items = Alert.query.filter(
+                Alert.timestamp >= cutoff_date
+            ).order_by(Alert.timestamp.asc()).all()
+            if not items:
+                items = Alert.query.order_by(Alert.timestamp.asc()).all()
+
+            for alert in items:
+                day = alert.timestamp.strftime('%Y-%m-%d')
+                if day not in data_by_day:
+                    data_by_day[day] = {'low': 0, 'medium': 0, 'high': 0, 'total': 0}
+                severity = normalize_severity(alert.severity)
                 data_by_day[day][severity] += 1
-            data_by_day[day]['total'] += 1
-        
-        # Convertir en liste triée
+                data_by_day[day]['total'] += 1
+                totals[severity] += 1
+        elif source == 'detections':
+            items = Detection.query.filter(
+                Detection.timestamp >= cutoff_date
+            ).order_by(Detection.timestamp.asc()).all()
+            if not items:
+                items = Detection.query.order_by(Detection.timestamp.asc()).all()
+
+            for det in items:
+                local_day = (det.timestamp + TIMEZONE_OFFSET).strftime('%Y-%m-%d')
+                if local_day not in data_by_day:
+                    data_by_day[local_day] = {'low': 0, 'medium': 0, 'high': 0, 'total': 0}
+                severity = compliance_rate_to_alert_severity(det.compliance_rate)
+                data_by_day[local_day][severity] += 1
+                data_by_day[local_day]['total'] += 1
+                totals[severity] += 1
+        else:
+            source = 'attendance'
+            items = AttendanceRecord.query.filter(
+                AttendanceRecord.first_seen_at >= cutoff_date
+            ).order_by(AttendanceRecord.first_seen_at.asc()).all()
+            if not items:
+                items = AttendanceRecord.query.order_by(AttendanceRecord.first_seen_at.asc()).all()
+
+            for row in items:
+                local_day = (row.first_seen_at + TIMEZONE_OFFSET).strftime('%Y-%m-%d')
+                if local_day not in data_by_day:
+                    data_by_day[local_day] = {'low': 0, 'medium': 0, 'high': 0, 'total': 0}
+                severity = compliance_rate_to_alert_severity(row.compliance_rate or 0)
+                data_by_day[local_day][severity] += 1
+                data_by_day[local_day]['total'] += 1
+                totals[severity] += 1
+
         chart_data = []
         for day in sorted(data_by_day.keys()):
-            chart_data.append({
-                'date': day,
-                **data_by_day[day]
-            })
-        
+            chart_data.append({'date': day, **data_by_day[day]})
+
         return jsonify({
             'success': True,
+            'status': 'success',
+            'source': source,
             'period_days': days,
-            'total_alerts': len(alerts),
+            'high': totals['high'],
+            'medium': totals['medium'],
+            'low': totals['low'],
+            'total': totals['high'] + totals['medium'] + totals['low'],
+            'total_alerts': len(items),
             'data': chart_data
         }), 200
-        
+
     except Exception as e:
         logger.error(f"Erreur graphique alertes: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'status': 'error'}), 500
 
 
 @api_routes.route('/chart/cumulative', methods=['GET'])
 def chart_cumulative():
     """Obtenir les données cumulatives (conformité, détections)"""
     try:
-        days = request.args.get('days', 7, type=int)
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
-        
-        detections = Detection.query.filter(
-            Detection.timestamp >= cutoff_date
-        ).order_by(Detection.timestamp.asc()).all()
+        days = request.args.get('days', 30, type=int)
+        days = max(1, min(days, 365))
+        now_local = datetime.utcnow() + TIMEZONE_OFFSET
+        cutoff_local = now_local - timedelta(days=days)
+        cutoff_date = cutoff_local - TIMEZONE_OFFSET
+
+        rows = AttendanceRecord.query.filter(
+            AttendanceRecord.first_seen_at >= cutoff_date
+        ).order_by(AttendanceRecord.first_seen_at.asc()).all()
+        if not rows:
+            rows = AttendanceRecord.query.order_by(AttendanceRecord.first_seen_at.asc()).all()
         
         # Grouper par jour
         data_by_day = {}
-        cumulative_compliance = 0
-        cumulative_detections = 0
         
-        for detection in detections:
-            day = detection.timestamp.strftime('%Y-%m-%d')
+        for row in rows:
+            day = (row.first_seen_at + TIMEZONE_OFFSET).strftime('%Y-%m-%d')
             if day not in data_by_day:
                 data_by_day[day] = {
                     'total_persons': 0,
@@ -547,11 +608,11 @@ def chart_cumulative():
                     'count': 0
                 }
             
-            data_by_day[day]['total_persons'] += detection.total_persons or 0
-            data_by_day[day]['with_helmet'] += detection.with_helmet or 0
-            data_by_day[day]['with_vest'] += detection.with_vest or 0
-            data_by_day[day]['with_glasses'] += detection.with_glasses or 0
-            data_by_day[day]['with_boots'] += detection.with_boots or 0
+            data_by_day[day]['total_persons'] += 1
+            data_by_day[day]['with_helmet'] += 1 if bool(row.helmet_detected) else 0
+            data_by_day[day]['with_vest'] += 1 if bool(row.vest_detected) else 0
+            data_by_day[day]['with_glasses'] += 1 if bool(row.glasses_detected) else 0
+            data_by_day[day]['with_boots'] += 1 if bool(row.boots_detected) else 0
             data_by_day[day]['count'] += 1
         
         # Calculer conformité par jour en utilisant le nouvel algorithme
@@ -578,17 +639,34 @@ def chart_cumulative():
                 'avg_compliance_rate': round(avg_compliance, 2),
                 'detection_count': day_data['count']
             })
+
+        labels = []
+        cumulative_values = []
+        running_total = 0
+        for item in chart_data:
+            running_total += item['detection_count']
+            labels.append(item['date'])
+            cumulative_values.append(running_total)
+
+        if not labels:
+            labels = [((datetime.utcnow() + TIMEZONE_OFFSET) - timedelta(days=i)).strftime('%Y-%m-%d') for i in reversed(range(7))]
+            cumulative_values = [0] * len(labels)
         
         return jsonify({
             'success': True,
+            'status': 'success',
             'period_days': days,
-            'total_detections': len(detections),
-            'data': chart_data
+            'total_detections': len(rows),
+            'labels': labels,
+            'data': cumulative_values,
+            'cumulative': cumulative_values,
+            'days': labels,
+            'details': chart_data
         }), 200
         
     except Exception as e:
         logger.error(f"Erreur graphique cumulatif: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'status': 'error'}), 500
 
 
 @api_routes.route('/models/list', methods=['GET'])

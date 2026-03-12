@@ -42,8 +42,8 @@ function displayNotifications(notifications) {
     `;
 
     notifications.forEach(notification => {
-        const statusClass = notification.is_active ? 'status-active' : 'status-inactive';
-        const statusText = notification.is_active ? 'Actif' : 'Inactif';
+        const statusClass = notification.is_active ?'status-active' : 'status-inactive';
+        const statusText = notification.is_active ?'Actif' : 'Inactif';
         const lastSent = notification.last_sent ?
             new Date(notification.last_sent).toLocaleDateString('fr-FR') : 'Jamais';
 
@@ -145,7 +145,7 @@ function saveNotification() {
         `/api/notifications/email/${currentNotificationId}` :
         '/api/notifications/email';
 
-    const method = currentNotificationId ? 'PUT' : 'POST';
+    const method = currentNotificationId ?'PUT' : 'POST';
 
     fetch(url, {
         method: method,
@@ -161,7 +161,7 @@ function saveNotification() {
         } else {
             bootstrap.Modal.getInstance(document.getElementById('notificationModal')).hide();
             loadNotifications();
-            alert(currentNotificationId ? 'Notification mise à jour' : 'Notification ajoutée');
+            alert(currentNotificationId ?'Notification mise à jour' : 'Notification ajoutée');
         }
     })
     .catch(error => {

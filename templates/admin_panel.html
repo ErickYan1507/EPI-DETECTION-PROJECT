@@ -1,0 +1,965 @@
+{% extends "base.html" %}
+
+{% block title %}Admin CRUD - EPI Detection{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+<style>
+    .admin-shell {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 1rem;
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        backdrop-filter: blur(14px);
+        border-radius: 18px;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.22);
+    }
+
+    .admin-sidebar {
+        padding: 1rem;
+        position: sticky;
+        top: 84px;
+        height: fit-content;
+        max-height: calc(100vh - 110px);
+        overflow: auto;
+    }
+
+    .table-pill {
+        width: 100%;
+        text-align: left;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
+        padding: 0.55rem 0.7rem;
+        border-radius: 10px;
+        margin-bottom: 0.55rem;
+        font-size: 0.92rem;
+    }
+
+    .table-pill.active {
+        border-color: rgba(37, 99, 235, 0.9);
+        background: linear-gradient(135deg, rgba(139, 21, 56, 0.7) 0%, rgba(37, 99, 235, 0.7) 100%);
+        color: #fff;
+    }
+
+    .admin-main {
+        padding: 1rem;
+    }
+
+    .admin-toolbar {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.9rem;
+        flex-wrap: wrap;
+    }
+
+    .admin-toolbar h3 {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .export-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .export-controls .form-control {
+        min-width: 130px;
+        max-width: 170px;
+    }
+
+    .dataTables_wrapper .dataTables_filter input,
+    .dataTables_wrapper .dataTables_length select {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text-primary);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+    }
+
+    .table {
+        color: var(--text-primary);
+    }
+
+    .modal-content {
+        background: rgba(17, 25, 40, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--text-primary);
+    }
+
+    .form-control, .form-select {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: var(--text-primary);
+    }
+
+    .modal-error {
+        background: rgba(220, 53, 69, 0.18);
+        border: 1px solid rgba(220, 53, 69, 0.45);
+        color: #ffd7dd;
+        border-radius: 10px;
+        padding: 0.65rem 0.8rem;
+        margin-bottom: 0.75rem;
+        display: none;
+        white-space: pre-wrap;
+    }
+
+    .attendance-toolbar {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 0.8rem;
+    }
+
+    .attendance-section {
+        margin-top: 1rem;
+        padding: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    @media (max-width: 992px) {
+        .admin-shell {
+            grid-template-columns: 1fr;
+        }
+        .admin-sidebar {
+            position: static;
+            max-height: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="admin-shell">
+    <aside class="admin-sidebar glass-card">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="mb-0"><i class="fas fa-database me-2"></i>Tables</h5>
+            <span class="badge text-bg-light">{{ table_names|length }}</span>
+        </div>
+        <button id="menuAttendanceCrud" class="table-pill">
+            <i class="fas fa-calendar-check me-2"></i>Présence Quotidienne
+        </button>
+        <div id="tablesNav"></div>
+    </aside>
+
+    <div class="admin-main glass-card">
+        <div id="genericCrudSection">
+        <div class="admin-toolbar">
+            <h3 id="currentTableTitle"><i class="fas fa-table me-2"></i>Table</h3>
+            <div class="d-flex gap-2">
+                <span class="badge text-bg-info align-self-center">Connecté: {{ admin_username }}</span>
+                <button id="btnCreate" class="btn btn-success btn-sm"><i class="fas fa-plus me-1"></i>Nouveau</button>
+                <button id="btnExportCurrentExcel" class="btn btn-outline-success btn-sm"><i class="fas fa-file-excel me-1"></i>Exportez</button>
+                <button id="btnExportAllExcel" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-export me-1"></i>Exportez toutess tables</button>
+                <button id="btnLogout" class="btn btn-outline-light btn-sm"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
+            </div>
+        </div>
+        <div class="export-controls mb-2">
+            <input id="exportStartDate" type="date" class="form-control form-control-sm" title="Date de debut">
+            <input id="exportEndDate" type="date" class="form-control form-control-sm" title="Date de fin">
+            <small class="text-muted">Filtrer par date, ou laisser vide pour tout exporter.</small>
+        </div>
+        <div class="table-responsive">
+            <table id="adminTable" class="table table-striped table-hover w-100"></table>
+        </div>
+        </div>
+
+        <div class="attendance-section d-none" id="attendanceCrudSection">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h3 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Présence Quotidienne</h3>
+                <div class="d-flex gap-2">
+                    <span class="badge text-bg-info align-self-center">Connecté: {{ admin_username }}</span>
+                    <button id="btnLogoutAttendance" class="btn btn-outline-light btn-sm"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
+                </div>
+            </div>
+            <div class="attendance-toolbar">
+                <input type="date" id="admin-attendance-date-filter" class="form-control form-control-sm" style="max-width: 180px;">
+                <!-- <select id="admin-attendance-person-filter" class="form-select form-select-sm" style="max-width: 240px;">
+                    <option value="">Toutes les personnes</option>
+                </select>
+                <select id="admin-attendance-source-filter" class="form-select form-select-sm" style="max-width: 150px;">
+                    <option value="">Toutes sources</option>
+                    <option value="AUTO">AUTO</option>
+                    <option value="MANUAL">MANUAL</option>
+                </select> -->
+                <!-- <button class="btn btn-primary btn-sm" id="admin-attendance-refresh-btn">Actualiser</button> -->
+                <button class="btn btn-success btn-sm" id="admin-attendance-add-person-btn">+ Personne</button>
+                <button class="btn btn-secondary btn-sm" id="admin-attendance-add-btn">+ Présence manuelle</button>
+                <button class="btn btn-outline-light btn-sm" id="admin-attendance-print-list-btn">Imprimer liste</button>
+                <!-- <button class="btn btn-outline-info btn-sm" id="admin-attendance-export-csv-btn">Export CSV</button> -->
+            </div>
+            <div class="table-responsive">
+                <table id="admin-attendance-table" class="table table-striped table-hover w-100"></table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal fade" id="recordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="recordModalTitle">Record</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalError" class="modal-error"></div>
+                <form id="recordForm"></form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" id="btnSaveRecord" class="btn btn-primary">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="adminAttendanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adminAttendanceModalTitle">Présence</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="admin-attendance-id">
+                <div class="mb-2">
+                    <label class="form-label">Personne</label>
+                    <select id="admin-attendance-person-id" class="form-select"></select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Date</label>
+                    <input id="admin-attendance-date" type="date" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Heure entrée</label>
+                    <input id="admin-attendance-first" type="datetime-local" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Heure sortie</label>
+                    <input id="admin-attendance-last" type="datetime-local" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Source</label>
+                    <select id="admin-attendance-source" class="form-select">
+                        <option value="MANUAL">MANUAL</option>
+                        <option value="AUTO">AUTO</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-light" data-bs-dismiss="modal">Fermer</button>
+                <button class="btn btn-primary" id="admin-attendance-save-btn">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="adminPersonModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouvelle personne</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label">Nom complet</label>
+                    <input id="admin-person-full-name" type="text" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Fonction</label>
+                    <input id="admin-person-job-title" type="text" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Adresse</label>
+                    <input id="admin-person-address" type="text" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Présence du jour (manuel)</label>
+                    <select id="admin-person-manual-presence" class="form-select">
+                        <option value="">AUTO</option>
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Photo identité</label>
+                    <input id="admin-person-photo-file" type="file" accept="image/*" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-light" data-bs-dismiss="modal">Fermer</button>
+                <button class="btn btn-success" id="admin-person-save-btn">Créer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    let currentTable = null;
+    let metaByTable = {};
+    let dataTable = null;
+    let editingId = null;
+    let mode = 'create';
+    let currentEditRow = {};
+    let currentViewMode = 'tables';
+    const hiddenCrudTables = new Set(['workers', 'daily_presence', 'person_identities', 'users']);
+    const adminUsersAutoFields = new Set(['role', 'is_active', 'last_login', 'created_at', 'updated_at']);
+
+    const recordModal = new bootstrap.Modal(document.getElementById('recordModal'));
+    const recordForm = document.getElementById('recordForm');
+    const currentTableTitle = document.getElementById('currentTableTitle');
+    const modalError = document.getElementById('modalError');
+    const btnSaveRecord = document.getElementById('btnSaveRecord');
+    const genericCrudSection = document.getElementById('genericCrudSection');
+    const attendanceCrudSection = document.getElementById('attendanceCrudSection');
+    const menuAttendanceCrud = document.getElementById('menuAttendanceCrud');
+
+    function getUiFields(tableName) {
+        const meta = metaByTable[tableName];
+        const rawFields = Array.isArray(meta?.fields) ? meta.fields : [];
+        const normalized = String(tableName || '').toLowerCase();
+        if (normalized === 'admin_users' || normalized === 'admin_user') {
+            return rawFields.filter((f) => !adminUsersAutoFields.has(f));
+        }
+        return rawFields;
+    }
+
+    function getUiColumns(tableName, columns) {
+        const normalized = String(tableName || '').toLowerCase();
+        if (normalized === 'admin_users' || normalized === 'admin_user') {
+            return columns.filter((c) => !adminUsersAutoFields.has(c));
+        }
+        return columns;
+    }
+
+    function showModalError(message) {
+        modalError.textContent = message || 'Erreur inconnue';
+        modalError.style.display = 'block';
+    }
+
+    function hideModalError() {
+        modalError.textContent = '';
+        modalError.style.display = 'none';
+    }
+
+    function setActiveMenuButton(tableName = null, attendanceMode = false) {
+        document.querySelectorAll('.table-pill').forEach((el) => {
+            if (attendanceMode && el.id === 'menuAttendanceCrud') {
+                el.classList.add('active');
+                return;
+            }
+            if (!attendanceMode && tableName && el.dataset.table === tableName) {
+                el.classList.add('active');
+                return;
+            }
+            el.classList.remove('active');
+        });
+    }
+
+    function switchToAttendanceMode() {
+        currentViewMode = 'attendance';
+        if (genericCrudSection) genericCrudSection.classList.add('d-none');
+        if (attendanceCrudSection) attendanceCrudSection.classList.remove('d-none');
+        setActiveMenuButton(null, true);
+    }
+
+    function switchToTablesMode(tableName) {
+        currentViewMode = 'tables';
+        if (genericCrudSection) genericCrudSection.classList.remove('d-none');
+        if (attendanceCrudSection) attendanceCrudSection.classList.add('d-none');
+        setActiveMenuButton(tableName, false);
+    }
+
+    function getInputType(field) {
+        const lower = field.toLowerCase();
+        if (lower.includes('date') || lower.includes('timestamp') || lower.includes('login') || lower.includes('updated') || lower.includes('created')) {
+            return 'datetime-local';
+        }
+        if (lower.startsWith('is_') || lower.includes('enabled') || lower.includes('resolved') || lower.includes('use_tls') || lower.includes('ensemble_mode')) {
+            return 'checkbox';
+        }
+        if (lower.includes('count') || lower.includes('_id') || lower.includes('hour') || lower.includes('minute') || lower.includes('day') || lower.includes('port')) {
+            return 'number';
+        }
+        if (lower.includes('rate') || lower.includes('score') || lower.includes('time_ms')) {
+            return 'number';
+        }
+        if (lower.includes('password')) {
+            return 'password';
+        }
+        return 'text';
+    }
+
+    function normalizeForInput(type, value) {
+        if (value === null || value === undefined) return '';
+        if (type === 'datetime-local') {
+            const str = String(value);
+            if (!str) return '';
+            return str.length >= 16 ? str.slice(0, 16) : str;
+        }
+        return value;
+    }
+
+    function buildForm(fields, row = {}, readonly = false) {
+        recordForm.innerHTML = '';
+        fields.forEach((field) => {
+            if (field === 'id' || field === 'password_hash') return;
+            const type = getInputType(field);
+            const wrapper = document.createElement('div');
+            wrapper.className = 'mb-3';
+
+            const label = document.createElement('label');
+            label.className = 'form-label';
+            label.textContent = field;
+            wrapper.appendChild(label);
+
+            if (type === 'checkbox') {
+                const checkWrap = document.createElement('div');
+                checkWrap.className = 'form-check';
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.className = 'form-check-input';
+                input.id = `field_${field}`;
+                input.name = field;
+                input.checked = Boolean(row[field]);
+                input.disabled = readonly;
+                checkWrap.appendChild(input);
+                wrapper.appendChild(checkWrap);
+            } else {
+                const input = document.createElement('input');
+                input.type = type;
+                input.step = type === 'number' ? 'any' : '';
+                input.className = 'form-control';
+                input.id = `field_${field}`;
+                input.name = field;
+                input.value = normalizeForInput(type, row[field]);
+                if (readonly) input.disabled = true;
+                wrapper.appendChild(input);
+            }
+
+            recordForm.appendChild(wrapper);
+        });
+    }
+
+    function collectFormData(fields, forUpdate = false, baseRow = {}) {
+        const payload = {};
+        fields.forEach((field) => {
+            const input = document.getElementById(`field_${field}`);
+            if (!input || input.disabled) return;
+            if (input.type === 'checkbox') {
+                const v = input.checked;
+                if (!forUpdate || v !== Boolean(baseRow[field])) payload[field] = v;
+            } else if (input.value !== '') {
+                const v = input.value;
+                if (!forUpdate || String(v) !== String(baseRow[field] ?? '')) payload[field] = v;
+            } else {
+                // For updates, don't nullify fields unless explicitly changed.
+                if (!forUpdate && field !== 'id') {
+                    payload[field] = null;
+                }
+            }
+        });
+        return payload;
+    }
+
+    async function fetchJson(url, options = {}) {
+        const response = await fetch(url, options);
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (e) {
+            const text = await response.text();
+            throw new Error(text || `HTTP ${response.status}`);
+        }
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Erreur API');
+        }
+        return data;
+    }
+
+    async function loadRows(tableName) {
+        const data = await fetchJson(`/admin/api/${tableName}`);
+        const meta = metaByTable[tableName];
+        const columns = getUiColumns(tableName, [...meta.columns]);
+        const preferred = ['id', ...getUiFields(tableName).filter((f) => f !== 'password' && f !== 'password_hash')];
+        const orderedVisibleCandidates = preferred.filter((c, idx) => preferred.indexOf(c) === idx && columns.includes(c));
+        const visibleColumns = orderedVisibleCandidates.slice(0, 4);
+        const hiddenColumns = columns.filter((c) => !visibleColumns.includes(c));
+
+        const dtColumns = [
+            ...visibleColumns.map((col) => ({
+                title: col,
+                data: col,
+                visible: true,
+                searchable: true,
+                render: (v) => (v === null || v === undefined ? '' : String(v))
+            })),
+            ...hiddenColumns.map((col) => ({
+                title: col,
+                data: col,
+                visible: false,
+                searchable: true,
+                render: (v) => (v === null || v === undefined ? '' : String(v))
+            }))
+        ];
+        dtColumns.push({
+            title: 'Actions',
+            data: null,
+            orderable: false,
+            searchable: false,
+            render: (_, __, row) => `
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-info" onclick="openView(${row.id})">Voir</button>
+                    <button class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="visually-hidden">Actions</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><button class="dropdown-item" onclick="openEdit(${row.id})">Modifier</button></li>
+                        <li><button class="dropdown-item text-success" onclick="exportRowExcel(${row.id})">Exportez (ID)</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button class="dropdown-item text-danger" onclick="deleteRow(${row.id})">Supprimer</button></li>
+                    </ul>
+                </div>
+            `,
+        });
+
+        if (dataTable) {
+            dataTable.destroy();
+            document.getElementById('adminTable').innerHTML = '';
+        }
+
+        dataTable = $('#adminTable').DataTable({
+            data: data.rows,
+            columns: dtColumns,
+            pageLength: 15,
+            order: [[0, 'desc']],
+            responsive: true
+        });
+    }
+
+    async function selectTable(tableName) {
+        currentTable = tableName;
+        switchToTablesMode(tableName);
+        currentTableTitle.innerHTML = `<i class="fas fa-table me-2"></i>${tableName}`;
+        await loadRows(tableName);
+    }
+
+    async function initAdmin() {
+        const data = await fetchJson('/admin/api/tables');
+        metaByTable = {};
+        const nav = document.getElementById('tablesNav');
+        nav.innerHTML = '';
+
+        const visibleTables = (data.tables || []).filter((t) => !hiddenCrudTables.has(String(t.table || '').toLowerCase()));
+        visibleTables.forEach((t) => {
+            metaByTable[t.table] = t;
+            const btn = document.createElement('button');
+            btn.className = 'table-pill';
+            btn.dataset.table = t.table;
+            btn.textContent = t.table;
+            btn.onclick = () => selectTable(t.table);
+            nav.appendChild(btn);
+        });
+
+        if (menuAttendanceCrud) {
+            menuAttendanceCrud.onclick = async () => {
+                switchToAttendanceMode();
+                try {
+                    await adminAttendanceLoadRows();
+                } catch (err) {
+                    console.warn('Attendance load error:', err);
+                }
+            };
+        }
+
+        const first = visibleTables[0]?.table;
+        if (first) await selectTable(first);
+    }
+
+    function openCreate() {
+        mode = 'create';
+        editingId = null;
+        currentEditRow = {};
+        hideModalError();
+        const fields = getUiFields(currentTable);
+        buildForm(fields, {}, false);
+        document.getElementById('recordModalTitle').textContent = `Créer - ${currentTable}`;
+        document.getElementById('btnSaveRecord').classList.remove('d-none');
+        recordModal.show();
+    }
+
+    async function openView(id) {
+        mode = 'view';
+        editingId = id;
+        currentEditRow = {};
+        hideModalError();
+        const fields = getUiFields(currentTable);
+        const data = await fetchJson(`/admin/api/${currentTable}/${id}`);
+        buildForm(fields, data.row, true);
+        document.getElementById('recordModalTitle').textContent = `Détails - ${currentTable} #${id}`;
+        document.getElementById('btnSaveRecord').classList.add('d-none');
+        recordModal.show();
+    }
+
+    async function openEdit(id) {
+        mode = 'edit';
+        editingId = id;
+        hideModalError();
+        const fields = getUiFields(currentTable);
+        const data = await fetchJson(`/admin/api/${currentTable}/${id}`);
+        currentEditRow = data.row || {};
+        buildForm(fields, data.row, false);
+        document.getElementById('recordModalTitle').textContent = `Modifier - ${currentTable} #${id}`;
+        document.getElementById('btnSaveRecord').classList.remove('d-none');
+        recordModal.show();
+    }
+
+    async function saveRecord() {
+        if (!currentTable || mode === 'view') return;
+        const fields = getUiFields(currentTable);
+        const payload = collectFormData(fields, mode === 'edit', currentEditRow);
+
+        if (currentTable === 'alerts') {
+            // Required fields for alerts updates/creates.
+            const required = ['type', 'message', 'severity'];
+            for (const f of required) {
+                const el = document.getElementById(`field_${f}`);
+                if (el && !el.value) {
+                    showModalError(`Le champ '${f}' est obligatoire pour alerts.`);
+                    return;
+                }
+                if (mode === 'create' && (payload[f] === undefined || payload[f] === null || payload[f] === '')) {
+                    payload[f] = el ? el.value : payload[f];
+                }
+            }
+        }
+        hideModalError();
+        btnSaveRecord.disabled = true;
+        btnSaveRecord.textContent = 'Sauvegarde...';
+
+        try {
+            if (mode === 'create') {
+                await fetchJson(`/admin/api/${currentTable}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                await fetchJson(`/admin/api/${currentTable}/${editingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            }
+
+            recordModal.hide();
+            await loadRows(currentTable);
+        } catch (err) {
+            showModalError(err.message);
+        } finally {
+            btnSaveRecord.disabled = false;
+            btnSaveRecord.textContent = 'Sauvegarder';
+        }
+    }
+
+    async function deleteRow(id) {
+        if (!confirm(`Supprimer ${currentTable} #${id} ?`)) return;
+        await fetchJson(`/admin/api/${currentTable}/${id}`, { method: 'DELETE' });
+        await loadRows(currentTable);
+    }
+
+    async function logoutAdmin() {
+        const data = await fetchJson('/admin/logout', { method: 'POST' });
+        window.location.href = data.redirect || '/admin/login';
+    }
+
+    function exportExcel(allTables = false, rowId = null) {
+        if (!allTables && !currentTable) {
+            alert('Aucune table selectionnee.');
+            return;
+        }
+        const params = new URLSearchParams();
+        if (allTables) {
+            params.set('all_tables', '1');
+        } else {
+            params.set('table', currentTable);
+        }
+        const startDate = document.getElementById('exportStartDate').value;
+        const endDate = document.getElementById('exportEndDate').value;
+        if (rowId !== null && rowId !== undefined && rowId !== '') params.set('row_id', String(rowId));
+        if (startDate) params.set('start_date', startDate);
+        if (endDate) params.set('end_date', endDate);
+
+        const url = `/admin/api/export/excel?${params.toString()}`;
+        window.open(url, '_blank');
+    }
+
+    function exportRowExcel(id) {
+        exportExcel(false, id);
+    }
+
+    document.getElementById('btnCreate').addEventListener('click', openCreate);
+    document.getElementById('btnSaveRecord').addEventListener('click', saveRecord);
+    document.getElementById('btnLogout').addEventListener('click', logoutAdmin);
+    document.getElementById('btnLogoutAttendance')?.addEventListener('click', logoutAdmin);
+    document.getElementById('btnExportCurrentExcel').addEventListener('click', () => exportExcel(false));
+    document.getElementById('btnExportAllExcel').addEventListener('click', () => exportExcel(true));
+
+    window.openView = openView;
+    window.openEdit = openEdit;
+    window.deleteRow = deleteRow;
+    window.exportRowExcel = exportRowExcel;
+
+    let adminAttendanceTable = null;
+    let adminAttendanceRows = [];
+    let adminAttendancePersons = [];
+    const adminAttendanceModal = new bootstrap.Modal(document.getElementById('adminAttendanceModal'));
+    const adminPersonModal = new bootstrap.Modal(document.getElementById('adminPersonModal'));
+
+    function adminToInputDateTime(isoValue) {
+        if (!isoValue) return '';
+        const d = new Date(isoValue);
+        if (Number.isNaN(d.getTime())) return '';
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 16);
+    }
+
+    function adminFromInputDateTime(localValue) {
+        if (!localValue) return null;
+        return new Date(localValue).toISOString();
+    }
+
+    function adminFormatAttendanceDate(value, type) {
+        if (!value) return type === 'sort' ? '' : '-';
+        if (type === 'sort' || type === 'type') return value;
+        const d = new Date(`${value}T00:00:00`);
+        if (Number.isNaN(d.getTime())) return value;
+        return d.toLocaleDateString('fr-FR');
+    }
+
+    function adminAttendancePhotoLink(path) {
+        if (!path) return '-';
+        const normalized = String(path).replace(/^\/+/, '');
+        return `<a href="/${normalized}" target="_blank" rel="noopener">Voir</a>`;
+    }
+
+    async function adminAttendanceFetchJson(url, options = {}) {
+        const response = await fetch(url, {
+            headers: { 'Content-Type': 'application/json' },
+            ...options
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || `Erreur API (${response.status})`);
+        }
+        return data;
+    }
+
+    function adminAttendanceActions(row) {
+        return `
+            <button class="btn btn-outline-secondary btn-sm me-1" onclick="adminAttendanceEdit(${row.id})">Edit</button>
+            <button class="btn btn-outline-info btn-sm me-1" onclick="adminAttendancePrint(${row.id})">Print</button>
+            <button class="btn btn-outline-danger btn-sm" onclick="adminAttendanceDelete(${row.id})">Delete</button>
+        `;
+    }
+
+    async function adminAttendanceLoadPersons() {
+        const data = await adminAttendanceFetchJson('/api/attendance/persons');
+        adminAttendancePersons = data.rows || [];
+        const options = adminAttendancePersons.map((p) => {
+            const base = p.full_name ? `${p.full_name} (${p.uuid})` : p.uuid;
+            const label = p.job_title ? `${base} - ${p.job_title}` : base;
+            return `<option value="${p.id}">${label}</option>`;
+        }).join('');
+        const select = document.getElementById('admin-attendance-person-id');
+        if (select) select.innerHTML = options;
+        const filter = document.getElementById('admin-attendance-person-filter');
+        if (filter) filter.innerHTML = `<option value="">Toutes les personnes</option>${options}`;
+    }
+
+    function adminAttendanceBuildQuery() {
+        const params = new URLSearchParams();
+        const date = document.getElementById('admin-attendance-date-filter')?.value;
+        const personId = document.getElementById('admin-attendance-person-filter')?.value;
+        const source = document.getElementById('admin-attendance-source-filter')?.value;
+        if (date) params.set('attendance_date', date);
+        if (personId) params.set('person_id', personId);
+        if (source) params.set('source', source);
+        const q = params.toString();
+        return q ? `?${q}` : '';
+    }
+
+    function adminAttendanceInitTable() {
+        if (!window.jQuery || !$('#admin-attendance-table').length) return;
+        if (adminAttendanceTable) {
+            adminAttendanceTable.destroy();
+            document.getElementById('admin-attendance-table').innerHTML = '';
+        }
+        adminAttendanceTable = $('#admin-attendance-table').DataTable({
+            data: adminAttendanceRows,
+            columns: [
+                { title: 'ID', data: 'id', className: 'all', responsivePriority: 2 },
+                { title: 'Nom', data: null, className: 'all', responsivePriority: 1, render: (_, __, row) => row.full_name || row.person_uuid || '-' },
+                { title: 'Date', data: 'attendance_date', className: 'all', responsivePriority: 3, render: (v, t) => adminFormatAttendanceDate(v, t) },
+                { title: 'Presence', data: null, className: 'all', responsivePriority: 4, render: (_, __, row) => row.manual_presence_today === null || row.manual_presence_today === undefined ? 'AUTO' : (row.manual_presence_today ? 'Present' : 'Absent') },
+                { title: 'Photos', data: 'identity_photo_path', className: 'all', responsivePriority: 5, render: (v) => adminAttendancePhotoLink(v) },
+                { title: 'Action', data: null, className: 'all', responsivePriority: 1, orderable: false, searchable: false, render: (_, __, row) => adminAttendanceActions(row) }
+            ],
+            pageLength: 10,
+            responsive: {
+                details: {
+                    type: 'inline',
+                    target: 'tr'
+                }
+            },
+            scrollX: false,
+            autoWidth: false,
+            deferRender: true
+        });
+    }
+
+    async function adminAttendanceLoadRows() {
+        const query = adminAttendanceBuildQuery();
+        const data = await adminAttendanceFetchJson(`/api/attendance/records${query}`);
+        adminAttendanceRows = data.rows || [];
+        adminAttendanceInitTable();
+    }
+
+    function adminAttendanceOpenCreate() {
+        document.getElementById('admin-attendance-id').value = '';
+        document.getElementById('adminAttendanceModalTitle').textContent = 'Ajouter presence manuelle';
+        const now = new Date();
+        document.getElementById('admin-attendance-date').value = now.toISOString().slice(0, 10);
+        document.getElementById('admin-attendance-first').value = adminToInputDateTime(now.toISOString());
+        document.getElementById('admin-attendance-last').value = adminToInputDateTime(now.toISOString());
+        document.getElementById('admin-attendance-source').value = 'MANUAL';
+        adminAttendanceModal.show();
+    }
+
+    window.adminAttendanceEdit = function (id) {
+        const row = adminAttendanceRows.find((r) => r.id === id);
+        if (!row) return;
+        document.getElementById('admin-attendance-id').value = row.id;
+        document.getElementById('adminAttendanceModalTitle').textContent = `Modifier presence #${row.id}`;
+        document.getElementById('admin-attendance-person-id').value = row.person_id;
+        document.getElementById('admin-attendance-date').value = row.attendance_date || '';
+        document.getElementById('admin-attendance-first').value = adminToInputDateTime(row.first_seen_at);
+        document.getElementById('admin-attendance-last').value = adminToInputDateTime(row.last_seen_at);
+        document.getElementById('admin-attendance-source').value = row.source || 'MANUAL';
+        adminAttendanceModal.show();
+    };
+
+    window.adminAttendanceDelete = async function (id) {
+        if (!confirm('Supprimer cette presence ?')) return;
+        await adminAttendanceFetchJson(`/api/attendance/records/${id}`, { method: 'DELETE' });
+        await adminAttendanceLoadRows();
+    };
+
+    window.adminAttendancePrint = function (id) {
+        window.open(`/api/attendance/records/${id}/print`, '_blank');
+    };
+
+    async function adminAttendanceSave() {
+        const id = document.getElementById('admin-attendance-id').value;
+        const payload = {
+            person_id: Number(document.getElementById('admin-attendance-person-id').value),
+            attendance_date: document.getElementById('admin-attendance-date').value,
+            first_seen_at: adminFromInputDateTime(document.getElementById('admin-attendance-first').value),
+            last_seen_at: adminFromInputDateTime(document.getElementById('admin-attendance-last').value),
+            source: document.getElementById('admin-attendance-source').value || 'MANUAL'
+        };
+        const method = id ? 'PATCH' : 'POST';
+        const url = id ? `/api/attendance/records/${id}` : '/api/attendance/records';
+        await adminAttendanceFetchJson(url, { method, body: JSON.stringify(payload) });
+        adminAttendanceModal.hide();
+        await adminAttendanceLoadRows();
+    }
+
+    function adminAttendancePrintList() {
+        const query = adminAttendanceBuildQuery();
+        window.open(`/api/attendance/records/print${query}`, '_blank');
+    }
+
+    function adminAttendanceExportCsv() {
+        const query = adminAttendanceBuildQuery();
+        window.open(`/api/attendance/records/export/csv${query}`, '_blank');
+    }
+
+    function adminFileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            if (!file) return resolve(null);
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result || null);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function adminAttendanceCreatePerson() {
+        const fullName = document.getElementById('admin-person-full-name').value || '';
+        const jobTitle = document.getElementById('admin-person-job-title').value || '';
+        const address = document.getElementById('admin-person-address').value || '';
+        const manualRaw = document.getElementById('admin-person-manual-presence').value;
+        const photoFile = document.getElementById('admin-person-photo-file')?.files?.[0];
+        const photoBase64 = await adminFileToBase64(photoFile);
+        let manualPresenceToday = null;
+        if (manualRaw === 'present') manualPresenceToday = true;
+        if (manualRaw === 'absent') manualPresenceToday = false;
+        await adminAttendanceFetchJson('/api/attendance/persons', {
+            method: 'POST',
+            body: JSON.stringify({
+                full_name: fullName,
+                job_title: jobTitle,
+                address,
+                manual_presence_today: manualPresenceToday,
+                identity_photo_base64: photoBase64
+            })
+        });
+        document.getElementById('admin-person-full-name').value = '';
+        document.getElementById('admin-person-job-title').value = '';
+        document.getElementById('admin-person-address').value = '';
+        document.getElementById('admin-person-manual-presence').value = '';
+        document.getElementById('admin-person-photo-file').value = '';
+        adminPersonModal.hide();
+        await adminAttendanceLoadPersons();
+        await adminAttendanceLoadRows();
+    }
+
+    async function initAdminAttendance() {
+        const dateFilter = document.getElementById('admin-attendance-date-filter');
+        if (dateFilter && !dateFilter.value) dateFilter.value = new Date().toISOString().slice(0, 10);
+        await adminAttendanceLoadPersons();
+        await adminAttendanceLoadRows();
+        document.getElementById('admin-attendance-refresh-btn')?.addEventListener('click', adminAttendanceLoadRows);
+        document.getElementById('admin-attendance-date-filter')?.addEventListener('change', adminAttendanceLoadRows);
+        document.getElementById('admin-attendance-person-filter')?.addEventListener('change', adminAttendanceLoadRows);
+        document.getElementById('admin-attendance-source-filter')?.addEventListener('change', adminAttendanceLoadRows);
+        document.getElementById('admin-attendance-add-btn')?.addEventListener('click', adminAttendanceOpenCreate);
+        document.getElementById('admin-attendance-save-btn')?.addEventListener('click', adminAttendanceSave);
+        document.getElementById('admin-attendance-print-list-btn')?.addEventListener('click', adminAttendancePrintList);
+        document.getElementById('admin-attendance-export-csv-btn')?.addEventListener('click', adminAttendanceExportCsv);
+        document.getElementById('admin-attendance-add-person-btn')?.addEventListener('click', () => adminPersonModal.show());
+        document.getElementById('admin-person-save-btn')?.addEventListener('click', adminAttendanceCreatePerson);
+    }
+
+    initAdmin().catch((err) => alert(err.message));
+    initAdminAttendance().catch((err) => console.warn('Attendance admin init error:', err));
+</script>
+{% endblock %}

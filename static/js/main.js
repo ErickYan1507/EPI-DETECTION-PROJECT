@@ -1,23 +1,32 @@
 // static/js/main.js - FONCTIONS GLOBALES
 document.addEventListener('DOMContentLoaded', function() {
+    // Mettre à jour l'année automatiquement
+    updateCopyrightYear();
+    
     // Menu mobile
     const mobileMenuToggle = document.getElementById('mobileMenuToggle');
     const navMenu = document.getElementById('navMenu');
 
-    if (mobileMenuToggle) {
+    if (mobileMenuToggle && navMenu) {
         mobileMenuToggle.addEventListener('click', function() {
             navMenu.classList.toggle('active');
-            this.querySelector('i').classList.toggle('fa-bars');
-            this.querySelector('i').classList.toggle('fa-times');
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-bars');
+                icon.classList.toggle('fa-times');
+            }
         });
     }
 
     // Fermer menu en cliquant ailleurs
     document.addEventListener('click', function(event) {
-        if (!event.target.closest('.nav-container') && navMenu.classList.contains('active')) {
+        if (navMenu && mobileMenuToggle && !event.target.closest('.nav-container') && navMenu.classList.contains('active')) {
             navMenu.classList.remove('active');
-            mobileMenuToggle.querySelector('i').classList.remove('fa-times');
-            mobileMenuToggle.querySelector('i').classList.add('fa-bars');
+            const icon = mobileMenuToggle.querySelector('i');
+            if (icon) {
+                icon.classList.remove('fa-times');
+                icon.classList.add('fa-bars');
+            }
         }
     });
 
@@ -32,10 +41,12 @@ function updateFooterStats() {
     fetch('/api/stats')
         .then(response => response.json())
         .then(data => {
-            document.getElementById('footerCompliance').textContent = `${data.avg_compliance || 85}%`;
-            document.getElementById('footerPersons').textContent = data.total_persons || 24;
+            const complianceEl = document.getElementById('footerCompliance');
+            const personsEl = document.getElementById('footerPersons');
+            if (complianceEl) complianceEl.textContent = `${data.avg_compliance || 85}%`;
+            if (personsEl) personsEl.textContent = data.total_persons || 24;
         })
-        .catch(console.error);
+        .catch(err => console.error('Erreur stats footer:', err));
 }
 
 function initTooltips() {
@@ -60,4 +71,13 @@ function showLoading(selector) {
 function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleString('fr-FR');
+}
+
+// Fonction pour mettre à jour l'année du copyright automatiquement
+function updateCopyrightYear() {
+    const yearElement = document.getElementById('currentYear');
+    if (yearElement) {
+        const currentYear = new Date().getFullYear();
+        yearElement.textContent = currentYear;
+    }
 }

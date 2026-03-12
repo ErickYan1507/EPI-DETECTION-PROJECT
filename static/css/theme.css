@@ -3,7 +3,7 @@
     --bg-primary: #0F1419;
     --bg-secondary: #1A1F2E;
     --bg-tertiary: #252D3D;
-    --text-primary: #FFFFFF;
+    --text-primary: #f8f7f7;
     --text-secondary: #D0D0D0;
     --text-tertiary: #888888;
     --border-color: rgba(255,255,255,0.1);
@@ -18,14 +18,14 @@
 
 /* Mode Clair */
 body.light-mode {
-    --bg-primary: #F8F9FA;
-    --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F0F2F5;
-    --text-primary: #1A1A1A;
-    --text-secondary: #4A4A4A;
-    --text-tertiary: #999999;
-    --border-color: rgba(0,0,0,0.1);
-    --glass-bg: rgba(255, 255, 255, 0.8);
+    --bg-primary: #ffe599;
+    --bg-secondary: #ffe599;
+    --bg-tertiary: #f5db8f;
+    --text-primary: #000000;
+    --text-secondary: #8B1538;
+    --text-tertiary: #A52A2A;
+    --border-color: rgba(31, 41, 55, 0.22);
+    --glass-bg: rgba(255, 229, 153, 0.92);
 }
 
 /* Transitions fluides lors du changement de thème */
@@ -35,8 +35,22 @@ body.light-mode {
 
 /* Body Styling */
 body {
-    background-color: var(--bg-primary);
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
     color: var(--text-primary);
+}
+
+.modal-content,
+.offcanvas,
+.dropdown-menu {
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+body.light-mode .navbar-toggler-icon {
+    filter: invert(1);
 }
 
 /* Backgrounds */
@@ -128,12 +142,86 @@ button:hover {
 
 /* Navbar adjustments for light mode */
 body.light-mode .navbar {
-    background-color: var(--bg-secondary);
+    background-color: rgba(255, 229, 153, 0.95);
     border-bottom-color: var(--border-color);
 }
 
 body.light-mode .navbar a {
     color: var(--text-primary);
+}
+
+body.light-mode .glass,
+body.light-mode .glass-dark,
+body.light-mode .glass-card,
+body.light-mode .card,
+body.light-mode .modal-content,
+body.light-mode .offcanvas,
+body.light-mode .dropdown-menu,
+body.light-mode footer {
+    background: rgba(255, 229, 153, 0.9) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.light-mode .table {
+    color: var(--text-primary) !important;
+}
+
+body.light-mode .table thead th {
+    background: rgba(37, 99, 235, 0.08) !important;
+    color: #4169E1 !important;
+    border-color: var(--border-color) !important;
+}
+
+body.light-mode .table tbody tr {
+    border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+body.light-mode .table tbody tr:hover {
+    background: rgba(37, 99, 235, 0.08) !important;
+}
+
+body.light-mode input,
+body.light-mode textarea,
+body.light-mode select,
+body.light-mode .form-control,
+body.light-mode .form-select {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.light-mode .btn-outline-light {
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.light-mode .btn-outline-light:hover {
+    color: #4169E1;
+    background: rgba(37, 99, 235, 0.1);
+    border-color: #4169E1;
+}
+
+body.light-mode [style*="color: #333"],
+body.light-mode [style*="color:#333"],
+body.light-mode [style*="color: #666"],
+body.light-mode [style*="color:#666"],
+body.light-mode [style*="color: #999"],
+body.light-mode [style*="color:#999"] {
+    color: #000000 !important;
+}
+
+/* Normalise les textes forcÃ©s en blanc dans certains templates dashboard/index */
+body.light-mode .text-white,
+body.light-mode .btn-primary,
+body.light-mode .btn-secondary,
+body.light-mode .btn-outline-light,
+body.light-mode .badge,
+body.light-mode [style*="color: #fff"],
+body.light-mode [style*="color:#fff"],
+body.light-mode [style*="color: white"],
+body.light-mode [style*="color:white"] {
+    color: var(--text-primary) !important;
 }
 
 /* Footer adjustments for light mode */

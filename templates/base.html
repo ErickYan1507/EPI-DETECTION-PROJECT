@@ -36,14 +36,14 @@
         }
 
         body.light-mode {
-            --bg-primary: #F8F9FA;
-            --bg-secondary: #FFFFFF;
-            --bg-tertiary: #F0F2F5;
-            --text-primary: #1A1A1A;
-            --text-secondary: #4A4A4A;
-            --text-tertiary: #999999;
-            --border-color: rgba(0,0,0,0.1);
-            --glass-bg: rgba(255, 255, 255, 0.8);
+            --bg-primary: #ffe599;
+            --bg-secondary: #ffe599;
+            --bg-tertiary: #f5db8f;
+            --text-primary: #1f2937;
+            --text-secondary: #334155;
+            --text-tertiary: #475569;
+            --border-color: rgba(31, 41, 55, 0.22);
+            --glass-bg: rgba(255, 229, 153, 0.92);
         }
 
         body {
@@ -204,6 +204,48 @@
         hr {
             border-color: var(--border-color);
         }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 360px) {
+            .navbar .container-fluid {
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+
+            .navbar-brand {
+                font-size: 1.05rem;
+            }
+
+            #theme-toggle-btn {
+                margin-left: 0;
+                margin-top: 8px;
+                width: 100%;
+                justify-content: center;
+            }
+
+            main.container-fluid {
+                padding-left: 8px;
+                padding-right: 8px;
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
+
+            .footer-content {
+                gap: 12px;
+            }
+
+            .social-links {
+                gap: 10px;
+            }
+
+            .social-link {
+                width: 34px;
+                height: 34px;
+            }
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -229,32 +271,34 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/upload">
-                            <i class="fas fa-cloud-upload-alt"></i> Upload
+                            <i class="fas fa-cloud-upload-alt"></i> Téléverser 
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <!-- <li class="nav-item">
                         <a class="nav-link" href="/training-results">
-                            <i class="fas fa-graduation-cap"></i> Training Results
+                            <i class="fas fa-graduation-cap"></i> Resultats de l'entrainement
                         </a>
-                    </li>
+                    </li> -->
                     
                     <li class="nav-item">
                         <a class="nav-link" href="/notifications">
                             <i class="fas fa-envelope"></i> Notifications
                         </a>
                     </li>
+
                     
                     <li class="nav-item">
                         <a class="nav-link" href="/unified">
-                            <i class="fas fa-layer-group"></i> Unified Monitoring
+                            <i class="fas fa-layer-group"></i> Surveillance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin">
+                            <i class="fas fa-user-shield"></i> Admin
                         </a>
                     </li>
                     
-                    <li class="nav-item">
-                        <a class="nav-link" href="/tinkercad">
-                            <i class="fas fa-microchip"></i> TinkerCad
-                        </a>
-                    </li>
+                   
                     <li class="nav-item">
                         <button id="theme-toggle-btn" onclick="toggleTheme()" title="Mode Sombre">
                             <i class="fas fa-moon"></i>
@@ -274,7 +318,7 @@
     <footer>
         <div class="container">
             <div class="footer-content">
-                <a href="#" class="footer-logo">Aina<span>Erick</span></a>
+                <a href="#" class="footer-logo">Epi<span>Detection</span></a>
                 <div class="social-links">
                     <a href="https://github.com/ErickYan1507" class="social-link" target="_blank" aria-label="GitHub">
                         <i class="fab fa-github"></i>
@@ -291,7 +335,7 @@
                 </div>
             </div>
             <div class="copyright">
-                <p>&copy; 2025 Aina Erick ANDRIANAVALONA. Tous droits réservés.</p>
+                <p>&copy; <span id="currentYear"></span> Aina Erick ANDRIANAVALONA. Tous droits réservés.</p>
             </div>
         </div>
     </footer>
@@ -303,7 +347,7 @@
         "@type": "Person",
         "name": "Aina Erick ANDRIANAVALONA",
         "jobTitle": "Étudiant en Master Intelligence Artificielle & Science des Données",
-        "url": "https://ainaerick.com",
+        "url": "https://ainaerick.netlify.app",
         "sameAs": [
             "https://github.com/ErickYan1507",
             "https://www.linkedin.com/in/aina-erick-andrianavalona-393b9332b"
@@ -318,6 +362,9 @@
         ]
     }
     </script>
+
+    <!-- Bootstrap Bundle (JS + Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Theme Toggle Script -->
     <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>

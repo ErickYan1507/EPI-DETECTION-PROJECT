@@ -21,32 +21,71 @@ class EmailNotifier:
         self.sender_email = getattr(config, 'SENDER_EMAIL', '')
         self.sender_password = getattr(config, 'SENDER_PASSWORD', '')
         
-    def send_email(self, recipient, subject, html_content):
-        """Envoyer un email"""
-        try:
-            # Créer le message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = self.sender_email
-            msg['To'] = recipient
-            
-            # Ajouter le contenu HTML
-            html_part = MIMEText(html_content, 'html')
-            msg.attach(html_part)
-            
-            # Connexion SMTP
-            server = smtplib.SMTP(self.smtp_server, self.smtp_port)
-            server.starttls()
-            server.login(self.sender_email, self.sender_password)
-            server.sendmail(self.sender_email, recipient, msg.as_string())
-            server.quit()
-            
-            logger.info(f"Email envoyé à {recipient}: {subject}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Erreur envoi email à {recipient}: {e}")
-            return False
+    def send_email(self, recipient, subject, html_content, retry_count=3, report_type='manual'):
+        """Envoyer un email avec retry automatique en cas d'erreur"""
+        import time
+        import socket
+        
+        for attempt in range(1, retry_count + 1):
+            try:
+                # Créer le message
+                msg = MIMEMultipart('alternative')
+                msg['Subject'] = subject
+                msg['From'] = self.sender_email
+                msg['To'] = recipient
+                
+                # Ajouter le contenu HTML
+                html_part = MIMEText(html_content, 'html')
+                msg.attach(html_part)
+                
+                # Connexion SMTP avec timeout
+                server = smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=10)
+                server.starttls()
+                server.login(self.sender_email, self.sender_password)
+                server.sendmail(self.sender_email, recipient, msg.as_string())
+                server.quit()
+                
+                logger.info(f"Email envoyé à {recipient}: {subject}")
+                
+                # ✅ ENREGISTRER DANS LA BASE DE DONNÉES (mettre à jour last_sent)
+                try:
+                    # Retrouver ou créer enregistrement
+                    notif = db.session.query(EmailNotification).filter_by(
+                        email_address=recipient,
+                        notification_type=report_type
+                    ).first()
+                    
+                    if not notif:
+                        notif = EmailNotification(
+                            email_address=recipient,
+                            notification_type=report_type
+                        )
+                        db.session.add(notif)
+                    
+                    # Mettre à jour le dernier envoi
+                    notif.last_sent = datetime.now()
+                    db.session.commit()
+                    logger.info(f"✓ Historique email enregistré pour {recipient}")
+                except Exception as db_error:
+                    logger.error(f"Erreur enregistrement historique: {db_error}")
+                    db.session.rollback()
+                
+                return True
+                
+            except (socket.gaierror, socket.timeout, OSError) as e:
+                # Erreurs réseau/DNS - on essaie de nouveau
+                if attempt < retry_count:
+                    wait_time = 2 ** attempt  # 2, 4, 8 secondes
+                    logger.warning(f"Erreur réseau/DNS envoi email à {recipient} (tentative {attempt}/{retry_count}): {e}. Nouvelle tentative dans {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Impossible d'envoyer email à {recipient} après {retry_count} tentatives. Erreur: {e}")
+                    return False
+                    
+            except Exception as e:
+                # Autres erreurs - on n'essaie pas de nouveau
+                logger.error(f"Erreur envoi email à {recipient}: {e}")
+                return False
     
     def generate_daily_report(self):
         """Générer le rapport quotidien"""

@@ -318,7 +318,7 @@
                         <dt>F1-Score:</dt><dd>${formatPercent(result.validation.f1_score)}</dd>
                     </dl>
                 </div>
-                ${result.test ? `
+                ${result.test ?`
                 <div class="detail-section">
                     <h4>Résultats de Test</h4>
                     <dl>
@@ -539,11 +539,11 @@
 
     // Fonctions utilitaires
     function formatNumber(val) {
-        return val ? parseFloat(val).toFixed(4) : '-';
+        return val ?parseFloat(val).toFixed(4) : '-';
     }
 
     function formatPercent(val) {
-        return val ? (val * 100).toFixed(2) + '%' : '-';
+        return val ?(val * 100).toFixed(2) + '%' : '-';
     }
 
     function formatTime(seconds) {
@@ -572,7 +572,7 @@
         
         rows.forEach(row => {
             const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(searchValue) ? '' : 'none';
+            row.style.display = text.includes(searchValue) ?'' : 'none';
         });
     }
 

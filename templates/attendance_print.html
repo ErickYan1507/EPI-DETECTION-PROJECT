@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiche de Presence</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #111; margin: 0; padding: 20px; background: #fff; }
+        .sheet { max-width: 920px; margin: 0 auto; border: 2px solid #111827; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+        .company { font-size: 22px; font-weight: 700; letter-spacing: .4px; }
+        .title { font-size: 20px; font-weight: 700; text-align: right; }
+        .sub { font-size: 12px; color: #4b5563; margin-top: 4px; }
+        .meta-line { font-size: 13px; margin: 2px 0; }
+        .block { margin-top: 14px; }
+        .detail-wrap { display: grid; grid-template-columns: 1fr 170px; gap: 14px; align-items: start; }
+        .grid { display: grid; grid-template-columns: 210px 1fr; gap: 6px 10px; }
+        .label { font-weight: 700; }
+        .photo-box { border: 1px solid #9ca3af; width: 160px; height: 180px; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #6b7280; }
+        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+        .qr-wrap { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; margin-top: 14px; }
+        .qr-box { border: 1px solid #9ca3af; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; }
+        .signatures { display: flex; justify-content: space-between; gap: 18px; margin-top: 28px; }
+        .sign-line { width: 46%; border-top: 1px solid #111; padding-top: 6px; text-align: center; font-size: 12px; min-height: 56px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #d1d5db; padding: 6px; font-size: 12px; text-align: left; vertical-align: middle; }
+        th { background: #f3f4f6; font-size: 12px; }
+        .thumb { width: 46px; height: 56px; border: 1px solid #cbd5e1; object-fit: cover; }
+        .center { text-align: center; }
+        @media print {
+            @page { size: A4; margin: 10mm; }
+            body { padding: 0; }
+            .sheet { border: 1px solid #000; }
+        }
+    </style>
+</head>
+<body>
+    {% set org_name = company_name or 'TAO-TRANO' %}
+    <div class="sheet">
+        <div class="header">
+            <div>
+                <div class="company">{{ org_name }}</div>
+                <div class="sub">Genere le {{ generated_at.strftime('%d/%m/%Y %H:%M:%S') if generated_at else '-' }}</div>
+            </div>
+            <div class="title">
+                {% if record %}FICHE DE PRESENCE{% else %}LISTE DE PRESENCE{% endif %}
+                <div class="sub">Ref: {{ sheet_no if record else list_sheet_no }}</div>
+            </div>
+        </div>
+
+        {% if record %}
+            {% set person_id6 = '%06d'|format((record.person.id if record.person else record.person_id) or 0) %}
+            {% set p = record.person %}
+            {% set presence_label = 'Present' if (p and p.manual_presence_today is none) or (p and p.manual_presence_today) else 'Absent' %}
+            {% set epi_count = (1 if record.helmet_detected else 0) + (1 if record.vest_detected else 0) + (1 if record.glasses_detected else 0) + (1 if record.boots_detected else 0) %}
+            {% set epi_percent = (epi_count * 100 / 4)|round(0) %}
+            {% set photo_path = p.identity_photo_path if p else None %}
+            {% set qr_payload = 
+                'Nom complet: ' ~ (p.full_name if p and p.full_name else '-') ~ '\n' ~
+                'ID: ' ~ person_id6 ~ '\n' ~
+                'Fonction: ' ~ (p.job_title if p and p.job_title else '-') ~ '\n' ~
+                'Adresse: ' ~ (p.address if p and p.address else '-') ~ '\n' ~
+                'Date: ' ~ (record.attendance_date.strftime('%d/%m/%Y') if record.attendance_date else '-') ~ '\n' ~
+                'Heure entree: ' ~ ((utc_to_local_fn(record.first_seen_at)).strftime('%H:%M:%S') if (utc_to_local_fn is defined and record.first_seen_at) else (record.first_seen_at.strftime('%H:%M:%S') if record.first_seen_at else '-')) ~ '\n' ~
+                'Presence: ' ~ presence_label
+            %}
+
+            <div class="detail-wrap">
+                <div class="grid">
+                    <div class="label">Nom complet</div><div>{{ p.full_name if p and p.full_name else '-' }}</div>
+                    <div class="label">Numero</div><div>{{ person_id6 }}</div>
+                    <div class="label">Fonction</div><div>{{ p.job_title if p and p.job_title else '-' }}</div>
+                    <div class="label">Adresse</div><div>{{ p.address if p and p.address else '-' }}</div>
+                    <div class="label">Date</div><div>{{ record.attendance_date.strftime('%d/%m/%Y') if record.attendance_date else '-' }}</div>
+                    <div class="label">Heure d'entree</div><div>{{ (utc_to_local_fn(record.first_seen_at)).strftime('%H:%M:%S') if utc_to_local_fn is defined and record.first_seen_at else (record.first_seen_at.strftime('%H:%M:%S') if record.first_seen_at else '-') }}</div>
+                    <div class="label">Presence</div><div>{{ presence_label }}</div>
+                    <div class="label">Pourcentage equipement</div><div>{{ epi_percent }}%</div>
+                </div>
+                <div class="photo-box">
+                    {% if photo_path %}
+                        {% if photo_path.startswith('static/') %}
+                            <img src="{{ url_for('static', filename=photo_path[7:]) }}" alt="photo identite">
+                        {% else %}
+                            <img src="/{{ photo_path }}" alt="photo identite">
+                        {% endif %}
+                    {% else %}
+                        PHOTO
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="qr-wrap">
+                <!-- <div>
+                    <div class="meta-line"><strong>Code QR:</strong> {{ p.qr_code_data if p and p.qr_code_data else '-' }}</div>
+                    <div class="sub">Scan: nom, id, fonction, adresse, date, heure entree, presence</div>
+                </div> -->
+                <div class="qr-box" id="single-qr" data-qr="{{ qr_payload|e }}"></div>
+            </div>
+
+            <div class="signatures">
+                <div class="sign-line">Signature responsable</div>
+                <div class="sign-line">Signature et cachet</div>
+            </div>
+        {% else %}
+            <!-- <div class="meta-line"><strong>Filtres:</strong> Date={{ filters.attendance_date or 'Toutes' }}, Personne={{ filters.person_id or 'Toutes' }}, Source={{ filters.source or 'Toutes' }}</div> -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom complet</th>
+                        <th>Numero</th>
+                        <th>Fonction</th>
+                        <th>Adresse</th>
+                        <th>Date</th>
+                        <th>Heure entree</th>
+                        <th>Presence</th>
+                        <th>% equip.</th>
+                        <th>Photo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in records %}
+                        {% set rp = row.person %}
+                        {% set rid6 = '%06d'|format((rp.id if rp else row.person_id) or 0) %}
+                        {% set r_absent = (row.is_absent_entry if row.is_absent_entry is defined else (row.source == 'ABSENT')) %}
+                        {% set r_presence = 'Absent' if r_absent else 'Present' %}
+                        {% set r_epi_count = 0 if r_absent else ((1 if row.helmet_detected else 0) + (1 if row.vest_detected else 0) + (1 if row.glasses_detected else 0) + (1 if row.boots_detected else 0)) %}
+                        {% set r_epi_percent = (r_epi_count * 100 / 4)|round(0) %}
+                        {% set r_photo = rp.identity_photo_path if rp else None %}
+                        <tr>
+                            <td>{{ rp.full_name if rp and rp.full_name else '-' }}</td>
+                            <td class="center">{{ rid6 }}</td>
+                            <td>{{ rp.job_title if rp and rp.job_title else '-' }}</td>
+                            <td>{{ rp.address if rp and rp.address else '-' }}</td>
+                            <td>{{ row.attendance_date.strftime('%d/%m/%Y') if row.attendance_date else '-' }}</td>
+                            <td>{{ '-' if r_absent else ((utc_to_local_fn(row.first_seen_at)).strftime('%H:%M:%S') if utc_to_local_fn is defined and row.first_seen_at else (row.first_seen_at.strftime('%H:%M:%S') if row.first_seen_at else '-')) }}</td>
+                            <td>{{ r_presence }}</td>
+                            <td class="center">{{ r_epi_percent }}%</td>
+                            <td class="center">
+                                {% if r_photo %}
+                                    {% if r_photo.startswith('static/') %}
+                                        <img class="thumb" src="{{ url_for('static', filename=r_photo[7:]) }}" alt="photo">
+                                    {% else %}
+                                        <img class="thumb" src="/{{ r_photo }}" alt="photo">
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% set list_qr_payload = 'Date: ' ~ (generated_at.strftime('%d/%m/%Y') if generated_at else '-') ~ '\nNumero fiche: ' ~ (list_sheet_no or '-') %}
+            <div class="qr-wrap">
+                <!-- <div>
+                    <div class="meta-line"><strong>QR unique liste:</strong> {{ list_sheet_no or '-' }}</div>
+                    <div class="sub">Contient la date du jour et le numero de fiche</div>
+                </div> -->
+                <div class="qr-box" id="list-qr" data-qr="{{ list_qr_payload|e }}"></div>
+            </div>
+            <div class="signatures">
+                <div class="sign-line">Signature responsable</div>
+                <div class="sign-line">Signature et cachet</div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        function renderQr(containerId) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            const text = el.getAttribute('data-qr') || '';
+            if (!text || typeof QRCode === 'undefined') {
+                el.textContent = 'QR indisponible';
+                return;
+            }
+            new QRCode(el, {
+                text: text,
+                width: 132,
+                height: 132,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+        renderQr('single-qr');
+        renderQr('list-qr');
+        setTimeout(function () { window.print(); }, 300);
+    </script>
+</body>
+</html>

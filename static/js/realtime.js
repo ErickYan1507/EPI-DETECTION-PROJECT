@@ -265,7 +265,7 @@ function simulateRandomDetection() {
         vests: vests,
         glasses: glasses,
         compliance: compliance,
-        status: compliance >= 80 ? 'safe' : compliance >= 50 ? 'warning' : 'danger'
+        status: compliance >= 80 ?'safe' : compliance >= 50 ?'warning' : 'danger'
     };
 
     // Émettre l'événement
@@ -393,8 +393,8 @@ function clearLogs() {
 function toggleAutoScroll() {
     autoScroll = !autoScroll;
     const statusElement = document.getElementById('autoScrollStatus');
-    statusElement.textContent = autoScroll ? 'ON' : 'OFF';
-    statusElement.style.color = autoScroll ? '#2ecc71' : '#e74c3c';
+    statusElement.textContent = autoScroll ?'ON' : 'OFF';
+    statusElement.style.color = autoScroll ?'#2ecc71' : '#e74c3c';
 }
 
 // Commandes système

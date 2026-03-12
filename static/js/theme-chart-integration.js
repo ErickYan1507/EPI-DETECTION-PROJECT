@@ -6,8 +6,8 @@ function getChartColors() {
     const isDark = themeToggle.isDarkMode();
     
     return {
-        textColor: isDark ? '#D0D0D0' : '#4A4A4A',
-        gridColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+        textColor: isDark ?'#D0D0D0' : '#4A4A4A',
+        gridColor: isDark ?'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
         primaryColor: 'rgba(139, 21, 56, 0.8)',
         secondaryColor: 'rgba(65, 105, 225, 0.8)',
         successColor: 'rgba(75, 192, 117, 0.8)',
@@ -159,7 +159,7 @@ function getThemeVariable(varName) {
 
 window.addEventListener('themechange', (event) => {
     const isDark = event.detail.isDark;
-    console.log(`🎨 Thème changé: ${isDark ? 'Sombre' : 'Clair'}`);
+    console.log(`🎨 Thème changé: ${isDark ?'Sombre' : 'Clair'}`);
     console.log('Variables CSS mises à jour');
     console.log('Graphiques recalculés');
 });
@@ -214,7 +214,7 @@ function exportChartAsImage(chartInstance, filename) {
     
     const link = document.createElement('a');
     link.href = image;
-    link.download = `${filename}-${themeToggle.isDarkMode() ? 'dark' : 'light'}.png`;
+    link.download = `${filename}-${themeToggle.isDarkMode() ?'dark' : 'light'}.png`;
     link.click();
 }
 
@@ -246,7 +246,7 @@ const THEME_COLORS = {
 };
 
 function getColors() {
-    return THEME_COLORS[themeToggle.isDarkMode() ? 'dark' : 'light'];
+    return THEME_COLORS[themeToggle.isDarkMode() ?'dark' : 'light'];
 }
 
 // ===== Template de graphique réutilisable =====

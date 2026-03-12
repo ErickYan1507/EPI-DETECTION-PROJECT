@@ -160,11 +160,25 @@ Le système de surveillance manuelle, bien qu'essentiel, présente des limites s
 -   **Manque de données centralisées :** Les rapports manuels sont difficiles à agréger et à analyser de manière statistique pour obtenir une vue d'ensemble fiable et en temps réel.
 -   **Caractère réactif :** L'intervention a lieu après la constatation de la faute, et non au moment précis où elle se produit, ce qui peut retarder la correction.
 
-#### 5.1.3 Moyen existant pour la réalisation du projet
-Le projet a été initié en s'appuyant principalement sur les ressources suivantes :
--   **Logiciels Open Source :** Le projet est entièrement construit sur des technologies ouvertes et gratuites (Python, Flask, YOLOv5), ce qui a considérablement réduit les coûts de développement.
--   **Jeux de données publics :** Des jeux de données d'images existants ont probablement servi de base pour constituer le jeu de données final.
--   **Expertise technique :** Les compétences en développement logiciel et en intelligence artificielle du développeur ont été le principal moteur de la réalisation.
+#### 5.1.3 Moyens existants pour la réalisation du projet
+
+Ce projet a pu démarrer et évoluer grâce à plusieurs moyens déjà disponibles, tant humains que matériels.
+
+- **Moyens humains**
+  - Un seul développeur/chef de projet a assuré l'architecture globale, le développement backend (Flask), l'intégration du modèle YOLOv5 et la gestion de la base de données.
+  - Des échanges ponctuels avec un consultant ou un collègue spécialisé en vision par ordinateur ont permis de valider les choix techniques (modèle, entraînement, optimisation).
+  - Des retours informels d'utilisateurs tests ont guidé l'amélioration de l'interface et des fonctionnalités.
+
+- **Moyens matériels et logiciels**
+  - Un poste de travail personnel muni d'un GPU NVIDIA est utilisé pour l'entraînement et l'inférence du modèle ainsi que pour les essais sur des flux vidéo.
+  - Un serveur local (ou machine virtuelle) héberge la base de données MySQL et l'application Flask pendant la phase de développement et de test.
+  - Des caméras IP/USB disponibles servent à capturer des images et vidéos pour constituer et enrichir le jeu de données.
+  - Le projet repose exclusivement sur des logiciels open source : Python, Flask, PyTorch, OpenCV, YOLOv5, MySQL, etc. Ces outils gratuits ont réduit considérablement les coûts de développement.
+  - Des jeux de données publics libres de droit ont été utilisés comme base, complétés par des images capturées sur le terrain.
+
+- **Autres ressources existantes**
+  - L'expertise technique du développeur en vision par ordinateur, machine learning et gestion de bases de données a été le principal moteur de la réalisation.
+  - L'accès aux bibliothèques, dépôts et documentations en ligne (notamment ceux de YOLOv5) a facilité l'acquisition de connaissances et l'utilisation d'outils sans formation formelle coûteuse.
 
 ### 5.2 Présentation des données
 

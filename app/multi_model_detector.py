@@ -14,7 +14,7 @@ from typing import List, Dict, Tuple, Optional
 from collections import defaultdict
 
 from config import config
-from app.constants import CLASS_MAP, get_alert_type, get_compliance_level
+from app.constants import CLASS_MAP, get_alert_type, get_compliance_level, calculate_compliance_score
 from app.logger import logger
 from app.detection import EPIDetector
 
@@ -355,13 +355,37 @@ class MultiModelDetector:
         
         # Pour les comptages, utiliser math.ceil (arrondir vers le haut) 
         # pour favoriser la détection si au moins 1 modèle détecte quelque chose
+        total_persons_vals = [s.get('total_persons', 0) for s in all_stats]
+        helmets_vals = [s.get('with_helmet', 0) for s in all_stats]
+        vests_vals = [s.get('with_vest', 0) for s in all_stats]
+        glasses_vals = [s.get('with_glasses', 0) for s in all_stats]
+        boots_vals = [s.get('with_boots', 0) for s in all_stats]
+        
+        total_persons = int(max(1, math.ceil(np.mean(total_persons_vals)))) if any(v > 0 for v in total_persons_vals) else 0
+        with_helmet = int(math.ceil(np.mean(helmets_vals)))
+        with_vest = int(math.ceil(np.mean(vests_vals)))
+        with_glasses = int(math.ceil(np.mean(glasses_vals)))
+        with_boots = int(math.ceil(np.mean(boots_vals)))
+        
+        # Règle stricte: si personne=0, conformité=0 même si des EPI sont détectés.
+        if total_persons == 0:
+            compliance_rate = 0.0
+        else:
+            compliance_rate = calculate_compliance_score(
+                total_persons=total_persons,
+                with_helmet=with_helmet,
+                with_vest=with_vest,
+                with_glasses=with_glasses,
+                with_boots=with_boots
+            )
+        
         avg_stats = {
-            'total_persons': int(max(1, math.ceil(np.mean([s.get('total_persons', 0) for s in all_stats])))) if any(s.get('total_persons', 0) > 0 for s in all_stats) else 0,
-            'with_helmet': int(math.ceil(np.mean([s.get('with_helmet', 0) for s in all_stats]))),
-            'with_vest': int(math.ceil(np.mean([s.get('with_vest', 0) for s in all_stats]))),
-            'with_glasses': int(math.ceil(np.mean([s.get('with_glasses', 0) for s in all_stats]))),
-            'with_boots': int(math.ceil(np.mean([s.get('with_boots', 0) for s in all_stats]))),
-            'compliance_rate': float(np.mean([s.get('compliance_rate', 0) for s in all_stats])),
+            'total_persons': total_persons,
+            'with_helmet': with_helmet,
+            'with_vest': with_vest,
+            'with_glasses': with_glasses,
+            'with_boots': with_boots,
+            'compliance_rate': round(compliance_rate, 2),
         }
         
         # Ajouter les niveaux de conformité et d'alerte

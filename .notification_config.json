@@ -1,0 +1,15 @@
+{
+  "sender_email": "no-reply@test.com",
+  "sender_password": "test123",
+  "daily_enabled": true,
+  "daily_hour": 8,
+  "weekly_enabled": true,
+  "weekly_day": 2,
+  "weekly_hour": 9,
+  "monthly_enabled": false,
+  "monthly_day": 15,
+  "monthly_hour": 10,
+  "smtp_server": "smtp.gmail.com",
+  "smtp_port": 587,
+  "use_tls": true
+}

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - DEBUG MODE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 10px; padding: 20px; }
+        h1 { color: #667eea; margin-bottom: 20px; }
+        .debug-console { background: #1e1e1e; color: #00ff00; font-family: monospace; padding: 15px; border-radius: 5px; margin-bottom: 20px; max-height: 300px; overflow-y: auto; font-size: 12px; }
+        .debug-log { margin: 5px 0; padding: 5px 0; border-bottom: 1px solid #444; }
+        .log-error { color: #ff6b6b; }
+        .log-warning { color: #ffd93d; }
+        .log-success { color: #00ff00; }
+        .log-info { color: #00d4ff; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-danger { background: #ff6b6b; color: white; }
+        .btn-success { background: #51cf66; color: white; }
+        .test-section { background: #f8f9fa; padding: 15px; margin-bottom: 15px; border-radius: 5px; border-left: 4px solid #667eea; }
+        .test-section h3 { margin-bottom: 10px; color: #667eea; }
+        .input-group { margin-bottom: 10px; }
+        input { padding: 8px; width: 100%; border: 1px solid #ddd; border-radius: 4px; }
+        .response { background: #f0f0f0; padding: 10px; border-radius: 4px; margin-top: 10px; max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        @media (max-width: 768px) {
+            body { margin: 10px; }
+            .controls { grid-template-columns: 1fr; }
+            .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐛 Notifications - DEBUG MODE 🐛</h1>
+        
+        <div class="debug-console" id="debugConsole">
+            <div class="debug-log log-info">Console Debug prête...</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="clearLogs()">🗑️ Effacer logs</button>
+            <button class="btn btn-success" onclick="repeatLastTest()">🔄 Répéter test</button>
+            <button class="btn btn-primary" onclick="reloadAll()">🔃 Recharger tout</button>
+        </div>
+
+        <!-- TEST 1 -->
+        <div class="test-section">
+            <h3>TEST 1: Vérifier la connexion Flask</h3>
+            <button class="btn btn-primary" onclick="testFlaskConnection()">Tester</button>
+            <div id="test1Response" class="response"></div>
+        </div>
+
+        <!-- TEST 2 -->
+        <div class="test-section">
+            <h3>TEST 2: Récupérer les destinataires (GET)</h3>
+            <button class="btn btn-primary" onclick="testGetRecipients()">Tester</button>
+            <div id="test2Response" class="response"></div>
+        </div>
+
+        <!-- TEST 3 -->
+        <div class="test-section">
+            <h3>TEST 3: Ajouter un destinataire (POST)</h3>
+            <div class="input-group">
+                <input type="email" id="testEmail" placeholder="email@example.com" value="debug@test.com">
+            </div>
+            <button class="btn btn-primary" onclick="testAddRecipient()">Ajouter</button>
+            <div id="test3Response" class="response"></div>
+        </div>
+
+        <!-- TEST 4 -->
+        <div class="test-section">
+            <h3>TEST 4: Récupérer après ajout (GET)</h3>
+            <button class="btn btn-primary" onclick="testGetRecipientsAfter()">Tester</button>
+            <div id="test4Response" class="response"></div>
+        </div>
+
+        <!-- TEST 5 -->
+        <div class="test-section">
+            <h3>TEST 5: Supprimer un destinataire (DELETE)</h3>
+            <div class="input-group">
+                <input type="email" id="testEmailDelete" placeholder="email@example.com" value="debug@test.com">
+            </div>
+            <button class="btn btn-danger" onclick="testDeleteRecipient()">Supprimer</button>
+            <div id="test5Response" class="response"></div>
+        </div>
+    </div>
+
+    <script>
+        let lastTest = null;
+
+        function log(message, type = 'info') {
+            const console = document.getElementById('debugConsole');
+            const entry = document.createElement('div');
+            entry.className = `debug-log log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            console.appendChild(entry);
+            console.scrollTop = console.scrollHeight;
+            return entry;
+        }
+
+        function clearLogs() {
+            document.getElementById('debugConsole').innerHTML = '<div class="debug-log log-info">Console vidée...</div>';
+        }
+
+        function repeatLastTest() {
+            if (lastTest) lastTest();
+            else log('Aucun test à répéter', 'warning');
+        }
+
+        function reloadAll() {
+            location.reload();
+        }
+
+        function showResponse(elementId, response) {
+            const elem = document.getElementById(elementId);
+            elem.textContent = JSON.stringify(response, null, 2);
+        }
+
+        function testFlaskConnection() {
+            lastTest = testFlaskConnection;
+            log('✓ Testant connexion Flask...', 'info');
+            
+            fetch('http://localhost:5000/')
+                .then(r => {
+                    log('✓ Flask accessible (status ' + r.status + ')', 'success');
+                    showResponse('test1Response', { status: r.status, text: 'OK' });
+                })
+                .catch(e => {
+                    log('✗ Erreur: ' + e.message, 'error');
+                    showResponse('test1Response', { error: e.message });
+                });
+        }
+
+        function testGetRecipients() {
+            lastTest = testGetRecipients;
+            log('✓ GET /api/notifications/recipients...', 'info');
+            
+            fetch('http://localhost:5000/api/notifications/recipients')
+                .then(r => {
+                    log('  ✓ Status: ' + r.status, 'info');
+                    log('  ✓ Headers: ' + JSON.stringify(Object.fromEntries(r.headers)), 'info');
+                    return r.json();
+                })
+                .then(data => {
+                    log('✓ Réponse reçue', 'success');
+                    log('  - success: ' + data.success, data.success ?'success' : 'error');
+                    log('  - recipients: ' + JSON.stringify(data.recipients), 'info');
+                    showResponse('test2Response', data);
+                })
+                .catch(e => {
+                    log('✗ Erreur: ' + e.message, 'error');
+                    showResponse('test2Response', { error: e.message });
+                });
+        }
+
+        function testAddRecipient() {
+            lastTest = testAddRecipient;
+            const email = document.getElementById('testEmail').value;
+            log('✓ POST ajouter: ' + email, 'info');
+            
+            const payload = { email: email };
+            log('  ✓ Payload: ' + JSON.stringify(payload), 'info');
+            
+            fetch('http://localhost:5000/api/notifications/recipients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(r => {
+                    log('  ✓ Status: ' + r.status, r.status === 200 || r.status === 201 ?'success' : 'warning');
+                    return r.json();
+                })
+                .then(data => {
+                    log('✓ Réponse reçue', 'success');
+                    log('  - success: ' + data.success, data.success ?'success' : 'error');
+                    log('  - message/error: ' + (data.message || data.error), 'info');
+                    showResponse('test3Response', data);
+                })
+                .catch(e => {
+                    log('✗ Erreur: ' + e.message, 'error');
+                    showResponse('test3Response', { error: e.message });
+                });
+        }
+
+        function testGetRecipientsAfter() {
+            lastTest = testGetRecipientsAfter;
+            log('✓ GET /api/notifications/recipients (après ajout)...', 'info');
+            
+            fetch('http://localhost:5000/api/notifications/recipients')
+                .then(r => r.json())
+                .then(data => {
+                    log('✓ Réponse reçue', 'success');
+                    if (data.recipients && Array.isArray(data.recipients)) {
+                        log('  ✓ ' + data.recipients.length + ' destinataires trouvés', 'success');
+                        data.recipients.forEach((r, i) => {
+                            log('  [' + i + '] ' + r, 'info');
+                        });
+                    }
+                    showResponse('test4Response', data);
+                })
+                .catch(e => {
+                    log('✗ Erreur: ' + e.message, 'error');
+                    showResponse('test4Response', { error: e.message });
+                });
+        }
+
+        function testDeleteRecipient() {
+            lastTest = testDeleteRecipient;
+            const email = document.getElementById('testEmailDelete').value;
+            log('✓ DELETE supprimer: ' + email, 'info');
+            
+            fetch('http://localhost:5000/api/notifications/recipients', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            })
+                .then(r => {
+                    log('  ✓ Status: ' + r.status, 'info');
+                    return r.json();
+                })
+                .then(data => {
+                    log('✓ Réponse reçue', 'success');
+                    log('  - success: ' + data.success, data.success ?'success' : 'error');
+                    showResponse('test5Response', data);
+                })
+                .catch(e => {
+                    log('✗ Erreur: ' + e.message, 'error');
+                    showResponse('test5Response', { error: e.message });
+                });
+        }
+
+        // Log initial
+        log('Page chargée, prêt à tester...', 'info');
+    </script>
+</body>
+</html>

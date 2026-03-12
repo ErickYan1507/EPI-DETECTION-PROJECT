@@ -144,8 +144,8 @@ function updateDetectionsTable(data) {
             <td>${Math.floor(Math.random() * 5)}</td>
             <td>${Math.floor(Math.random() * 3)}</td>
             <td>${(Math.random() * 40 + 60).toFixed(1)}%</td>
-            <td><span class="status-badge status-${Math.random() > 0.7 ? 'danger' : Math.random() > 0.5 ? 'warning' : 'safe'}">
-                ${Math.random() > 0.7 ? 'DANGER' : Math.random() > 0.5 ? 'WARNING' : 'SAFE'}
+            <td><span class="status-badge status-${Math.random() > 0.7 ?'danger' : Math.random() > 0.5 ?'warning' : 'safe'}">
+                ${Math.random() > 0.7 ?'DANGER' : Math.random() > 0.5 ?'WARNING' : 'SAFE'}
             </span></td>
         `;
         tableBody.appendChild(row);
@@ -177,13 +177,13 @@ function setupRealtimeUpdates() {
 // Configurer les écouteurs d'événements
 function setupEventListeners() {
     // Bouton d'export PDF
-    document.querySelector('.btn-export') ? .addEventListener('click', exportPDF);
+    document.querySelector('.btn-export') ?.addEventListener('click', exportPDF);
 
     // Bouton d'actualisation
-    document.querySelector('.btn-refresh') ? .addEventListener('click', refreshData);
+    document.querySelector('.btn-refresh') ?.addEventListener('click', refreshData);
 
     // Bouton de simulation TinkerCad
-    document.querySelector('.btn-simulate') ? .addEventListener('click', simulateDetection);
+    document.querySelector('.btn-simulate') ?.addEventListener('click', simulateDetection);
 }
 
 // Exporter en PDF

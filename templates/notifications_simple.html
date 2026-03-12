@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Simple - Destinataires</title>
+    <style>
+        * { margin: 0; padding: 10px; box-sizing: border-box; }
+        body { font-family: Arial; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 20px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #666; }
+        input, button { padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }
+        input { width: 100%; }
+        button { background: #0066cc; color: white; border: none; cursor: pointer; width: 100%; }
+        button:hover { background: #0052a3; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+        .info { background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+        .recipients-list { background: #f9f9f9; padding: 15px; border-radius: 4px; margin-top: 20px; border: 1px solid #ddd; }
+        .recipients-list h3 { margin-bottom: 10px; }
+        .recipient-item { background: white; padding: 10px; margin: 5px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .recipient-item button { width: auto; padding: 5px 15px; background: #dc3545; }
+        .recipient-item button:hover { background: #c82333; }
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Simple - Système de Destinataires</h1>
+        
+        <div id="message"></div>
+        <div id="error"></div>
+        <div id="info"></div>
+
+        <div class="form-group">
+            <label for="email">Email à ajouter:</label>
+            <input type="email" id="email" placeholder="test@example.com" value="mon-email@example.com">
+        </div>
+
+        <button onclick="addRecipient()" style="margin-bottom: 10px;">➕ Ajouter Email</button>
+
+        <div class="actions">
+            <button onclick="loadRecipients()" style="background: #28a745;">🔄 Rafraîchir la Liste</button>
+            <button onclick="testConnection()" style="background: #ffc107;">🔌 Tester Connexion API</button>
+        </div>
+
+        <div class="recipients-list">
+            <h3>📬 Destinataires enregistrés:</h3>
+            <div id="recipientsList">
+                <p style="color: #999; font-style: italic;">Chargement...</p>
+            </div>
+        </div>
+
+        <hr style="margin-top: 30px; margin-bottom: 20px; border: none; border-top: 1px solid #ddd;">
+
+        <h2 style="margin-top: 20px;">🔧 Actions de Test</h2>
+        
+        <button onclick="clearAllRecipients()" style="background: #dc3545; margin-top: 10px;">🗑️ Effacer TOUS les emails</button>
+    </div>
+
+    <script>
+        const API_BASE = '/api/notifications';
+
+        function showMessage(text, type = 'info') {
+            const div = document.getElementById(type);
+            div.innerHTML = text;
+            div.style.display = text ?'block' : 'none';
+            setTimeout(() => { div.style.display = 'none'; }, 5000);
+        }
+
+        function testConnection() {
+            showMessage('🔌 Test de connexion...', 'info');
+            
+            fetch(API_BASE + '/recipients')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('✅ Connexion API OK! Destinataires: ' + data.recipients.length, 'message');
+                    } else {
+                        showMessage('❌ Erreur API: ' + (data.error || 'Erreur inconnue'), 'error');
+                    }
+                })
+                .catch(e => showMessage('❌ Erreur: ' + e.message, 'error'));
+        }
+
+        function loadRecipients() {
+            fetch(API_BASE + '/recipients')
+                .then(r => {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(data => {
+                    console.log('API Response:', data);
+                    
+                    const list = document.getElementById('recipientsList');
+                    
+                    if (!data.success) {
+                        list.innerHTML = '<p style="color: red;">❌ Erreur: ' + (data.error || 'Erreur inconnue') + '</p>';
+                        return;
+                    }
+
+                    if (!data.recipients || data.recipients.length === 0) {
+                        list.innerHTML = '<p style="color: #999; font-style: italic;">Aucun destinataire enregistré</p>';
+                        document.getElementById('info').textContent = 'ℹ️ Aucun destinataire. Ajoutez-en un ci-dessus!';
+                        document.getElementById('info').style.display = 'block';
+                        return;
+                    }
+
+                    list.innerHTML = data.recipients.map(email => `
+                        <div class="recipient-item">
+                            <span>📧 ${email}</span>
+                            <button onclick="deleteRecipient('${email}')">Supprimer</button>
+                        </div>
+                    `).join('');
+                    
+                    showMessage('✅ Liste à jour! ' + data.recipients.length + ' destinataire(s)', 'message');
+                })
+                .catch(e => {
+                    showMessage('❌ Erreur lors du chargement: ' + e.message, 'error');
+                    console.error('Full error:', e);
+                });
+        }
+
+        function addRecipient() {
+            const email = document.getElementById('email').value.trim();
+            
+            if (!email) {
+                showMessage('⚠️ Veuillez entrer une adresse email!', 'error');
+                return;
+            }
+
+            if (!email.includes('@')) {
+                showMessage('⚠️ Email invalide!', 'error');
+                return;
+            }
+
+            showMessage('📤 Envoi...', 'info');
+
+            const payload = { email: email };
+            console.log('Sending:', payload);
+
+            fetch(API_BASE + '/recipients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(r => r.json())
+                .then(data => {
+                    console.log('API Response:', data);
+                    
+                    if (data.success) {
+                        showMessage('✅ ' + (data.message || 'Email ajouté!'), 'message');
+                        document.getElementById('email').value = '';
+                        setTimeout(() => loadRecipients(), 500);
+                    } else {
+                        showMessage('❌ ' + (data.error || 'Erreur'), 'error');
+                    }
+                })
+                .catch(e => {
+                    showMessage('❌ Erreur réseau: ' + e.message, 'error');
+                    console.error('Full error:', e);
+                });
+        }
+
+        function deleteRecipient(email) {
+            if (!confirm('Supprimer ' + email + '?')) return;
+
+            fetch(API_BASE + '/recipients', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('✅ Supprimé!', 'message');
+                        loadRecipients();
+                    } else {
+                        showMessage('❌ Erreur: ' + (data.error || 'Erreur'), 'error');
+                    }
+                })
+                .catch(e => showMessage('❌ Erreur: ' + e.message, 'error'));
+        }
+
+        function clearAllRecipients() {
+            if (!confirm('Êtes-vous SÛR de vouloir supprimer TOUS les emails?')) return;
+            
+            loadRecipients(); // Recharger d'abord pour avoir la liste
+            
+            setTimeout(() => {
+                const items = document.querySelectorAll('.recipient-item');
+                items.forEach(item => {
+                    const email = item.textContent.split('📧 ')[1].split('\n')[0];
+                    fetch(API_BASE + '/recipients', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: email })
+                    })
+                    .catch(e => console.error('Erreur suppression:',email,e));
+                });
+                
+                setTimeout(() => {
+                    loadRecipients();
+                    showMessage('✅ Tous les emails supprimés!', 'message');
+                }, 500);
+            }, 100);
+        }
+
+        // Charger la liste au démarrage
+        window.addEventListener('load', function() {
+            console.log('Page chargée!');
+            loadRecipients();
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Modèle de base de données unifié pour EPI Detection
 Supporte SQLite et MySQL avec tous les domaines intégrés:
 - Training Results (résultats d'entraînement YOLOv5)
@@ -11,13 +11,14 @@ Supporte SQLite et MySQL avec tous les domaines intégrés:
 
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
+import uuid
 import json
 
 db = SQLAlchemy()
 
 # ============== UTILITAIRES POUR FUSEAU HORAIRE ==============
 # Décalage horaire pour Madagascar (UTC+3 toute l'année)
-TIMEZONE_OFFSET = timedelta(hours=3)  # À ajuster selon votre fuseau horaire
+TIMEZONE_OFFSET = timedelta(hours=3)  # ? ajuster selon votre fuseau horaire
 
 def utc_to_local(utc_datetime):
     """Convertir un datetime UTC en heure locale"""
@@ -185,7 +186,7 @@ class Detection(db.Model):
     with_glasses = db.Column(db.Integer, default=0)
     with_boots = db.Column(db.Integer, default=0)
     
-    # Évaluation de conformité
+    # ?valuation de conformit?
     compliance_rate = db.Column(db.Float, default=0.0)
     compliance_level = db.Column(db.String(20))  # 'excellent', 'good', 'warning', 'critical'
     alert_type = db.Column(db.String(20))  # 'safe', 'warning', 'danger'
@@ -367,7 +368,7 @@ class DailyPresence(db.Model):
     last_detection = db.Column(db.DateTime, nullable=False)  # Dernière détection du jour
     detection_count = db.Column(db.Integer, default=1)  # Nombre de détections dans la journée
     
-    # État de conformité pour la journée
+    # ?tat de conformit? pour la journ?e
     compliance_score = db.Column(db.Float)  # Score moyen de conformité
     equipment_status = db.Column(db.Text)  # JSON: {'helmet': true, 'vest': true, etc.}
     
@@ -400,16 +401,139 @@ class DailyPresence(db.Model):
 
 
 # ============================================================================
+# FACE RE-IDENTIFICATION - Personnes + présence journalière dédupliquée
+# ============================================================================
+
+class PersonIdentity(db.Model):
+    __tablename__ = 'person_identities'
+
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()), index=True)
+    full_name = db.Column(db.String(150), nullable=True)
+    job_title = db.Column(db.String(120), nullable=True)
+    address = db.Column(db.String(255), nullable=True)
+    identity_photo_path = db.Column(db.String(255), nullable=True)
+    manual_presence_today = db.Column(db.Boolean, nullable=True)  # None=AUTO, True=present, False=absent
+    qr_code_data = db.Column(db.String(255), nullable=True)
+    face_embedding = db.Column(db.LargeBinary, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'uuid': self.uuid,
+            'full_name': self.full_name,
+            'job_title': self.job_title,
+            'address': self.address,
+            'identity_photo_path': self.identity_photo_path,
+            'manual_presence_today': self.manual_presence_today,
+            'qr_code_data': self.qr_code_data,
+            'is_active': self.is_active,
+            'created_at': utc_to_local(self.created_at).strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+        }
+
+
+class AttendanceRecord(db.Model):
+    __tablename__ = 'attendance_records'
+    __table_args__ = (
+        db.UniqueConstraint('person_id', 'attendance_date', name='uq_person_day_attendance'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    person_id = db.Column(db.Integer, db.ForeignKey('person_identities.id', ondelete='CASCADE'), nullable=False, index=True)
+    attendance_date = db.Column(db.Date, nullable=False, index=True)
+    first_seen_at = db.Column(db.DateTime, nullable=False)
+    last_seen_at = db.Column(db.DateTime, nullable=False)
+    source = db.Column(db.String(10), default='AUTO')
+    compliance_rate = db.Column(db.Float, nullable=True)
+    helmet_detected = db.Column(db.Boolean, nullable=True)
+    vest_detected = db.Column(db.Boolean, nullable=True)
+    glasses_detected = db.Column(db.Boolean, nullable=True)
+    boots_detected = db.Column(db.Boolean, nullable=True)
+    equipment_status = db.Column(db.String(30), nullable=True)  # SAFE / WARNING / DANGER
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    person = db.relationship('PersonIdentity', backref='attendance_records', lazy=True)
+
+    def to_dict(self):
+        def yes_no(value):
+            return 'OUI' if bool(value) else 'NON'
+
+        epi_flags = [
+            bool(self.helmet_detected),
+            bool(self.vest_detected),
+            bool(self.glasses_detected),
+            bool(self.boots_detected),
+        ]
+        equipment_rate = round((sum(1 for ok in epi_flags if ok) / 4.0) * 100.0, 2)
+        compliance_value = None if self.compliance_rate is None else round(float(self.compliance_rate), 2)
+
+        return {
+            'id': self.id,
+            'person_id': self.person_id,
+            'person_uuid': self.person.uuid if self.person else None,
+            'full_name': self.person.full_name if self.person else None,
+            'job_title': self.person.job_title if self.person else None,
+            'address': self.person.address if self.person else None,
+            'identity_photo_path': self.person.identity_photo_path if self.person else None,
+            'manual_presence_today': self.person.manual_presence_today if self.person else None,
+            'qr_code_data': self.person.qr_code_data if self.person else None,
+            'attendance_date': self.attendance_date.isoformat() if self.attendance_date else None,
+            'first_seen_at': utc_to_local(self.first_seen_at).strftime('%Y-%m-%d %H:%M:%S') if self.first_seen_at else None,
+            'last_seen_at': utc_to_local(self.last_seen_at).strftime('%Y-%m-%d %H:%M:%S') if self.last_seen_at else None,
+            'source': self.source,
+            'compliance_rate': compliance_value,
+            'compliance_rate_percent': None if compliance_value is None else f'{compliance_value:.2f}%',
+            'helmet_detected': yes_no(self.helmet_detected),
+            'vest_detected': yes_no(self.vest_detected),
+            'glasses_detected': yes_no(self.glasses_detected),
+            'boots_detected': yes_no(self.boots_detected),
+            'helmet_detected_bool': bool(self.helmet_detected),
+            'vest_detected_bool': bool(self.vest_detected),
+            'glasses_detected_bool': bool(self.glasses_detected),
+            'boots_detected_bool': bool(self.boots_detected),
+            'equipment_status': self.equipment_status,
+            'equipment_status_percent': equipment_rate,
+            'equipment_status_text': f'{equipment_rate:.0f}% ({sum(1 for ok in epi_flags if ok)}/4 EPI)',
+        }
+
+
+class AttendanceLog(db.Model):
+    __tablename__ = 'attendance_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    person_id = db.Column(db.Integer, db.ForeignKey('person_identities.id', ondelete='SET NULL'), nullable=True, index=True)
+    detected_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    confidence = db.Column(db.Float)
+    camera_id = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    person = db.relationship('PersonIdentity', backref='attendance_logs', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'person_id': self.person_id,
+            'detected_at': utc_to_local(self.detected_at).strftime('%Y-%m-%d %H:%M:%S') if self.detected_at else None,
+            'confidence': self.confidence,
+            'camera_id': self.camera_id,
+        }
+
+
+# ============================================================================
 # EMAIL NOTIFICATIONS - Configuration des notifications par email
 # ============================================================================
 
 class EmailNotification(db.Model):
-    """Modèle pour configurer les notifications par email"""
+    """Modèle pour configurer et enregistrer les notifications par email"""
     __tablename__ = 'email_notifications'
     
     id = db.Column(db.Integer, primary_key=True)
     email_address = db.Column(db.String(255), nullable=False)
-    notification_type = db.Column(db.String(50), nullable=False)  # 'daily', 'weekly', 'monthly'
+    notification_type = db.Column(db.String(50), nullable=False)  # 'daily', 'weekly', 'monthly', 'test'
     
     # Types de rapports à inclure
     include_detections = db.Column(db.Boolean, default=True)
@@ -419,7 +543,7 @@ class EmailNotification(db.Model):
     
     is_active = db.Column(db.Boolean, default=True)
     
-    last_sent = db.Column(db.DateTime)
+    last_sent = db.Column(db.DateTime)  # Dernier envoi
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -478,6 +602,80 @@ class Worker(db.Model):
 
 
 # ============================================================================
+# ADMIN USERS - Authentification espace admin
+# ============================================================================
+
+class AdminUser(db.Model):
+    """Modèle administrateur pour l'accès à l'interface admin."""
+    __tablename__ = 'admin_users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    full_name = db.Column(db.String(255))
+    role = db.Column(db.String(50), default='admin')
+    password_hash = db.Column(db.String(255), nullable=False)
+    is_active = db.Column(db.Boolean, default=True, index=True)
+    last_login = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<AdminUser {self.username}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'full_name': self.full_name,
+            'role': self.role,
+            'is_active': self.is_active,
+            'last_login': utc_to_local(self.last_login).strftime('%Y-%m-%d %H:%M:%S') if self.last_login else None,
+            'created_at': utc_to_local(self.created_at).strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
+        }
+
+
+# ============================================================================
+# USERS - Utilisateurs applicatifs
+# ============================================================================
+
+class User(db.Model):
+    """Modèle utilisateurs métier gérables depuis l'espace admin."""
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    full_name = db.Column(db.String(255))
+    phone = db.Column(db.String(50))
+    department = db.Column(db.String(100))
+    role = db.Column(db.String(100), default='operator')
+    password_hash = db.Column(db.String(255))
+    is_active = db.Column(db.Boolean, default=True, index=True)
+    last_login = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'full_name': self.full_name,
+            'phone': self.phone,
+            'department': self.department,
+            'role': self.role,
+            'is_active': self.is_active,
+            'last_login': utc_to_local(self.last_login).strftime('%Y-%m-%d %H:%M:%S') if self.last_login else None,
+            'created_at': utc_to_local(self.created_at).strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
+        }
+
+
+# ============================================================================
 # SYSTEM LOGS - Logs système
 # ============================================================================
 
@@ -519,6 +717,139 @@ def init_db(app):
         return db
 
 
+# ============================================================================
+# NOTIFICATIONS - Système de notifications et rapports
+# ============================================================================
+
+class NotificationRecipient(db.Model):
+    """Modèle pour les destinataires des notifications"""
+    __tablename__ = 'notification_recipients'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    is_active = db.Column(db.Boolean, default=True)
+    added_date = db.Column(db.DateTime, default=datetime.utcnow)
+    last_notification = db.Column(db.DateTime)
+    
+    def __repr__(self):
+        return f'<NotificationRecipient {self.email}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'email': self.email,
+            'is_active': self.is_active,
+            'added_date': self.added_date.isoformat() if self.added_date else None,
+            'last_notification': self.last_notification.isoformat() if self.last_notification else None
+        }
+
+
+class NotificationHistory(db.Model):
+    """Modèle pour l'historique des notifications"""
+    __tablename__ = 'notification_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    notification_type = db.Column(db.String(50), nullable=False)  # 'manual', 'report'
+    recipient = db.Column(db.String(255), nullable=False)
+    subject = db.Column(db.String(255))
+    message_preview = db.Column(db.Text)
+    status = db.Column(db.String(20), default='pending')  # 'success', 'error', 'pending'
+    error_message = db.Column(db.Text)
+    report_type = db.Column(db.String(50))  # 'daily', 'weekly', 'monthly'
+    
+    def __repr__(self):
+        return f'<NotificationHistory {self.notification_type} - {self.status}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': utc_to_local(self.timestamp).strftime('%Y-%m-%d %H:%M:%S') if self.timestamp else None,
+            'type': self.notification_type,
+            'recipient': self.recipient,
+            'subject': self.subject,
+            'status': self.status,
+            'details': self.error_message or '-',
+            'report_type': self.report_type
+        }
+
+
+class NotificationConfig(db.Model):
+    """Modèle pour la configuration email SMTP"""
+    __tablename__ = 'notification_config'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    sender_email = db.Column(db.String(255), nullable=False, unique=True)
+    sender_password = db.Column(db.Text, nullable=False)
+    smtp_server = db.Column(db.String(255), default='smtp.gmail.com')
+    smtp_port = db.Column(db.Integer, default=587)
+    use_tls = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True)
+    last_test = db.Column(db.DateTime)
+    test_status = db.Column(db.String(20))  # 'success', 'error'
+    updated_date = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Paramètres de rapports
+    daily_enabled = db.Column(db.Boolean, default=True)
+    daily_hour = db.Column(db.Integer, default=8)
+    
+    weekly_enabled = db.Column(db.Boolean, default=False)
+    weekly_day = db.Column(db.Integer, default=0)  # 0=Monday, 6=Sunday
+    weekly_hour = db.Column(db.Integer, default=9)
+    
+    monthly_enabled = db.Column(db.Boolean, default=False)
+    monthly_day = db.Column(db.Integer, default=1)
+    monthly_hour = db.Column(db.Integer, default=9)
+    
+    def __repr__(self):
+        return f'<NotificationConfig {self.sender_email}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'sender_email': self.sender_email,
+            'smtp_server': self.smtp_server,
+            'smtp_port': self.smtp_port,
+            'use_tls': self.use_tls,
+            'daily_enabled': self.daily_enabled,
+            'daily_hour': self.daily_hour,
+            'weekly_enabled': self.weekly_enabled,
+            'weekly_day': self.weekly_day,
+            'weekly_hour': self.weekly_hour,
+            'monthly_enabled': self.monthly_enabled,
+            'monthly_day': self.monthly_day,
+            'monthly_hour': self.monthly_hour
+        }
+
+
+class ReportSchedule(db.Model):
+    """Modèle pour la planification des rapports"""
+    __tablename__ = 'report_schedule'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    report_type = db.Column(db.String(50), unique=True, nullable=False)  # 'daily', 'weekly', 'monthly'
+    is_enabled = db.Column(db.Boolean, default=False)
+    send_hour = db.Column(db.Integer, default=9)
+    send_minute = db.Column(db.Integer, default=0)
+    send_day = db.Column(db.Integer)  # Pour weekly/monthly
+    frequency = db.Column(db.String(50))
+    last_sent = db.Column(db.DateTime)
+    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<ReportSchedule {self.report_type}>'
+    
+    def to_dict(self):
+        return {
+            'report_type': self.report_type,
+            'enabled': self.is_enabled,
+            'hour': self.send_hour,
+            'day': self.send_day,
+            'frequency': self.frequency,
+            'last_sent': self.last_sent.isoformat() if self.last_sent else None
+        }
+
+
 def clear_old_data(days=30):
     """Nettoyer les données anciennes (pour économiser l'espace)"""
     from datetime import timedelta
@@ -528,6 +859,8 @@ def clear_old_data(days=30):
     Alert.query.filter(Alert.timestamp < cutoff).delete()
     IoTDataLog.query.filter(IoTDataLog.timestamp < cutoff).delete()
     SystemLog.query.filter(SystemLog.timestamp < cutoff).delete()
+    NotificationHistory.query.filter(NotificationHistory.timestamp < cutoff).delete()
     
     db.session.commit()
     return True
+

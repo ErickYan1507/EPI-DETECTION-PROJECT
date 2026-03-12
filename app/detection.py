@@ -140,13 +140,51 @@ class EPIDetector:
         class_names = self.model.names
         orig_h, orig_w = original_shape[:2]
         
-        class_counts = {'person': 0, 'helmet': 0, 'vest': 0, 'glasses': 0, 'boots': 0}
+        # Utiliser le CLASS_MAP fixe pour assurer la cohérence
+        # Ordre fixe: 0=helmet, 1=glasses, 2=person, 3=vest, 4=boots
+        class_counts = {}
+        for idx, name in CLASS_MAP.items():
+            class_counts[name] = 0
+        
+        # DEBUG: Afficher les noms de classes du modèle
+        logger.debug(f"Model class names: {class_names}")
+        logger.debug(f"Expected CLASS_MAP: {CLASS_MAP}")
         
         for det in xyxy:
             x1, y1, x2, y2, conf, cls_idx = det
             cls_idx = int(cls_idx)
-            cls_name = class_names[cls_idx]
+            
+            # Utiliser CLASS_MAP pour mapper l'indice vers le nom
+            cls_name_raw = None
+            try:
+                if isinstance(class_names, dict):
+                    cls_name_raw = class_names.get(cls_idx)
+                elif isinstance(class_names, (list, tuple)) and 0 <= cls_idx < len(class_names):
+                    cls_name_raw = class_names[cls_idx]
+            except Exception:
+                cls_name_raw = None
+
+            if not cls_name_raw:
+                cls_name_raw = CLASS_MAP.get(cls_idx, f"unknown_class_{cls_idx}")
+
+            cls_name = self._normalize_class_name(cls_name_raw)
+            if cls_name not in class_counts and cls_idx in CLASS_MAP:
+                logger.warning(
+                    f"Nom de classe inattendu '{cls_name_raw}' (normalisé='{cls_name}'). "
+                    f"Fallback vers CLASS_MAP[{cls_idx}]='{CLASS_MAP[cls_idx]}'."
+                )
+                cls_name = CLASS_MAP[cls_idx]
             confidence = float(conf)
+            
+            # Filtrage par seuil spécifique à la classe
+            class_thresholds = getattr(config, "CLASS_CONF_THRESHOLDS", {})
+            default_threshold = getattr(config, "DEFAULT_CLASS_CONF", getattr(config, "CONFIDENCE_THRESHOLD", 0.1))
+            min_conf = class_thresholds.get(cls_name, default_threshold)
+            if confidence < min_conf:
+                continue
+            
+            # DEBUG: Afficher chaque détection
+            logger.debug(f"Detection: cls_idx={cls_idx}, cls_name={cls_name}, conf={confidence:.2f}")
             
             x1 = max(0, min(orig_w, int(x1)))
             y1 = max(0, min(orig_h, int(y1)))
@@ -161,30 +199,69 @@ class EPIDetector:
             }
             detection_list.append(detection)
             
+            # Compter la classe (utiliser celle du CLASS_MAP)
             if cls_name in class_counts:
                 class_counts[cls_name] += 1
+            else:
+                logger.warning(f"Classe non mappée: cls_idx={cls_idx}, cls_name={cls_name}")
+        
+        # DEBUG: Afficher les comptages finaux
+        logger.info(f"🔍 Raw class counts: {class_counts}")
         
         return self.calculate_statistics_optimized(class_counts)
+
+    def _normalize_class_name(self, raw_name):
+        """Normaliser un label de classe en nom canonique EPI."""
+        if raw_name is None:
+            return "unknown"
+
+        name = str(raw_name).strip().lower().replace("-", "_").replace(" ", "_")
+        aliases = {
+            "person": "person",
+            "worker": "person",
+            "personne": "person",
+            "ouvrier": "person",
+            "helmet": "helmet",
+            "hardhat": "helmet",
+            "hard_hat": "helmet",
+            "casque": "helmet",
+            "vest": "vest",
+            "safety_vest": "vest",
+            "gilet": "vest",
+            "glasses": "glasses",
+            "goggles": "glasses",
+            "safety_glasses": "glasses",
+            "lunettes": "glasses",
+            "boots": "boots",
+            "boot": "boots",
+            "safety_boots": "boots",
+            "shoe": "boots",
+            "shoes": "boots",
+            "bottes": "boots",
+            "botte": "boots",
+            "chaussure": "boots",
+            "chaussures": "boots",
+        }
+        return aliases.get(name, name)
     
     def calculate_statistics_optimized(self, class_counts):
         """
         Calculer les statistiques avec le nouvel algorithme de conformité.
         
         RÈGLE CRITIQUE:
-        - La classe 'personne' doit être présente pour compter les personnes
-        - Les autres EPI seuls ne signifient pas qu'une personne est présente
-        - Si 'personne' n'est pas détectée, le nombre de personnes = 0 et conformité = 0%
+        - Si 'person' est détecté: utiliser ce comptage
+        - Si 'person' N'EST PAS détecté (même si des EPI le sont): total_persons = 0
+        - Donc conformité = 0% tant que personne = 0
         """
-        total_persons = class_counts['person']  # RÈGLE: Doit venir de la détection 'person'
+        total_persons = class_counts['person']
         helmets = class_counts['helmet']
         vests = class_counts['vest']
         glasses = class_counts['glasses']
         boots = class_counts.get('boots', 0)
         
-        # RÈGLE: Ne PAS déduire le nombre de personnes des EPI si 'person' n'est pas détecté
-        # Si personne n'est pas détecté, alors 0 personnes = 0% de conformité
+        # Calculer la conformité
         if total_persons == 0:
-            # Personne n'est pas détectée => 0% de conformité
+            # Aucune personne détectée => 0% de conformité
             compliance_rate = 0.0
         else:
             # Personne est détectée => calculer le score selon l'algorithme
@@ -244,6 +321,6 @@ class EPIDetector:
             
             cv2.rectangle(img_copy, (x1, y1), (x2, y2), color, 2)
             cv2.putText(img_copy, label, (x1, y1-10),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                       cv2.FONT_HERSHEY_SIMPLEX, 3, color, 5)
         
         return img_copy

@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.email_notifications import EmailNotifier
 from config import config
 from app.logger import logger
+from pathlib import Path
 
 class ReportScheduler:
     """Gestionnaire des rapports automatiques"""
@@ -25,12 +26,27 @@ class ReportScheduler:
             logger.warning("Email config not complete - skipping scheduler")
             return
         
-        recipient_emails = config.RECIPIENT_EMAILS if hasattr(config, 'RECIPIENT_EMAILS') else ''
-        if not recipient_emails:
+        # Lire les destinataires depuis le fichier .email_recipients
+        recipients = []
+        recipients_file = Path(__file__).parent.parent / '.email_recipients'
+        
+        if recipients_file.exists():
+            try:
+                recipients = [line.strip() for line in recipients_file.read_text().split('\n') if line.strip()]
+            except Exception as e:
+                logger.warning(f"Erreur lecture .email_recipients: {e}")
+        
+        # Fallback: chercher dans RECIPIENT_EMAILS si défini
+        if not recipients:
+            recipient_emails = getattr(config, 'RECIPIENT_EMAILS', '')
+            if recipient_emails:
+                recipients = [e.strip() for e in recipient_emails.split(',')]
+        
+        if not recipients:
             logger.warning("No recipient emails configured - skipping scheduler")
             return
         
-        recipients = [e.strip() for e in recipient_emails.split(',')]
+        logger.info(f"📧 Destinataires trouvés: {len(recipients)} emails")
         
         # Rapport quotidien
         try:
@@ -95,7 +111,7 @@ class ReportScheduler:
             subject = f"📊 Rapport Quotidien EPI Detection - {date.today()}"
             
             for recipient in recipients:
-                success = notifier.send_email(recipient, subject, html)
+                success = notifier.send_email(recipient, subject, html, report_type='daily')
                 if success:
                     logger.info(f"✅ Rapport quotidien envoyé à {recipient}")
                 else:
@@ -115,7 +131,7 @@ class ReportScheduler:
             subject = f"📅 Rapport Hebdomadaire EPI Detection - {week_start.strftime('%d/%m/%Y')}"
             
             for recipient in recipients:
-                success = notifier.send_email(recipient, subject, html)
+                success = notifier.send_email(recipient, subject, html, report_type='weekly')
                 if success:
                     logger.info(f"✅ Rapport hebdomadaire envoyé à {recipient}")
                 else:
@@ -134,7 +150,7 @@ class ReportScheduler:
             subject = f"📆 Rapport Mensuel EPI Detection - {today.strftime('%B %Y')}"
             
             for recipient in recipients:
-                success = notifier.send_email(recipient, subject, html)
+                success = notifier.send_email(recipient, subject, html, report_type='monthly')
                 if success:
                     logger.info(f"✅ Rapport mensuel envoyé à {recipient}")
                 else:

@@ -9,13 +9,24 @@ Routes pour les statistiques en temps réel
 
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
-from app.database_unified import db, Detection, Alert, TrainingResult, Worker
+from app.database_unified import db, Detection, Alert, TrainingResult, Worker, AttendanceRecord, TIMEZONE_OFFSET
 from app.constants import calculate_compliance_score
 from sqlalchemy import func, and_
 import json
 import os
 
 stats_bp = Blueprint('stats', __name__, url_prefix='/api')
+
+
+def _local_now():
+    return datetime.utcnow() + TIMEZONE_OFFSET
+
+
+def _utc_bounds_for_local_day(ref_local=None):
+    ref_local = ref_local or _local_now()
+    local_start = datetime.combine(ref_local.date(), datetime.min.time())
+    local_end = local_start + timedelta(days=1)
+    return local_start - TIMEZONE_OFFSET, local_end - TIMEZONE_OFFSET
 
 
 @stats_bp.route('/ping', methods=['GET'])
@@ -37,13 +48,22 @@ def get_stats():
     Retourne: compliance_rate, total_persons, with_helmet, with_vest, with_glasses, alerts, detections_today
     """
     try:
-        # Récupérer les détections d'aujourd'hui
-        today_start = datetime.combine(datetime.today(), datetime.min.time())
-        today_detections = Detection.query.filter(
-            Detection.timestamp >= today_start
+        # Base métier: présence journalière unique (1 personne/jour)
+        day_start_utc, day_end_utc = _utc_bounds_for_local_day()
+        today_rows = AttendanceRecord.query.filter(
+            AttendanceRecord.first_seen_at >= day_start_utc,
+            AttendanceRecord.first_seen_at < day_end_utc,
         ).all()
-        
-        if not today_detections:
+
+        # Garder "detections_today" compatible avec l'UI, mais basé sur personnes uniques du jour.
+        total_detections = len(today_rows)
+
+        if not today_rows:
+            active_alerts = Alert.query.filter(
+                Alert.resolved == False,
+                Alert.timestamp >= day_start_utc,
+                Alert.timestamp < day_end_utc,
+            ).count()
             return jsonify({
                 'compliance_rate': 0,
                 'total_persons': 0,
@@ -51,26 +71,21 @@ def get_stats():
                 'with_vest': 0,
                 'with_glasses': 0,
                 'with_boots': 0,
-                'alerts': 0,
+                'alerts': active_alerts,
                 'detections_today': 0,
                 'status': 'no_data'
             }), 200
-        
-        # Calculer les statistiques
-        total_detections = len(today_detections)
-        total_persons = sum(d.total_persons or 0 for d in today_detections)
-        with_helmet = sum(d.with_helmet or 0 for d in today_detections)
-        with_vest = sum(d.with_vest or 0 for d in today_detections)
-        with_glasses = sum(d.with_glasses or 0 for d in today_detections)
-        with_boots = sum(d.with_boots or 0 for d in today_detections)
-        
-        # Taux de conformité - Utiliser le nouvel algorithme
-        # RÈGLE: Si personne = 0 → conformité = 0%
-        #        Si personne > 0 → appliquer le nouvel algorithme
+
+        total_persons = len(today_rows)
+        with_helmet = sum(1 for r in today_rows if bool(r.helmet_detected))
+        with_vest = sum(1 for r in today_rows if bool(r.vest_detected))
+        with_glasses = sum(1 for r in today_rows if bool(r.glasses_detected))
+        with_boots = sum(1 for r in today_rows if bool(r.boots_detected))
+
+        # RÈGLE: si personne=0 => conformité=0, sinon score agrégé.
         if total_persons == 0:
-            compliance_rate = 0.0  # Aucune personne détectée
+            compliance_rate = 0.0
         else:
-            # Utiliser le nouvel algorithme avec le nombre total d'EPI détectés
             compliance_rate = calculate_compliance_score(
                 total_persons=total_persons,
                 with_helmet=with_helmet,
@@ -78,12 +93,13 @@ def get_stats():
                 with_glasses=with_glasses,
                 with_boots=with_boots
             )
-        
-        # Compter les alertes actives
+
+        # Alertes actives sur la fenêtre locale du jour (UTC bornes locales).
         active_alerts = Alert.query.filter(
             Alert.resolved == False,
-            Alert.timestamp >= today_start
-        ).count()
+            Alert.timestamp >= day_start_utc,
+            Alert.timestamp < day_end_utc
+        ).all()
         
         return jsonify({
             'compliance_rate': round(compliance_rate, 2),
@@ -92,9 +108,9 @@ def get_stats():
             'with_vest': with_vest,
             'with_glasses': with_glasses,
             'with_boots': with_boots,
-            'alerts': active_alerts,
+            'alerts': len(active_alerts),
             'detections_today': total_detections,
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': _local_now().isoformat(),
             'status': 'success'
         }), 200
         
@@ -110,35 +126,39 @@ def get_stats():
 @stats_bp.route('/chart/hourly', methods=['GET'])
 def get_hourly_data():
     """
-    Récupère les détections et conformité par heure pour les 24 dernières heures
+    Récupère les détections et conformité par heure pour aujourd'hui
     Retourne: hours (labels), detections (valeurs), compliance (taux de conformité par heure)
     """
     try:
-        # Récupérer les détections des 24 dernières heures
-        now = datetime.now()
+        # Récupérer les détections d'aujourd'hui (évite d'afficher des heures anciennes)
+        now_local = _local_now()
+        day_start_utc, day_end_utc = _utc_bounds_for_local_day(now_local)
         hours_data = {}
         compliance_data = {}
         
-        for i in range(24):
-            hour = (now - timedelta(hours=i)).hour
+        for hour in range(24):
             hour_label = f"{hour:02d}h"
             hours_data[hour_label] = {'count': 0, 'persons': 0, 'compliant': 0}
             compliance_data[hour_label] = 0
         
         # Récupérer les détections
-        start_time = now - timedelta(hours=24)
-        detections = Detection.query.filter(
-            Detection.timestamp >= start_time
+        rows = AttendanceRecord.query.filter(
+            and_(
+                AttendanceRecord.first_seen_at >= day_start_utc,
+                AttendanceRecord.first_seen_at < day_end_utc
+            )
         ).all()
-        
-        # Compter par heure et calculer la conformité avec le nouvel algorithme
-        for detection in detections:
-            hour = detection.timestamp.hour
+
+        # Compter par heure en local, par personne unique/jour
+        for row in rows:
+            local_dt = (row.first_seen_at + TIMEZONE_OFFSET) if row.first_seen_at else None
+            if not local_dt:
+                continue
+            hour = local_dt.hour
             hour_label = f"{hour:02d}h"
             if hour_label in hours_data:
                 hours_data[hour_label]['count'] += 1
-                total_persons = detection.total_persons or 0
-                hours_data[hour_label]['persons'] += total_persons
+                hours_data[hour_label]['persons'] += 1
         
         # Calculer le taux de conformité par heure en utilisant le nouvel algorithme
         for hour_label, data in hours_data.items():
@@ -146,13 +166,19 @@ def get_hourly_data():
                 # Recalculer la conformité avec le nouvel algorithme
                 # Récupérer les détections pour cette heure (filtrage en mémoire pour compatibilité SQLite)
                 hour_int = int(hour_label.split('h')[0])
-                detections_hour = [d for d in detections if d.timestamp and d.timestamp.hour == hour_int]
+                rows_hour = []
+                for r in rows:
+                    if not r.first_seen_at:
+                        continue
+                    local_dt = r.first_seen_at + TIMEZONE_OFFSET
+                    if local_dt.hour == hour_int:
+                        rows_hour.append(r)
                 
                 # Compter les EPI totaux pour cette heure
-                total_helmet = sum(d.with_helmet or 0 for d in detections_hour)
-                total_vest = sum(d.with_vest or 0 for d in detections_hour)
-                total_glasses = sum(d.with_glasses or 0 for d in detections_hour)
-                total_boots = sum(d.with_boots or 0 for d in detections_hour)
+                total_helmet = sum(1 for r in rows_hour if bool(r.helmet_detected))
+                total_vest = sum(1 for r in rows_hour if bool(r.vest_detected))
+                total_glasses = sum(1 for r in rows_hour if bool(r.glasses_detected))
+                total_boots = sum(1 for r in rows_hour if bool(r.boots_detected))
                 
                 # Appliquer le nouvel algorithme
                 compliance_data[hour_label] = calculate_compliance_score(
@@ -165,8 +191,8 @@ def get_hourly_data():
             else:
                 compliance_data[hour_label] = 0
         
-        # Retourner les données triées par heure
-        hours = sorted(hours_data.keys(), key=lambda x: int(x.split('h')[0]))
+        # Retourner les données triées par heure (00h -> 23h)
+        hours = [f"{h:02d}h" for h in range(24)]
         detections_count = [hours_data[h]['count'] for h in hours]
         compliance_values = [compliance_data[h] for h in hours]
         
@@ -193,18 +219,16 @@ def get_epi_data():
     Retourne: helmets, vests, glasses
     """
     try:
-        today_start = datetime.combine(datetime.today(), datetime.min.time())
-        
-        # Récupérer les détections d'aujourd'hui
-        detections = Detection.query.filter(
-            Detection.timestamp >= today_start
+        day_start_utc, day_end_utc = _utc_bounds_for_local_day()
+        rows = AttendanceRecord.query.filter(
+            AttendanceRecord.first_seen_at >= day_start_utc,
+            AttendanceRecord.first_seen_at < day_end_utc
         ).all()
-        
-        # Somme des EPI
-        helmets = sum(d.with_helmet or 0 for d in detections)
-        vests = sum(d.with_vest or 0 for d in detections)
-        glasses = sum(d.with_glasses or 0 for d in detections)
-        boots = sum(d.with_boots or 0 for d in detections)
+
+        helmets = sum(1 for r in rows if bool(r.helmet_detected))
+        vests = sum(1 for r in rows if bool(r.vest_detected))
+        glasses = sum(1 for r in rows if bool(r.glasses_detected))
+        boots = sum(1 for r in rows if bool(r.boots_detected))
         
         return jsonify({
             'helmets': helmets,
@@ -223,40 +247,68 @@ def get_epi_data():
 # ENDPOINT: /api/chart/alerts - Alertes par sévérité
 # ============================================================================
 
-@stats_bp.route('/chart/alerts', methods=['GET'])
+@stats_bp.route('/chart/alerts-stats', methods=['GET'])
 def get_alerts_data():
     """
-    Alertes groupées par sévérité
-    Retourne: high, medium, low
+    Endpoint legacy stats for alerts by severity.
+    Kept for compatibility without conflicting with /api/chart/alerts.
     """
     try:
-        today_start = datetime.combine(datetime.today(), datetime.min.time())
-        
-        # Compter les alertes par sévérité
-        high_alerts = Alert.query.filter(
-            Alert.severity == 'high',
-            Alert.timestamp >= today_start
-        ).count()
-        
-        medium_alerts = Alert.query.filter(
-            Alert.severity == 'medium',
-            Alert.timestamp >= today_start
-        ).count()
-        
-        low_alerts = Alert.query.filter(
-            Alert.severity == 'low',
-            Alert.timestamp >= today_start
-        ).count()
-        
+        period = request.args.get('period', 'today')
+        days = request.args.get('days', type=int)
+        show_resolved = request.args.get('resolved', 'all')
+
+        if days is not None:
+            days = max(1, min(days, 365))
+            start_date = datetime.now() - timedelta(days=days)
+        elif period == 'today':
+            start_date = datetime.combine(datetime.today(), datetime.min.time())
+        elif period == 'week':
+            start_date = datetime.now() - timedelta(days=7)
+        elif period == 'month':
+            start_date = datetime.now() - timedelta(days=30)
+        else:
+            start_date = datetime(2000, 1, 1)
+
+        base_query = Alert.query.filter(Alert.timestamp >= start_date)
+        if show_resolved == 'true':
+            base_query = base_query.filter(Alert.resolved == True)
+        elif show_resolved == 'false':
+            base_query = base_query.filter(Alert.resolved == False)
+
+        def normalize_severity(value):
+            sev = (value or 'low').strip().lower()
+            if sev in ('critical', 'critique', 'high'):
+                return 'high'
+            if sev in ('warning', 'warn', 'medium', 'moyen'):
+                return 'medium'
+            return 'low'
+
+        totals = {'high': 0, 'medium': 0, 'low': 0}
+        for alert in base_query.all():
+            totals[normalize_severity(alert.severity)] += 1
+
+        total_alerts = totals['high'] + totals['medium'] + totals['low']
+        print(
+            f"OK /api/chart/alerts-stats: period={period}, days={days}, "
+            f"resolved={show_resolved}, total={total_alerts} "
+            f"(high={totals['high']}, medium={totals['medium']}, low={totals['low']})"
+        )
+
         return jsonify({
-            'high': high_alerts,
-            'medium': medium_alerts,
-            'low': low_alerts,
+            'high': totals['high'],
+            'medium': totals['medium'],
+            'low': totals['low'],
+            'total': total_alerts,
+            'period': period,
+            'days': days,
             'status': 'success'
         }), 200
-        
+
     except Exception as e:
-        print(f"❌ Erreur /api/chart/alerts: {e}")
+        print(f"Error /api/chart/alerts-stats: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e), 'status': 'error'}), 500
 
 
@@ -267,45 +319,67 @@ def get_alerts_data():
 @stats_bp.route('/chart/cumulative', methods=['GET'])
 def get_cumulative_data():
     """
-    Données cumulatives pour graphique cumulé
+    Données cumulatives pour graphique cumulé - retourne le cumul réel des détections
     """
     try:
-        # Récupérer les détections des 30 derniers jours
-        start_date = datetime.now() - timedelta(days=30)
+        # Récupérer le nombre de jours depuis le paramètre (par défaut 7 jours)
+        days = int(request.args.get('days', 7))
         
-        # Grouper par jour
-        daily_data = {}
-        cumulative = 0
+        # Limiter entre 1 et 90 jours
+        days = max(1, min(days, 90))
         
-        for i in range(30):
-            date = (datetime.now() - timedelta(days=i)).date()
-            day_label = date.strftime('%d/%m')
-            
-            day_start = datetime.combine(date, datetime.min.time())
-            day_end = datetime.combine(date, datetime.max.time())
-            
-            count = Detection.query.filter(
+        # Date de début et de fin
+        end_date = _local_now().date()
+        start_date = end_date - timedelta(days=days - 1)
+        
+        # Dictionnaire pour stocker les données quotidiennes avec dates complètes
+        daily_data = []
+        
+        # Parcourir du plus ancien au plus récent
+        for i in range(days):
+            date = start_date + timedelta(days=i)
+            local_day_start = datetime.combine(date, datetime.min.time())
+            utc_day_start = local_day_start - TIMEZONE_OFFSET
+            utc_day_end = utc_day_start + timedelta(days=1)
+            count = AttendanceRecord.query.filter(
                 and_(
-                    Detection.timestamp >= day_start,
-                    Detection.timestamp <= day_end
+                    AttendanceRecord.first_seen_at >= utc_day_start,
+                    AttendanceRecord.first_seen_at < utc_day_end
                 )
             ).count()
             
-            cumulative += count
-            daily_data[day_label] = cumulative
+            daily_data.append({
+                'date': date,
+                'label': date.strftime('%d/%m'),
+                'count': count
+            })
         
-        # Retourner les données triées
-        labels = sorted(daily_data.keys(), key=lambda x: datetime.strptime(x, '%d/%m'))
-        values = [daily_data[label] for label in labels]
+        # Calculer le cumul (somme progressive)
+        cumulative = 0
+        labels = []
+        cumulative_values = []
+        
+        for day in daily_data:
+            cumulative += day['count']
+            labels.append(day['label'])
+            cumulative_values.append(cumulative)
+        
+        print(f"✅ /api/chart/cumulative: {days} jours, {len(labels)} points, cumul final: {cumulative}")
         
         return jsonify({
             'labels': labels,
-            'data': values,
+            'data': cumulative_values,
+            'cumulative': cumulative_values,  # Alias pour compatibilité
+            'days': labels,  # Alias pour compatibilité
+            'total_detections': cumulative,
+            'period_days': days,
             'status': 'success'
         }), 200
         
     except Exception as e:
         print(f"❌ Erreur /api/chart/cumulative: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e), 'status': 'error'}), 500
 
 
@@ -413,7 +487,7 @@ def get_live_stats():
     """
     try:
         # Récupérer les données actuelles
-        now = datetime.now()
+        now = _local_now()
         
         # Dernière détection
         latest_detection = Detection.query.order_by(
@@ -421,9 +495,9 @@ def get_live_stats():
         ).first()
         
         # Détections de la dernière heure
-        one_hour_ago = now - timedelta(hours=1)
+        one_hour_ago_utc = datetime.utcnow() - timedelta(hours=1)
         hourly_detections = Detection.query.filter(
-            Detection.timestamp >= one_hour_ago
+            Detection.timestamp >= one_hour_ago_utc
         ).count()
         
         # Alertes non résolues
@@ -432,7 +506,7 @@ def get_live_stats():
         ).count()
         
         return jsonify({
-            'latest_detection_time': latest_detection.timestamp.isoformat() if latest_detection else None,
+            'latest_detection_time': (latest_detection.timestamp + TIMEZONE_OFFSET).isoformat() if latest_detection and latest_detection.timestamp else None,
             'detections_last_hour': hourly_detections,
             'unresolved_alerts': unresolved_alerts,
             'current_time': now.isoformat(),
@@ -483,7 +557,7 @@ def get_realtime():
         
         for det in recent:
             # Format temps
-            time_str = det.timestamp.strftime('%H:%M:%S')
+            time_str = (det.timestamp + TIMEZONE_OFFSET).strftime('%H:%M:%S')
             timestamps.append(time_str)
             
             # Comptages
